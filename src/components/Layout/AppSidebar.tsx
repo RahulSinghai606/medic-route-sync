@@ -6,8 +6,8 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarNav,
-  SidebarNavItem,
+  SidebarMenu,
+  SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { 
   Home, 
@@ -33,8 +33,8 @@ const AppSidebar = () => {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarNav>
-          <SidebarNavItem>
+        <SidebarMenu>
+          <SidebarMenuItem>
             <NavLink 
               to="/" 
               className={({ isActive }) => 
@@ -46,8 +46,8 @@ const AppSidebar = () => {
               <Home className="h-5 w-5" />
               <span>Dashboard</span>
             </NavLink>
-          </SidebarNavItem>
-          <SidebarNavItem>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <NavLink 
               to="/patients" 
               className={({ isActive }) => 
@@ -59,8 +59,8 @@ const AppSidebar = () => {
               <Users className="h-5 w-5" />
               <span>Patients</span>
             </NavLink>
-          </SidebarNavItem>
-          <SidebarNavItem>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <NavLink 
               to="/assessment" 
               className={({ isActive }) => 
@@ -72,8 +72,8 @@ const AppSidebar = () => {
               <Stethoscope className="h-5 w-5" />
               <span>Assessment</span>
             </NavLink>
-          </SidebarNavItem>
-          <SidebarNavItem>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <NavLink 
               to="/hospitals" 
               className={({ isActive }) => 
@@ -85,8 +85,8 @@ const AppSidebar = () => {
               <Building2 className="h-5 w-5" />
               <span>Hospitals</span>
             </NavLink>
-          </SidebarNavItem>
-          <SidebarNavItem>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <NavLink 
               to="/cases" 
               className={({ isActive }) => 
@@ -98,8 +98,8 @@ const AppSidebar = () => {
               <ClipboardList className="h-5 w-5" />
               <span>Cases</span>
             </NavLink>
-          </SidebarNavItem>
-        </SidebarNav>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
         <div className="flex flex-col gap-2">

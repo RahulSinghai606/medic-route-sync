@@ -13,7 +13,7 @@ import {
   Heart, 
   Droplets, 
   Thermometer, 
-  Lungs, 
+  Stethoscope, 
   Brain,
   User,
   Map,
@@ -108,7 +108,7 @@ const PatientAssessment = () => {
                 {/* SpO2 */}
                 <div className="space-y-2">
                   <Label htmlFor="spo2" className="flex items-center gap-2 text-base">
-                    <Lungs className="h-5 w-5 text-blue-500" />
+                    <Stethoscope className="h-5 w-5 text-blue-500" />
                     Oxygen Saturation (%)
                   </Label>
                   <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ const PatientAssessment = () => {
                 {/* Respiratory Rate */}
                 <div className="space-y-2">
                   <Label htmlFor="resp-rate" className="flex items-center gap-2 text-base">
-                    <Lungs className="h-5 w-5 text-indigo-500" />
+                    <Stethoscope className="h-5 w-5 text-indigo-500" />
                     Respiratory Rate (breaths/min)
                   </Label>
                   <div className="flex items-center gap-2">
