@@ -24,6 +24,7 @@ import {
   SendHorizontal
 } from 'lucide-react';
 import { savePatientInfo, saveVitals, saveIncident, saveMedicalHistory, usePatientOperations } from '@/lib/patientUtils';
+import VoiceToVitals from '@/components/VoiceToVitals';
 
 const PatientAssessment = () => {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ const PatientAssessment = () => {
   const { handleSaveResult } = usePatientOperations();
   const [currentTab, setCurrentTab] = useState('vitals');
   const [savedPatientId, setSavedPatientId] = useState<string | null>(null);
+  const [hasVoiceData, setHasVoiceData] = useState(false);
   
   // State for vitals
   const [painLevel, setPainLevel] = useState(0);
@@ -146,6 +148,22 @@ const PatientAssessment = () => {
   React.useEffect(() => {
     handleVitalsChange('gcs', consciousnessLevel);
   }, [consciousnessLevel]);
+
+  // Handle voice data extraction
+  const handleVitalsExtracted = (extractedVitals: any) => {
+    setVitalsData(prev => ({
+      ...prev,
+      ...extractedVitals
+    }));
+    
+    setHasVoiceData(true);
+    
+    // Show toast notification
+    toast({
+      title: "Voice Data Processed",
+      description: "Vital signs have been updated from voice recording.",
+    });
+  };
 
   // Save vitals
   const handleSaveVitals = async () => {
@@ -304,6 +322,18 @@ const PatientAssessment = () => {
               <CardDescription>Record and monitor patient vital signs</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Voice-to-Vitals Component */}
+              <VoiceToVitals onVitalsExtracted={handleVitalsExtracted} />
+              
+              {hasVoiceData && (
+                <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md border border-green-200 dark:border-green-800">
+                  <p className="text-green-800 dark:text-green-300 flex items-center gap-2">
+                    <span className="text-lg">✓</span> 
+                    Vital signs updated from voice recording
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Heart Rate */}
                 <div className="space-y-2">

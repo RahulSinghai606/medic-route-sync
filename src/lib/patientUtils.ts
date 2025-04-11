@@ -138,6 +138,36 @@ export const fetchPatientDetails = async (patientId: string) => {
   }
 };
 
+// Function to process voice recording and extract vitals
+export const processVoiceRecording = async (audioBlob: Blob) => {
+  try {
+    // In a real implementation, this would send the audio to a backend API
+    // for processing and return the extracted vitals
+    // For now, we'll just simulate it with a mock response
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Mock response
+    const extractedVitals = {
+      heart_rate: 85,
+      bp_systolic: 120,
+      bp_diastolic: 80,
+      spo2: 98,
+      temperature: 37.2,
+      respiratory_rate: 16,
+      gcs: 15,
+      pain_level: 2,
+      notes: "Patient appears stable, complaining of chest pain radiating to left arm."
+    };
+    
+    return { data: extractedVitals, error: null };
+  } catch (error: any) {
+    console.error('Error processing voice recording:', error);
+    return { data: null, error: error.message };
+  }
+};
+
 // Hook for displaying toast notifications after save operations
 export const usePatientOperations = () => {
   const { toast } = useToast();
