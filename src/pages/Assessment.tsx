@@ -9,6 +9,8 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { 
   Heart, 
   Droplets, 
@@ -21,10 +23,252 @@ import {
   Save,
   SendHorizontal
 } from 'lucide-react';
+import { savePatientInfo, saveVitals, saveIncident, saveMedicalHistory, usePatientOperations } from '@/lib/patientUtils';
 
 const PatientAssessment = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { handleSaveResult } = usePatientOperations();
+  const [currentTab, setCurrentTab] = useState('vitals');
+  const [savedPatientId, setSavedPatientId] = useState<string | null>(null);
+  
+  // State for vitals
   const [painLevel, setPainLevel] = useState(0);
   const [consciousnessLevel, setConsciousnessLevel] = useState(15); // Glasgow Coma Scale
+  const [vitalsData, setVitalsData] = useState({
+    heart_rate: 75,
+    bp_systolic: 120,
+    bp_diastolic: 80,
+    spo2: 98,
+    temperature: 36.8,
+    respiratory_rate: 16,
+    gcs: 15,
+    pain_level: 0,
+    notes: ''
+  });
+
+  // State for patient info
+  const [patientData, setPatientData] = useState({
+    name: '',
+    age: '',
+    gender: '',
+    phone: '',
+    address: '',
+    patient_id: 'P-' + Math.floor(1000 + Math.random() * 9000),
+    emergency_contact: '',
+    emergency_contact_phone: ''
+  });
+
+  // State for incident details
+  const [incidentData, setIncidentData] = useState({
+    incident_type: '',
+    incident_location: '',
+    incident_date: new Date().toISOString().slice(0, 16),
+    incident_severity: '',
+    chief_complaint: '',
+    description: '',
+    interventions: [] as string[]
+  });
+
+  // State for medical history
+  const [medicalHistoryData, setMedicalHistoryData] = useState({
+    conditions: [] as string[],
+    allergies: '',
+    medications: '',
+    surgical_history: '',
+    family_history: '',
+    additional_factors: [] as string[]
+  });
+
+  // Handle vitals input changes
+  const handleVitalsChange = (field: string, value: any) => {
+    setVitalsData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle patient data input changes
+  const handlePatientDataChange = (field: string, value: any) => {
+    setPatientData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle incident data input changes
+  const handleIncidentDataChange = (field: string, value: any) => {
+    setIncidentData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle medical history input changes
+  const handleMedicalHistoryChange = (field: string, value: any) => {
+    setMedicalHistoryData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle checkbox changes for arrays
+  const handleCheckboxChange = (field: string, collection: string, value: string, isChecked: boolean) => {
+    if (collection === 'interventions') {
+      setIncidentData(prev => {
+        const updatedInterventions = isChecked 
+          ? [...prev.interventions, value]
+          : prev.interventions.filter(item => item !== value);
+        return { ...prev, interventions: updatedInterventions };
+      });
+    } else if (collection === 'conditions') {
+      setMedicalHistoryData(prev => {
+        const updatedConditions = isChecked 
+          ? [...prev.conditions, value]
+          : prev.conditions.filter(item => item !== value);
+        return { ...prev, conditions: updatedConditions };
+      });
+    } else if (collection === 'additional_factors') {
+      setMedicalHistoryData(prev => {
+        const updatedFactors = isChecked 
+          ? [...prev.additional_factors, value]
+          : prev.additional_factors.filter(item => item !== value);
+        return { ...prev, additional_factors: updatedFactors };
+      });
+    }
+  };
+
+  // Update pain level and consciousness level in vitals data
+  React.useEffect(() => {
+    handleVitalsChange('pain_level', painLevel);
+  }, [painLevel]);
+
+  React.useEffect(() => {
+    handleVitalsChange('gcs', consciousnessLevel);
+  }, [consciousnessLevel]);
+
+  // Save vitals
+  const handleSaveVitals = async () => {
+    if (!savedPatientId) {
+      // First save patient info if not already saved
+      const patientResult = await savePatientInfo(patientData);
+      if (patientResult.error) {
+        toast({
+          title: "Error",
+          description: "Please save patient information first",
+          variant: "destructive",
+        });
+        setCurrentTab('patient');
+        return;
+      }
+      
+      setSavedPatientId(patientResult.data.id);
+      const result = await saveVitals(vitalsData, patientResult.data.id);
+      handleSaveResult(result, "Vital signs saved successfully");
+    } else {
+      const result = await saveVitals(vitalsData, savedPatientId);
+      handleSaveResult(result, "Vital signs saved successfully");
+    }
+  };
+
+  // Save patient information
+  const handleSavePatient = async () => {
+    if (!patientData.name) {
+      toast({
+        title: "Error",
+        description: "Patient name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (savedPatientId) {
+      toast({
+        title: "Info",
+        description: "Patient information already saved",
+      });
+      return;
+    }
+
+    const result = await savePatientInfo(patientData);
+    if (handleSaveResult(result, "Patient information saved successfully")) {
+      setSavedPatientId(result.data.id);
+    }
+  };
+
+  // Save incident details
+  const handleSaveIncident = async () => {
+    if (!savedPatientId) {
+      toast({
+        title: "Error",
+        description: "Please save patient information first",
+        variant: "destructive",
+      });
+      setCurrentTab('patient');
+      return;
+    }
+
+    const result = await saveIncident(incidentData, savedPatientId);
+    handleSaveResult(result, "Incident details saved successfully");
+  };
+
+  // Save medical history
+  const handleSaveMedicalHistory = async () => {
+    if (!savedPatientId) {
+      toast({
+        title: "Error",
+        description: "Please save patient information first",
+        variant: "destructive",
+      });
+      setCurrentTab('patient');
+      return;
+    }
+
+    const result = await saveMedicalHistory(medicalHistoryData, savedPatientId);
+    handleSaveResult(result, "Medical history saved successfully");
+  };
+
+  // Submit entire assessment
+  const handleSubmitAssessment = async () => {
+    if (!savedPatientId) {
+      const patientResult = await savePatientInfo(patientData);
+      if (patientResult.error) {
+        toast({
+          title: "Error",
+          description: "Failed to save patient information",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSavedPatientId(patientResult.data.id);
+      
+      // Save all sections
+      await saveVitals(vitalsData, patientResult.data.id);
+      await saveIncident(incidentData, patientResult.data.id);
+      await saveMedicalHistory(medicalHistoryData, patientResult.data.id);
+      
+      toast({
+        title: "Success",
+        description: "Assessment completed successfully",
+      });
+      
+      // Navigate to patients page after saving
+      navigate('/patients');
+    } else {
+      // Update any remaining sections
+      await saveVitals(vitalsData, savedPatientId);
+      await saveIncident(incidentData, savedPatientId);
+      await saveMedicalHistory(medicalHistoryData, savedPatientId);
+      
+      toast({
+        title: "Success",
+        description: "Assessment updated successfully",
+      });
+      
+      // Navigate to patients page after saving
+      navigate('/patients');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -38,14 +282,14 @@ const PatientAssessment = () => {
             <Save className="h-4 w-4" />
             Save Draft
           </Button>
-          <Button className="emergency-btn flex items-center gap-2">
+          <Button className="emergency-btn flex items-center gap-2" onClick={handleSubmitAssessment}>
             <SendHorizontal className="h-4 w-4" />
             Submit Assessment
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="vitals" className="w-full">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
         <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="vitals">Vital Signs</TabsTrigger>
           <TabsTrigger value="patient">Patient Info</TabsTrigger>
@@ -73,9 +317,10 @@ const PatientAssessment = () => {
                       type="number" 
                       placeholder="60-100" 
                       className="text-lg" 
-                      defaultValue="75"
+                      value={vitalsData.heart_rate}
+                      onChange={(e) => handleVitalsChange('heart_rate', parseInt(e.target.value) || 0)}
                     />
-                    <Badge>Normal</Badge>
+                    <Badge>{vitalsData.heart_rate < 60 ? "Low" : vitalsData.heart_rate > 100 ? "High" : "Normal"}</Badge>
                   </div>
                 </div>
 
@@ -91,7 +336,8 @@ const PatientAssessment = () => {
                       type="number" 
                       placeholder="Systolic" 
                       className="text-lg" 
-                      defaultValue="120"
+                      value={vitalsData.bp_systolic}
+                      onChange={(e) => handleVitalsChange('bp_systolic', parseInt(e.target.value) || 0)}
                     />
                     <span>/</span>
                     <Input 
@@ -99,9 +345,13 @@ const PatientAssessment = () => {
                       type="number" 
                       placeholder="Diastolic" 
                       className="text-lg" 
-                      defaultValue="80"
+                      value={vitalsData.bp_diastolic}
+                      onChange={(e) => handleVitalsChange('bp_diastolic', parseInt(e.target.value) || 0)}
                     />
-                    <Badge>Normal</Badge>
+                    <Badge>
+                      {vitalsData.bp_systolic > 140 || vitalsData.bp_diastolic > 90 ? "High" : 
+                       vitalsData.bp_systolic < 90 || vitalsData.bp_diastolic < 60 ? "Low" : "Normal"}
+                    </Badge>
                   </div>
                 </div>
 
@@ -117,9 +367,10 @@ const PatientAssessment = () => {
                       type="number" 
                       placeholder="95-100" 
                       className="text-lg" 
-                      defaultValue="98"
+                      value={vitalsData.spo2}
+                      onChange={(e) => handleVitalsChange('spo2', parseInt(e.target.value) || 0)}
                     />
-                    <Badge>Normal</Badge>
+                    <Badge>{vitalsData.spo2 < 95 ? "Low" : "Normal"}</Badge>
                   </div>
                 </div>
 
@@ -136,9 +387,13 @@ const PatientAssessment = () => {
                       step="0.1" 
                       placeholder="36.5-37.5" 
                       className="text-lg" 
-                      defaultValue="36.8"
+                      value={vitalsData.temperature}
+                      onChange={(e) => handleVitalsChange('temperature', parseFloat(e.target.value) || 0)}
                     />
-                    <Badge>Normal</Badge>
+                    <Badge>
+                      {vitalsData.temperature > 37.5 ? "Elevated" : 
+                       vitalsData.temperature < 36.5 ? "Low" : "Normal"}
+                    </Badge>
                   </div>
                 </div>
 
@@ -154,9 +409,13 @@ const PatientAssessment = () => {
                       type="number" 
                       placeholder="12-20" 
                       className="text-lg" 
-                      defaultValue="16"
+                      value={vitalsData.respiratory_rate}
+                      onChange={(e) => handleVitalsChange('respiratory_rate', parseInt(e.target.value) || 0)}
                     />
-                    <Badge>Normal</Badge>
+                    <Badge>
+                      {vitalsData.respiratory_rate < 12 ? "Low" : 
+                       vitalsData.respiratory_rate > 20 ? "High" : "Normal"}
+                    </Badge>
                   </div>
                 </div>
 
@@ -221,6 +480,8 @@ const PatientAssessment = () => {
                   id="vital-notes" 
                   placeholder="Enter any additional observations about patient vitals here..." 
                   className="min-h-[100px]"
+                  value={vitalsData.notes}
+                  onChange={(e) => handleVitalsChange('notes', e.target.value)}
                 />
               </div>
             </CardContent>
@@ -229,7 +490,7 @@ const PatientAssessment = () => {
                 <Switch id="auto-update" />
                 <Label htmlFor="auto-update">Auto-update from medical devices</Label>
               </div>
-              <Button className="medical-btn">Save Vitals</Button>
+              <Button className="medical-btn" onClick={handleSaveVitals}>Save Vitals</Button>
             </CardFooter>
           </Card>
         </TabsContent>
@@ -250,7 +511,9 @@ const PatientAssessment = () => {
                   <Input 
                     id="patient-name" 
                     placeholder="Full name" 
-                    className="text-lg" 
+                    className="text-lg"
+                    value={patientData.name}
+                    onChange={(e) => handlePatientDataChange('name', e.target.value)}
                   />
                 </div>
                 
@@ -260,7 +523,9 @@ const PatientAssessment = () => {
                     id="patient-age" 
                     type="number" 
                     placeholder="Age in years" 
-                    className="text-lg" 
+                    className="text-lg"
+                    value={patientData.age}
+                    onChange={(e) => handlePatientDataChange('age', parseInt(e.target.value) || '')}
                   />
                 </div>
                 
@@ -269,6 +534,8 @@ const PatientAssessment = () => {
                   <select 
                     id="patient-gender" 
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={patientData.gender}
+                    onChange={(e) => handlePatientDataChange('gender', e.target.value)}
                   >
                     <option value="">Select gender</option>
                     <option value="male">Male</option>
@@ -278,13 +545,14 @@ const PatientAssessment = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="patient-weight" className="text-base">Weight (kg)</Label>
+                  <Label htmlFor="patient-id" className="text-base">Patient ID</Label>
                   <Input 
-                    id="patient-weight" 
-                    type="number" 
-                    step="0.1"
-                    placeholder="Weight in kg" 
-                    className="text-lg" 
+                    id="patient-id" 
+                    placeholder="ID number if available" 
+                    className="text-lg"
+                    value={patientData.patient_id}
+                    onChange={(e) => handlePatientDataChange('patient_id', e.target.value)}
+                    readOnly
                   />
                 </div>
                 
@@ -294,16 +562,9 @@ const PatientAssessment = () => {
                     id="patient-phone" 
                     type="tel" 
                     placeholder="Contact number" 
-                    className="text-lg" 
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="patient-id" className="text-base">Patient ID/SSN</Label>
-                  <Input 
-                    id="patient-id" 
-                    placeholder="ID number if available" 
-                    className="text-lg" 
+                    className="text-lg"
+                    value={patientData.phone}
+                    onChange={(e) => handlePatientDataChange('phone', e.target.value)}
                   />
                 </div>
               </div>
@@ -314,6 +575,8 @@ const PatientAssessment = () => {
                   id="patient-address" 
                   placeholder="Patient's home address if available" 
                   className="min-h-[80px]"
+                  value={patientData.address}
+                  onChange={(e) => handlePatientDataChange('address', e.target.value)}
                 />
               </div>
               
@@ -322,17 +585,21 @@ const PatientAssessment = () => {
                 <Input 
                   id="emergency-contact" 
                   placeholder="Name of emergency contact" 
-                  className="text-lg mb-2" 
+                  className="text-lg mb-2"
+                  value={patientData.emergency_contact}
+                  onChange={(e) => handlePatientDataChange('emergency_contact', e.target.value)}
                 />
                 <Input 
                   id="emergency-contact-phone" 
                   placeholder="Emergency contact phone" 
-                  className="text-lg" 
+                  className="text-lg"
+                  value={patientData.emergency_contact_phone}
+                  onChange={(e) => handlePatientDataChange('emergency_contact_phone', e.target.value)}
                 />
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="medical-btn w-full">Save Patient Information</Button>
+              <Button className="medical-btn w-full" onClick={handleSavePatient}>Save Patient Information</Button>
             </CardFooter>
           </Card>
         </TabsContent>
@@ -353,6 +620,8 @@ const PatientAssessment = () => {
                   <select 
                     id="incident-type" 
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={incidentData.incident_type}
+                    onChange={(e) => handleIncidentDataChange('incident_type', e.target.value)}
                   >
                     <option value="">Select incident type</option>
                     <option value="medical">Medical Emergency</option>
@@ -374,7 +643,9 @@ const PatientAssessment = () => {
                   <Input 
                     id="incident-location" 
                     placeholder="Address or coordinates" 
-                    className="text-lg" 
+                    className="text-lg"
+                    value={incidentData.incident_location}
+                    onChange={(e) => handleIncidentDataChange('incident_location', e.target.value)}
                   />
                 </div>
                 
@@ -383,8 +654,9 @@ const PatientAssessment = () => {
                   <Input 
                     id="incident-date" 
                     type="datetime-local" 
-                    className="text-lg" 
-                    defaultValue={new Date().toISOString().slice(0, 16)}
+                    className="text-lg"
+                    value={incidentData.incident_date}
+                    onChange={(e) => handleIncidentDataChange('incident_date', e.target.value)}
                   />
                 </div>
                 
@@ -393,6 +665,8 @@ const PatientAssessment = () => {
                   <select 
                     id="incident-severity" 
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={incidentData.incident_severity}
+                    onChange={(e) => handleIncidentDataChange('incident_severity', e.target.value)}
                   >
                     <option value="">Select severity</option>
                     <option value="critical">Critical</option>
@@ -409,6 +683,8 @@ const PatientAssessment = () => {
                   id="chief-complaint" 
                   placeholder="Primary reason for emergency response" 
                   className="min-h-[80px]"
+                  value={incidentData.chief_complaint}
+                  onChange={(e) => handleIncidentDataChange('chief_complaint', e.target.value)}
                 />
               </div>
               
@@ -418,6 +694,8 @@ const PatientAssessment = () => {
                   id="incident-description" 
                   placeholder="Detailed description of the emergency situation" 
                   className="min-h-[120px]"
+                  value={incidentData.description}
+                  onChange={(e) => handleIncidentDataChange('description', e.target.value)}
                 />
               </div>
               
@@ -426,7 +704,13 @@ const PatientAssessment = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {['CPR', 'Oxygen', 'IV Access', 'Medications', 'Splinting', 'Bleeding Control', 'Airway Management'].map((intervention) => (
                     <div key={intervention} className="flex items-center gap-2">
-                      <input type="checkbox" id={`intervention-${intervention}`} className="h-4 w-4" />
+                      <input 
+                        type="checkbox" 
+                        id={`intervention-${intervention}`} 
+                        className="h-4 w-4"
+                        checked={incidentData.interventions.includes(intervention)}
+                        onChange={(e) => handleCheckboxChange('interventions', 'interventions', intervention, e.target.checked)} 
+                      />
                       <Label htmlFor={`intervention-${intervention}`} className="text-base font-normal">{intervention}</Label>
                     </div>
                   ))}
@@ -434,7 +718,7 @@ const PatientAssessment = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="medical-btn w-full">Save Incident Details</Button>
+              <Button className="medical-btn w-full" onClick={handleSaveIncident}>Save Incident Details</Button>
             </CardFooter>
           </Card>
         </TabsContent>
@@ -455,7 +739,13 @@ const PatientAssessment = () => {
                     'Mental Health', 'Blood Disorders'
                   ].map((condition) => (
                     <div key={condition} className="flex items-center gap-2">
-                      <input type="checkbox" id={`condition-${condition}`} className="h-4 w-4" />
+                      <input 
+                        type="checkbox" 
+                        id={`condition-${condition}`} 
+                        className="h-4 w-4"
+                        checked={medicalHistoryData.conditions.includes(condition)}
+                        onChange={(e) => handleCheckboxChange('conditions', 'conditions', condition, e.target.checked)}
+                      />
                       <Label htmlFor={`condition-${condition}`} className="text-base font-normal">{condition}</Label>
                     </div>
                   ))}
@@ -468,6 +758,8 @@ const PatientAssessment = () => {
                   id="allergies" 
                   placeholder="List any known allergies (medications, food, etc.)" 
                   className="min-h-[80px]"
+                  value={medicalHistoryData.allergies}
+                  onChange={(e) => handleMedicalHistoryChange('allergies', e.target.value)}
                 />
               </div>
               
@@ -477,6 +769,8 @@ const PatientAssessment = () => {
                   id="medications" 
                   placeholder="List current medications and dosages if known" 
                   className="min-h-[80px]"
+                  value={medicalHistoryData.medications}
+                  onChange={(e) => handleMedicalHistoryChange('medications', e.target.value)}
                 />
               </div>
               
@@ -486,6 +780,8 @@ const PatientAssessment = () => {
                   id="surgical-history" 
                   placeholder="Previous surgeries and approximate dates" 
                   className="min-h-[80px]"
+                  value={medicalHistoryData.surgical_history}
+                  onChange={(e) => handleMedicalHistoryChange('surgical_history', e.target.value)}
                 />
               </div>
               
@@ -495,6 +791,8 @@ const PatientAssessment = () => {
                   id="family-history" 
                   placeholder="Relevant family medical history if known" 
                   className="min-h-[80px]"
+                  value={medicalHistoryData.family_history}
+                  onChange={(e) => handleMedicalHistoryChange('family_history', e.target.value)}
                 />
               </div>
               
@@ -506,7 +804,13 @@ const PatientAssessment = () => {
                     'Pacemaker', 'Immunocompromised', 'Recent Hospital Stay'
                   ].map((factor) => (
                     <div key={factor} className="flex items-center gap-2">
-                      <input type="checkbox" id={`factor-${factor}`} className="h-4 w-4" />
+                      <input 
+                        type="checkbox" 
+                        id={`factor-${factor}`} 
+                        className="h-4 w-4"
+                        checked={medicalHistoryData.additional_factors.includes(factor)}
+                        onChange={(e) => handleCheckboxChange('additional_factors', 'additional_factors', factor, e.target.checked)}
+                      />
                       <Label htmlFor={`factor-${factor}`} className="text-base font-normal">{factor}</Label>
                     </div>
                   ))}
@@ -514,7 +818,7 @@ const PatientAssessment = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="medical-btn w-full">Save Medical History</Button>
+              <Button className="medical-btn w-full" onClick={handleSaveMedicalHistory}>Save Medical History</Button>
             </CardFooter>
           </Card>
         </TabsContent>

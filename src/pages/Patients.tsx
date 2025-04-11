@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
+import { fetchPatients } from '@/lib/patientUtils';
 import {
   Search,
   PlusCircle,
@@ -17,77 +19,71 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-// Mock patient data
-const patients = [
-  {
-    id: 'P-1001',
-    name: 'John Doe',
-    age: 67,
-    gender: 'Male',
-    status: 'critical',
-    chiefComplaint: 'Chest Pain',
-    timeAdded: '10:30 AM',
-    vitals: { hr: 110, bp: '90/60', spo2: 94 }
-  },
-  {
-    id: 'P-1002',
-    name: 'Sarah Johnson',
-    age: 34,
-    gender: 'Female',
-    status: 'stable',
-    chiefComplaint: 'Broken Arm',
-    timeAdded: '11:15 AM',
-    vitals: { hr: 85, bp: '120/80', spo2: 98 }
-  },
-  {
-    id: 'P-1003',
-    name: 'Robert Chen',
-    age: 52,
-    gender: 'Male',
-    status: 'unstable',
-    chiefComplaint: 'Difficulty Breathing',
-    timeAdded: '09:45 AM',
-    vitals: { hr: 95, bp: '145/95', spo2: 91 }
-  },
-  {
-    id: 'P-1004',
-    name: 'Emily Wilson',
-    age: 8,
-    gender: 'Female',
-    status: 'stable',
-    chiefComplaint: 'Fever',
-    timeAdded: '08:30 AM',
-    vitals: { hr: 100, bp: '100/65', spo2: 97 }
-  },
-  {
-    id: 'P-1005',
-    name: 'Michael Garcia',
-    age: 42,
-    gender: 'Male',
-    status: 'moderate',
-    chiefComplaint: 'Abdominal Pain',
-    timeAdded: '12:10 PM',
-    vitals: { hr: 88, bp: '130/85', spo2: 96 }
-  }
-];
-
 const Patients = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [tab, setTab] = useState('all');
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPatients = async () => {
+      setLoading(true);
+      const { data } = await fetchPatients();
+      if (data) {
+        setPatients(data);
+      }
+      setLoading(false);
+    };
+
+    loadPatients();
+  }, []);
+
+  const getPatientVitals = (patient: any) => {
+    if (!patient || !patient.vitals || patient.vitals.length === 0) return null;
+    
+    // Get the most recent vitals
+    return patient.vitals.reduce((latest: any, current: any) => {
+      if (!latest) return current;
+      return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
+    }, null);
+  };
+
+  const getPatientStatus = (patient: any) => {
+    const vitals = getPatientVitals(patient);
+    if (!vitals) return 'unknown';
+    
+    if (vitals.heart_rate > 100 || vitals.bp_systolic > 140 || vitals.spo2 < 92 || vitals.gcs < 9) {
+      return 'critical';
+    } else if (vitals.heart_rate > 90 || vitals.bp_systolic > 130 || vitals.bp_diastolic > 90 || vitals.spo2 < 95 || vitals.gcs < 13) {
+      return 'unstable';
+    } else if (vitals.heart_rate > 80 || vitals.bp_systolic > 120 || vitals.bp_diastolic > 80 || vitals.spo2 < 97) {
+      return 'moderate';
+    } else {
+      return 'stable';
+    }
+  };
 
   const filteredPatients = patients.filter(patient => {
-    const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          patient.chiefComplaint.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          patient.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      (patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) || 
+      (patient.patient_id?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
     if (tab === 'all') return matchesSearch;
-    if (tab === 'critical') return matchesSearch && (patient.status === 'critical' || patient.status === 'unstable');
-    if (tab === 'stable') return matchesSearch && (patient.status === 'stable' || patient.status === 'moderate');
+    if (tab === 'critical') {
+      const status = getPatientStatus(patient);
+      return matchesSearch && (status === 'critical' || status === 'unstable');
+    }
+    if (tab === 'stable') {
+      const status = getPatientStatus(patient);
+      return matchesSearch && (status === 'stable' || status === 'moderate');
+    }
     
     return matchesSearch;
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (patient: any) => {
+    const status = getPatientStatus(patient);
     switch(status) {
       case 'critical':
         return <Badge className="bg-emergency">Critical</Badge>;
@@ -102,6 +98,15 @@ const Patients = () => {
     }
   };
 
+  const getFormattedTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleNewPatient = () => {
+    navigate('/assessment');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -110,7 +115,7 @@ const Patients = () => {
           <p className="text-muted-foreground">Manage current patients and cases</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button className="medical-btn flex items-center gap-2">
+          <Button className="medical-btn flex items-center gap-2" onClick={handleNewPatient}>
             <UserPlus className="h-4 w-4" />
             <span>New Patient</span>
           </Button>
@@ -146,7 +151,11 @@ const Patients = () => {
             </TabsList>
             
             <TabsContent value={tab}>
-              {filteredPatients.length > 0 ? (
+              {loading ? (
+                <div className="text-center py-10">
+                  <p>Loading patients...</p>
+                </div>
+              ) : filteredPatients.length > 0 ? (
                 <div className="rounded-md border overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -176,38 +185,38 @@ const Patients = () => {
                               <div className="flex items-center">
                                 <div>
                                   <div className="text-sm font-medium text-gray-900">
-                                    {patient.name}
+                                    {patient.name || 'Unknown Patient'}
                                   </div>
                                   <div className="text-sm text-gray-500">
-                                    {patient.age} years, {patient.gender} • {patient.id}
+                                    {patient.age ? `${patient.age} years` : ''}{patient.gender ? `, ${patient.gender}` : ''} • {patient.patient_id || 'No ID'}
                                   </div>
                                   <div className="text-sm text-gray-500">
-                                    {patient.chiefComplaint}
+                                    {getPatientVitals(patient)?.chief_complaint || 'No complaint recorded'}
                                   </div>
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {getStatusBadge(patient.status)}
+                              {getStatusBadge(patient)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm">
                                 <div className="flex items-center gap-2">
-                                  <span title="Heart Rate">HR: {patient.vitals.hr}</span>
-                                  <span title="Blood Pressure">BP: {patient.vitals.bp}</span>
-                                  <span title="Oxygen Saturation">SpO2: {patient.vitals.spo2}%</span>
+                                  <span title="Heart Rate">HR: {getPatientVitals(patient)?.heart_rate || '–'}</span>
+                                  <span title="Blood Pressure">BP: {getPatientVitals(patient)?.bp_systolic || '–'}/{getPatientVitals(patient)?.bp_diastolic || '–'}</span>
+                                  <span title="Oxygen Saturation">SpO2: {getPatientVitals(patient)?.spo2 || '–'}%</span>
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {patient.timeAdded}
+                                {getFormattedTime(patient.created_at)}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => navigate('/assessment')}>
                                   <Stethoscope className="h-3 w-3" />
                                   Assess
                                 </Button>
@@ -226,7 +235,7 @@ const Patients = () => {
               ) : (
                 <div className="text-center py-10 border rounded-md">
                   <p className="text-muted-foreground">No patients found matching your criteria</p>
-                  <Button className="mt-4">
+                  <Button className="mt-4" onClick={handleNewPatient}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Add New Patient
                   </Button>

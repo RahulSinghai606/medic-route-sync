@@ -9,6 +9,154 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      incidents: {
+        Row: {
+          chief_complaint: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          incident_date: string | null
+          incident_location: string | null
+          incident_severity: string | null
+          incident_type: string | null
+          interventions: string[] | null
+          patient_id: string
+          updated_at: string
+        }
+        Insert: {
+          chief_complaint?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          incident_date?: string | null
+          incident_location?: string | null
+          incident_severity?: string | null
+          incident_type?: string | null
+          interventions?: string[] | null
+          patient_id: string
+          updated_at?: string
+        }
+        Update: {
+          chief_complaint?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          incident_date?: string | null
+          incident_location?: string | null
+          incident_severity?: string | null
+          incident_type?: string | null
+          interventions?: string[] | null
+          patient_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_history: {
+        Row: {
+          additional_factors: string[] | null
+          allergies: string | null
+          conditions: string[] | null
+          created_at: string
+          created_by: string
+          family_history: string | null
+          id: string
+          medications: string | null
+          patient_id: string
+          surgical_history: string | null
+          updated_at: string
+        }
+        Insert: {
+          additional_factors?: string[] | null
+          allergies?: string | null
+          conditions?: string[] | null
+          created_at?: string
+          created_by: string
+          family_history?: string | null
+          id?: string
+          medications?: string | null
+          patient_id: string
+          surgical_history?: string | null
+          updated_at?: string
+        }
+        Update: {
+          additional_factors?: string[] | null
+          allergies?: string | null
+          conditions?: string[] | null
+          created_at?: string
+          created_by?: string
+          family_history?: string | null
+          id?: string
+          medications?: string | null
+          patient_id?: string
+          surgical_history?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_history_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          address: string | null
+          age: number | null
+          created_at: string
+          created_by: string
+          emergency_contact: string | null
+          emergency_contact_phone: string | null
+          gender: string | null
+          id: string
+          name: string | null
+          patient_id: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          age?: number | null
+          created_at?: string
+          created_by: string
+          emergency_contact?: string | null
+          emergency_contact_phone?: string | null
+          gender?: string | null
+          id?: string
+          name?: string | null
+          patient_id?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          age?: number | null
+          created_at?: string
+          created_by?: string
+          emergency_contact?: string | null
+          emergency_contact_phone?: string | null
+          gender?: string | null
+          id?: string
+          name?: string | null
+          patient_id?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ambulance_id: string | null
@@ -35,6 +183,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      vitals: {
+        Row: {
+          bp_diastolic: number | null
+          bp_systolic: number | null
+          created_at: string
+          created_by: string
+          gcs: number | null
+          heart_rate: number | null
+          id: string
+          notes: string | null
+          pain_level: number | null
+          patient_id: string
+          respiratory_rate: number | null
+          spo2: number | null
+          temperature: number | null
+          updated_at: string
+        }
+        Insert: {
+          bp_diastolic?: number | null
+          bp_systolic?: number | null
+          created_at?: string
+          created_by: string
+          gcs?: number | null
+          heart_rate?: number | null
+          id?: string
+          notes?: string | null
+          pain_level?: number | null
+          patient_id: string
+          respiratory_rate?: number | null
+          spo2?: number | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bp_diastolic?: number | null
+          bp_systolic?: number | null
+          created_at?: string
+          created_by?: string
+          gcs?: number | null
+          heart_rate?: number | null
+          id?: string
+          notes?: string | null
+          pain_level?: number | null
+          patient_id?: string
+          respiratory_rate?: number | null
+          spo2?: number | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vitals_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

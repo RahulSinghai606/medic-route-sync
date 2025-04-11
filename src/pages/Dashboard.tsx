@@ -1,9 +1,12 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
+import { fetchPatients } from '@/lib/patientUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   AlertTriangle, 
   Clock, 
@@ -17,75 +20,156 @@ import {
 } from 'lucide-react';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const [patients, setPatients] = useState<any[]>([]);
+  const [latestPatient, setLatestPatient] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPatients = async () => {
+      setLoading(true);
+      const { data } = await fetchPatients();
+      if (data) {
+        setPatients(data);
+        
+        // Find patient with most recent vitals for active emergency
+        const patientsWithVitals = data.filter(p => p.vitals && p.vitals.length > 0);
+        if (patientsWithVitals.length > 0) {
+          // Sort by creation date
+          patientsWithVitals.sort((a, b) => {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          });
+          
+          setLatestPatient(patientsWithVitals[0]);
+        }
+      }
+      setLoading(false);
+    };
+
+    loadPatients();
+  }, []);
+
+  const handleNewCase = () => {
+    navigate('/assessment');
+  };
+
+  const getPatientVitals = (patient: any) => {
+    if (!patient || !patient.vitals || patient.vitals.length === 0) return null;
+    
+    // Get the most recent vitals
+    return patient.vitals.reduce((latest: any, current: any) => {
+      if (!latest) return current;
+      return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
+    }, null);
+  };
+
+  // Calculate minutes ago
+  const getTimeAgo = (dateString: string) => {
+    const minutes = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 60000);
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hr ago`;
+    return `${Math.floor(hours / 24)} days ago`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1>Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, John. Here's your overview.</p>
+          <p className="text-muted-foreground">Welcome back, {profile?.full_name || 'User'}. Here's your overview.</p>
         </div>
-        <Button className="emergency-btn flex items-center gap-2">
+        <Button className="emergency-btn flex items-center gap-2" onClick={handleNewCase}>
           <PlusCircle className="h-5 w-5" />
           New Emergency Case
         </Button>
       </div>
 
       {/* Active Emergency Section */}
-      <Card className="border-emergency">
-        <CardHeader className="bg-emergency/10 pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-emergency flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Active Emergency
-            </CardTitle>
-            <Badge className="bg-emergency">Critical</Badge>
-          </div>
-          <CardDescription>
-            <div className="flex flex-wrap gap-3 mt-1">
-              <div className="flex items-center gap-1 text-sm">
-                <Clock className="h-4 w-4" />
-                <span>Started 12 min ago</span>
+      {latestPatient ? (
+        <Card className="border-emergency">
+          <CardHeader className="bg-emergency/10 pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-emergency flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Active Emergency
+              </CardTitle>
+              <Badge className="bg-emergency">Critical</Badge>
+            </div>
+            <CardDescription>
+              <div className="flex flex-wrap gap-3 mt-1">
+                <div className="flex items-center gap-1 text-sm">
+                  <Clock className="h-4 w-4" />
+                  <span>Started {getTimeAgo(latestPatient.created_at)}</span>
+                </div>
+                <div className="flex items-center gap-1 text-sm">
+                  <MapPin className="h-4 w-4" />
+                  <span>Patient: {latestPatient.name || 'Unknown'}</span>
+                </div>
+                <div className="flex items-center gap-1 text-sm">
+                  <Calendar className="h-4 w-4" />
+                  <span>ID: {latestPatient.patient_id || 'Unknown'}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-sm">
-                <MapPin className="h-4 w-4" />
-                <span>En route to Memorial Hospital</span>
-              </div>
-              <div className="flex items-center gap-1 text-sm">
-                <Calendar className="h-4 w-4" />
-                <span>ETA: 8 minutes</span>
-              </div>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {getPatientVitals(latestPatient) && (
+                <>
+                  <div className="vital-card">
+                    <div className="vital-label">Heart Rate</div>
+                    <div className={`vital-value ${getPatientVitals(latestPatient).heart_rate > 100 ? "text-emergency" : ""}`}>
+                      {getPatientVitals(latestPatient).heart_rate || '–'} bpm
+                    </div>
+                  </div>
+                  <div className="vital-card">
+                    <div className="vital-label">Blood Pressure</div>
+                    <div className="vital-value">
+                      {getPatientVitals(latestPatient).bp_systolic || '–'}/{getPatientVitals(latestPatient).bp_diastolic || '–'} mmHg
+                    </div>
+                  </div>
+                  <div className="vital-card">
+                    <div className="vital-label">SpO2</div>
+                    <div className={`vital-value ${getPatientVitals(latestPatient).spo2 < 95 ? "text-warning" : ""}`}>
+                      {getPatientVitals(latestPatient).spo2 || '–'}%
+                    </div>
+                  </div>
+                  <div className="vital-card">
+                    <div className="vital-label">Temperature</div>
+                    <div className="vital-value">
+                      {getPatientVitals(latestPatient).temperature || '–'}°C
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="vital-card">
-              <div className="vital-label">Heart Rate</div>
-              <div className="vital-value text-emergency">128 bpm</div>
+            <div className="mt-4 flex flex-col sm:flex-row gap-2">
+              <Button className="medical-btn flex-1" onClick={() => navigate('/assessment')}>
+                Update Patient Status
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => navigate('/patients')}>
+                View Case Details
+              </Button>
             </div>
-            <div className="vital-card">
-              <div className="vital-label">Blood Pressure</div>
-              <div className="vital-value">90/60 mmHg</div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex flex-col items-center justify-center text-center">
+              <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No active emergency</h3>
+              <p className="text-muted-foreground mb-4">Create a new emergency case to track patient vitals and details</p>
+              <Button className="emergency-btn" onClick={handleNewCase}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                New Emergency Case
+              </Button>
             </div>
-            <div className="vital-card">
-              <div className="vital-label">SpO2</div>
-              <div className="vital-value text-warning">92%</div>
-            </div>
-            <div className="vital-card">
-              <div className="vital-label">Temperature</div>
-              <div className="vital-value">38.6°C</div>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-col sm:flex-row gap-2">
-            <Button className="medical-btn flex-1">
-              Update Patient Status
-            </Button>
-            <Button variant="outline" className="flex-1">
-              View Case Details
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -97,9 +181,9 @@ const Dashboard = () => {
             <Ambulance className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{patients.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              +2 compared to yesterday
+              {patients.length > 0 ? `+${patients.length} from yesterday` : "No transports today"}
             </p>
           </CardContent>
         </Card>
@@ -111,9 +195,11 @@ const Dashboard = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{patients.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              3 critical, 5 stable, 4 minor
+              {patients.length > 0 
+                ? `${Math.floor(patients.length/3)} critical, ${Math.floor(patients.length/3)} stable, ${patients.length - 2*Math.floor(patients.length/3)} minor`
+                : "No patients recorded"}
             </p>
           </CardContent>
         </Card>
@@ -149,22 +235,45 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between border-b pb-4">
-                    <div>
-                      <h3 className="font-medium">Case #{20230 + i}</h3>
-                      <div className="flex gap-4 text-sm text-muted-foreground">
-                        <span>MVA with injuries</span>
-                        <span>Apr {10 + i}, 2025</span>
+                {loading ? (
+                  <p>Loading recent cases...</p>
+                ) : patients.length > 0 ? (
+                  patients.slice(0, 3).map((patient) => (
+                    <div key={patient.id} className="flex items-center justify-between border-b pb-4">
+                      <div>
+                        <h3 className="font-medium">{patient.name || 'Unknown Patient'}</h3>
+                        <div className="flex gap-4 text-sm text-muted-foreground">
+                          <span>{patient.patient_id || 'No ID'}</span>
+                          <span>{new Date(patient.created_at).toLocaleDateString()}</span>
+                        </div>
                       </div>
+                      <Badge className={
+                        patient.vitals && patient.vitals.length > 0 ? 
+                          (getPatientVitals(patient)?.heart_rate > 100 || getPatientVitals(patient)?.bp_systolic > 140 || getPatientVitals(patient)?.spo2 < 92) ? 
+                            "bg-emergency" : 
+                            (getPatientVitals(patient)?.heart_rate > 90 || getPatientVitals(patient)?.bp_systolic > 130 || getPatientVitals(patient)?.spo2 < 95) ? 
+                              "bg-warning" : 
+                              "bg-success" 
+                          : "bg-gray-500"
+                      }>
+                        {patient.vitals && patient.vitals.length > 0 ? 
+                          (getPatientVitals(patient)?.heart_rate > 100 || getPatientVitals(patient)?.bp_systolic > 140 || getPatientVitals(patient)?.spo2 < 92) ? 
+                            "Critical" : 
+                            (getPatientVitals(patient)?.heart_rate > 90 || getPatientVitals(patient)?.bp_systolic > 130 || getPatientVitals(patient)?.spo2 < 95) ? 
+                              "Moderate" : 
+                              "Stable" 
+                          : "Unknown"
+                        }
+                      </Badge>
                     </div>
-                    <Badge className={i === 1 ? "bg-emergency" : i === 2 ? "bg-warning" : "bg-success"}>
-                      {i === 1 ? "Critical" : i === 2 ? "Moderate" : "Stable"}
-                    </Badge>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p>No recent cases found.</p>
                   </div>
-                ))}
+                )}
               </div>
-              <Button variant="outline" className="w-full mt-4">
+              <Button variant="outline" className="w-full mt-4" onClick={() => navigate('/patients')}>
                 View All Cases
               </Button>
             </CardContent>
