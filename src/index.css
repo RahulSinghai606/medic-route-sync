@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,19 +36,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -97,5 +91,65 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  h1 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+}
+
+@layer components {
+  .emergency-btn {
+    @apply bg-emergency text-white font-bold py-3 px-6 rounded-lg 
+      hover:bg-emergency-dark transition-colors duration-200
+      focus:outline-none focus:ring-2 focus:ring-emergency focus:ring-opacity-50
+      shadow-lg text-lg;
+  }
+  
+  .medical-btn {
+    @apply bg-medical text-white font-bold py-3 px-6 rounded-lg 
+      hover:bg-medical-dark transition-colors duration-200
+      focus:outline-none focus:ring-2 focus:ring-medical focus:ring-opacity-50
+      shadow-lg text-lg;
+  }
+
+  .vital-card {
+    @apply rounded-xl border p-4 shadow-sm bg-white;
+  }
+
+  .vital-value {
+    @apply text-3xl font-bold;
+  }
+
+  .vital-label {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+
+  .status-indicator {
+    @apply h-3 w-3 rounded-full;
+  }
+
+  .status-available {
+    @apply bg-success;
+  }
+
+  .status-busy {
+    @apply bg-emergency;
+  }
+
+  .status-en-route {
+    @apply bg-warning;
   }
 }

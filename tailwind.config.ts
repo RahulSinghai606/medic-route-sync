@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// EmergConnect custom colors
+				emergency: {
+					DEFAULT: '#ea384c',
+					light: '#ff6b76',
+					dark: '#c01f2f'
+				},
+				medical: {
+					DEFAULT: '#0EA5E9',
+					light: '#38bdf8',
+					dark: '#0284c7'
+				},
+				success: '#10b981',
+				warning: '#f59e0b',
+				info: '#3b82f6',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,11 +99,16 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-emergency': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.6' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-emergency': 'pulse-emergency 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
 			}
 		}
 	},
