@@ -6,23 +6,26 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ambulance, Lock, AlertCircle, Mail } from 'lucide-react';
+import { Ambulance, User, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-const loginSchema = z.object({
+const signupSchema = z.object({
+  fullName: z.string().min(3, { message: 'Full name must be at least 3 characters long' }),
   email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z.string().min(1, { message: 'Password is required' }),
-  remember: z.boolean().default(false),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters long' }),
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type SignupFormValues = z.infer<typeof signupSchema>;
 
-const Login = () => {
+const Signup = () => {
   const navigate = useNavigate();
-  const { signIn, user } = useAuth();
+  const { signUp, user } = useAuth();
   
   React.useEffect(() => {
     if (user) {
@@ -30,26 +33,21 @@ const Login = () => {
     }
   }, [user, navigate]);
 
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
     defaultValues: {
+      fullName: '',
       email: '',
       password: '',
-      remember: false,
+      confirmPassword: '',
     },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
-    const { error } = await signIn(data.email, data.password);
+  const onSubmit = async (data: SignupFormValues) => {
+    const { error } = await signUp(data.email, data.password, data.fullName);
     if (!error) {
-      navigate('/');
+      navigate('/login');
     }
-  };
-
-  const handleEmergencyAccess = () => {
-    // In a real app, we would implement quick emergency access
-    // For now, we'll just redirect to the dashboard
-    navigate('/');
   };
 
   return (
@@ -65,14 +63,31 @@ const Login = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
+            <CardTitle>Create Account</CardTitle>
             <CardDescription>
-              Enter your credentials to access the platform
+              Enter your information to sign up
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                          <Input className="pl-10" placeholder="John Doe" {...field} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={form.control}
                   name="email"
@@ -82,7 +97,7 @@ const Login = () => {
                       <FormControl>
                         <div className="relative">
                           <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                          <Input className="pl-10" type="email" placeholder="Your work email" {...field} />
+                          <Input className="pl-10" type="email" placeholder="name@example.com" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -95,16 +110,11 @@ const Login = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex justify-between items-center">
-                        <FormLabel>Password</FormLabel>
-                        <a href="#" className="text-xs text-blue-600 hover:underline">
-                          Forgot password?
-                        </a>
-                      </div>
+                      <FormLabel>Password</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                          <Input className="pl-10" type="password" placeholder="Your password" {...field} />
+                          <Input className="pl-10" type="password" placeholder="******" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -114,56 +124,34 @@ const Login = () => {
                 
                 <FormField
                   control={form.control}
-                  name="remember"
+                  name="confirmPassword"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
-                        <Checkbox 
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                          <Input className="pl-10" type="password" placeholder="******" {...field} />
+                        </div>
                       </FormControl>
-                      <FormLabel className="text-sm font-medium leading-none cursor-pointer">
-                        Remember me for 12 hours
-                      </FormLabel>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
                 
                 <Button type="submit" className="w-full medical-btn">
-                  Sign In
+                  Sign Up
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col">
-            <div className="relative w-full">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or</span>
-              </div>
-            </div>
-            <Button
-              onClick={handleEmergencyAccess}
-              className="mt-4 w-full emergency-btn flex items-center gap-2"
-            >
-              <Lock className="h-4 w-4" />
-              Emergency Quick Access
-            </Button>
-            <p className="mt-4 text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              Emergency access requires post-event authentication
+          <CardFooter className="flex justify-center">
+            <p className="text-sm text-gray-500">
+              Already have an account?{" "}
+              <Link to="/login" className="text-blue-600 hover:underline">
+                Sign In
+              </Link>
             </p>
-            <div className="w-full text-center mt-4">
-              <p className="text-sm text-gray-500">
-                Don't have an account?{" "}
-                <Link to="/signup" className="text-blue-600 hover:underline">
-                  Sign Up
-                </Link>
-              </p>
-            </div>
           </CardFooter>
         </Card>
       </div>
@@ -171,4 +159,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;

@@ -9,8 +9,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import StatusToggle from '../StatusToggle';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TopBar = () => {
+  const { profile } = useAuth();
+  
   return (
     <header className="border-b bg-white px-4 py-3 flex items-center justify-between">
       <div className="flex items-center">
@@ -40,8 +43,8 @@ const TopBar = () => {
             />
           </div>
           <div className="hidden md:block">
-            <p className="text-sm font-medium">John Medic</p>
-            <p className="text-xs text-gray-500">Paramedic</p>
+            <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
+            <p className="text-xs text-gray-500 capitalize">{profile?.role || 'Paramedic'}</p>
           </div>
         </div>
       </div>

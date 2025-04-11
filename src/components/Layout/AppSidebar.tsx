@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/sidebar';
 import { 
   Home, 
-  User, 
   Users, 
   Stethoscope, 
   Building2, 
@@ -20,8 +19,15 @@ import {
   LogOut 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AppSidebar = () => {
+  const { signOut, profile } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
+
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="border-b px-6 py-3">
@@ -103,6 +109,12 @@ const AppSidebar = () => {
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
         <div className="flex flex-col gap-2">
+          {profile && (
+            <div className="mb-2 px-3 py-2">
+              <p className="font-medium">{profile.full_name}</p>
+              <p className="text-sm text-gray-500 capitalize">{profile.role || 'Paramedic'}</p>
+            </div>
+          )}
           <NavLink 
             to="/settings" 
             className={({ isActive }) => 
@@ -114,7 +126,11 @@ const AppSidebar = () => {
             <Settings className="h-5 w-5" />
             <span>Settings</span>
           </NavLink>
-          <Button variant="outline" className="w-full justify-start gap-3 mt-2">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-3 mt-2"
+            onClick={handleLogout}
+          >
             <LogOut className="h-5 w-5" />
             <span>Logout</span>
           </Button>
