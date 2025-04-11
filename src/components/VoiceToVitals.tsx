@@ -1,9 +1,10 @@
 
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, Square, RotateCw } from 'lucide-react';
+import { Mic, Square, RotateCw, Play, Pause } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { processVoiceRecording } from '@/lib/patientUtils';
 
 interface VoiceToVitalsProps {
   onVitalsExtracted: (vitals: any) => void;
@@ -13,13 +14,19 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
   const startRecording = async () => {
     try {
+      // Reset state for a new recording
+      setAudioUrl(null);
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -57,6 +64,9 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
         clearInterval(timerRef.current);
       }
       setIsRecording(false);
+      
+      // Stop all tracks on the stream
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
   };
   
@@ -64,49 +74,69 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     setIsProcessing(true);
     
     try {
-      // Mock processing for now since we don't have a backend API
-      // In a real implementation, this would send the audio to a backend
-      // for processing and extract vitals from the audio
-      await mockProcessAudio();
+      // Create a blob from all the chunks
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       
-    } catch (error) {
+      // Create a URL for the audio blob (for playback)
+      const url = URL.createObjectURL(audioBlob);
+      setAudioUrl(url);
+      
+      // Process the recording using our Supabase function
+      const result = await processVoiceRecording(audioBlob);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      if (result.data) {
+        // Call the callback with extracted vitals
+        onVitalsExtracted(result.data);
+        
+        toast({
+          title: "Voice Processing Complete",
+          description: "Vital signs extracted successfully!",
+        });
+      }
+    } catch (error: any) {
       console.error("Error processing recording:", error);
       toast({
         title: "Processing Error",
-        description: "Failed to process recording. Please try again or enter vitals manually.",
+        description: error.message || "Failed to process recording. Please try again or enter vitals manually.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
     }
   };
-
-  // This is a mock function to simulate audio processing
-  // In a real implementation, this would send the audio to a backend
-  const mockProcessAudio = async () => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  const togglePlayback = () => {
+    if (!audioUrl) return;
     
-    // Mock extracted vitals
-    const mockVitals = {
-      heart_rate: 85,
-      bp_systolic: 120,
-      bp_diastolic: 80,
-      spo2: 98,
-      temperature: 37.2,
-      respiratory_rate: 16,
-      notes: "Patient appears stable, complaining of chest pain radiating to left arm.",
-    };
+    if (!audioPlayerRef.current) {
+      audioPlayerRef.current = new Audio(audioUrl);
+      audioPlayerRef.current.onended = () => setIsPlaying(false);
+    }
     
-    onVitalsExtracted(mockVitals);
-    
-    toast({
-      title: "Voice Processing Complete",
-      description: "Vital signs extracted successfully!",
-    });
-    
-    return mockVitals;
+    if (isPlaying) {
+      audioPlayerRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioPlayerRef.current.play();
+      setIsPlaying(true);
+    }
   };
+  
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
   
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -151,6 +181,26 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
             Processing...
           </Button>
         )}
+        
+        {audioUrl && !isRecording && !isProcessing && (
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={togglePlayback}
+          >
+            {isPlaying ? (
+              <>
+                <Pause className="h-4 w-4" />
+                Pause
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Play
+              </>
+            )}
+          </Button>
+        )}
       </div>
       
       <div className="bg-muted p-3 rounded-md text-sm">
@@ -159,6 +209,8 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
           <li>Clearly state each vital with its value</li>
           <li>Example: "BP 120 over 80, Heart rate 85, SpO2 98%, Temperature 37.2"</li>
           <li>Include notes about the patient's condition</li>
+          <li>For pain level, say "pain level 5" (scale 0-10)</li>
+          <li>For GCS, say "GCS 15" (scale 3-15)</li>
         </ul>
       </div>
     </div>

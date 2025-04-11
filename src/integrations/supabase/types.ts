@@ -186,6 +186,7 @@ export type Database = {
       }
       vitals: {
         Row: {
+          audio_url: string | null
           bp_diastolic: number | null
           bp_systolic: number | null
           created_at: string
@@ -199,9 +200,11 @@ export type Database = {
           respiratory_rate: number | null
           spo2: number | null
           temperature: number | null
+          transcription: string | null
           updated_at: string
         }
         Insert: {
+          audio_url?: string | null
           bp_diastolic?: number | null
           bp_systolic?: number | null
           created_at?: string
@@ -215,9 +218,11 @@ export type Database = {
           respiratory_rate?: number | null
           spo2?: number | null
           temperature?: number | null
+          transcription?: string | null
           updated_at?: string
         }
         Update: {
+          audio_url?: string | null
           bp_diastolic?: number | null
           bp_systolic?: number | null
           created_at?: string
@@ -231,6 +236,7 @@ export type Database = {
           respiratory_rate?: number | null
           spo2?: number | null
           temperature?: number | null
+          transcription?: string | null
           updated_at?: string
         }
         Relationships: [

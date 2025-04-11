@@ -141,24 +141,51 @@ export const fetchPatientDetails = async (patientId: string) => {
 // Function to process voice recording and extract vitals
 export const processVoiceRecording = async (audioBlob: Blob) => {
   try {
-    // In a real implementation, this would send the audio to a backend API
-    // for processing and return the extracted vitals
-    // For now, we'll just simulate it with a mock response
+    // 1. Convert audio blob to base64
+    const reader = new FileReader();
+    const audioBase64Promise = new Promise<string>((resolve) => {
+      reader.onloadend = () => {
+        const base64data = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:audio/webm;base64,")
+        const base64Content = base64data.split(',')[1];
+        resolve(base64Content);
+      };
+    });
+    reader.readAsDataURL(audioBlob);
+    const audioBase64 = await audioBase64Promise;
+
+    // 2. Call our edge function to process the audio
+    const { data: processingResult, error: processingError } = await supabase
+      .functions
+      .invoke('process-voice-recording', {
+        body: { audioBase64 }
+      });
+
+    if (processingError) throw new Error(processingError.message);
+    if (!processingResult) throw new Error('No data returned from processing');
+
+    // 3. Upload the original audio to Supabase Storage
+    const timestamp = new Date().getTime();
+    const filePath = `${timestamp}-recording.webm`;
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('audio-recordings')
+      .upload(filePath, audioBlob);
     
-    // Mock response
+    if (uploadError) throw uploadError;
+
+    // 4. Get the public URL for the uploaded audio
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('audio-recordings')
+      .getPublicUrl(filePath);
+
+    // 5. Combine the extracted vitals with the audio URL and transcription
     const extractedVitals = {
-      heart_rate: 85,
-      bp_systolic: 120,
-      bp_diastolic: 80,
-      spo2: 98,
-      temperature: 37.2,
-      respiratory_rate: 16,
-      gcs: 15,
-      pain_level: 2,
-      notes: "Patient appears stable, complaining of chest pain radiating to left arm."
+      ...processingResult.vitals,
+      audio_url: publicUrl,
+      transcription: processingResult.transcription
     };
     
     return { data: extractedVitals, error: null };
