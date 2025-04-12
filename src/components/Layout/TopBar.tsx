@@ -9,7 +9,7 @@ import StatusToggle from '../StatusToggle';
 
 const TopBar = () => {
   const { user } = useAuth();
-  const { isOpen, toggleSidebar: toggle } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const displayName = user?.user_metadata?.full_name || user?.email || 'User';
 
   return (
@@ -18,7 +18,7 @@ const TopBar = () => {
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={toggle}
+          onClick={toggleSidebar}
           className="mr-2 lg:hidden"
         >
           <Menu className="h-5 w-5" />
