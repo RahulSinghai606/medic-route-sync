@@ -40,7 +40,7 @@ const AppSidebar = () => {
               height={32}
             />
           </div>
-          <h1 className="text-xl font-bold">TERO</h1>
+          <h1 className="text-xl font-bold">Tero</h1>
         </div>
       </SidebarHeader>
       <SidebarContent>
