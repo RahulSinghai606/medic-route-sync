@@ -38,8 +38,8 @@ serve(async (req) => {
     }
 
     // Get API keys from environment variables
-    const openaiApiKey = Deno.env.get('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')
-    const huggingFaceApiKey = Deno.env.get('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')
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    const huggingFaceApiKey = Deno.env.get('HUGGINGFACE_API_KEY')
     
     if (!openaiApiKey && !huggingFaceApiKey) {
       throw new Error('No API keys configured. Please add either OpenAI or HuggingFace API key.')
