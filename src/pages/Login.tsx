@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ambulance, Lock, AlertCircle, Mail, User } from 'lucide-react';
+import { Ambulance, Lock, AlertCircle, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -53,18 +54,22 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background p-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emergency mb-4">
             <Ambulance className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold">TERO</h1>
-          <p className="text-gray-500">Triage and Emergency Routing Optimization</p>
-          <p className="text-xs text-gray-400 mt-1">Ambulance-Side Web Platform</p>
+          <p className="text-muted-foreground">Triage and Emergency Routing Optimization</p>
+          <p className="text-xs text-muted-foreground mt-1">Ambulance-Side Web Platform</p>
         </div>
 
-        <Card>
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
             <CardDescription>
@@ -82,7 +87,7 @@ const Login = () => {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                          <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input className="pl-10" type="email" placeholder="Your work email" {...field} />
                         </div>
                       </FormControl>
@@ -98,13 +103,13 @@ const Login = () => {
                     <FormItem>
                       <div className="flex justify-between items-center">
                         <FormLabel>Password</FormLabel>
-                        <a href="#" className="text-xs text-blue-600 hover:underline">
+                        <a href="#" className="text-xs text-medical hover:underline">
                           Forgot password?
                         </a>
                       </div>
                       <FormControl>
                         <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input className="pl-10" type="password" placeholder="Your password" {...field} />
                         </div>
                       </FormControl>
@@ -158,9 +163,9 @@ const Login = () => {
               Emergency access requires post-event authentication
             </p>
             <div className="w-full text-center mt-4">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link to="/signup" className="text-blue-600 hover:underline">
+                <Link to="/signup" className="text-medical hover:underline">
                   Sign Up
                 </Link>
               </p>

@@ -1,11 +1,12 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Bell, Menu, MessageSquare, User } from 'lucide-react';
+import { Bell, Menu, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import StatusToggle from '../StatusToggle';
+import ThemeToggle from '../ThemeToggle';
 
 const TopBar = () => {
   const { user } = useAuth();
@@ -39,8 +40,10 @@ const TopBar = () => {
       <div className="flex items-center gap-4">
         <StatusToggle />
         
+        <ThemeToggle />
+        
         <div className="relative hidden md:block">
-          <Bell className="h-5 w-5 text-gray-600" />
+          <Bell className="h-5 w-5 text-muted-foreground" />
           <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
             3
           </Badge>
@@ -51,8 +54,8 @@ const TopBar = () => {
             <p className="text-sm font-medium">{displayName}</p>
             <p className="text-xs text-muted-foreground">Paramedic</p>
           </div>
-          <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
-            <User className="h-4 w-4 text-gray-600" />
+          <div className="h-8 w-8 bg-accent rounded-full flex items-center justify-center">
+            <User className="h-4 w-4 text-muted-foreground" />
           </div>
         </div>
       </div>
