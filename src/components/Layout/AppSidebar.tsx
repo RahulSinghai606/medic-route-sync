@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React from "react";
+import { NavLink } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -8,18 +7,19 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
-} from '@/components/ui/sidebar';
-import { 
-  Home, 
-  Users, 
-  Stethoscope, 
-  Building2, 
-  ClipboardList, 
-  Settings, 
-  LogOut 
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+} from "@/components/ui/sidebar";
+import {
+  Home,
+  Users,
+  Stethoscope,
+  Building2,
+  ClipboardList,
+  Settings,
+  LogOut,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import logo from "./logo.jpg";
 
 const AppSidebar = () => {
   const { signOut, profile } = useAuth();
@@ -33,19 +33,26 @@ const AppSidebar = () => {
       <SidebarHeader className="border-b px-6 py-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emergency">
-            <span className="text-white font-bold">EC</span>
+            <img
+              src={logo}
+              alt="Your Image Description"
+              width={32}
+              height={32}
+            />
           </div>
-          <h1 className="text-xl font-bold">EmergConnect</h1>
+          <h1 className="text-xl font-bold">TERO</h1>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <NavLink 
-              to="/" 
-              className={({ isActive }) => 
+            <NavLink
+              to="/"
+              className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-                  isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  isActive
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 }`
               }
             >
@@ -54,11 +61,13 @@ const AppSidebar = () => {
             </NavLink>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <NavLink 
-              to="/patients" 
-              className={({ isActive }) => 
+            <NavLink
+              to="/patients"
+              className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-                  isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  isActive
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 }`
               }
             >
@@ -67,11 +76,13 @@ const AppSidebar = () => {
             </NavLink>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <NavLink 
-              to="/assessment" 
-              className={({ isActive }) => 
+            <NavLink
+              to="/assessment"
+              className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-                  isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  isActive
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 }`
               }
             >
@@ -80,11 +91,13 @@ const AppSidebar = () => {
             </NavLink>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <NavLink 
-              to="/hospitals" 
-              className={({ isActive }) => 
+            <NavLink
+              to="/hospitals"
+              className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-                  isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  isActive
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 }`
               }
             >
@@ -93,11 +106,13 @@ const AppSidebar = () => {
             </NavLink>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <NavLink 
-              to="/cases" 
-              className={({ isActive }) => 
+            <NavLink
+              to="/cases"
+              className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-                  isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  isActive
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 }`
               }
             >
@@ -112,22 +127,26 @@ const AppSidebar = () => {
           {profile && (
             <div className="mb-2 px-3 py-2">
               <p className="font-medium">{profile.full_name}</p>
-              <p className="text-sm text-gray-500 capitalize">{profile.role || 'Paramedic'}</p>
+              <p className="text-sm text-gray-500 capitalize">
+                {profile.role || "Paramedic"}
+              </p>
             </div>
           )}
-          <NavLink 
-            to="/settings" 
-            className={({ isActive }) => 
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
               `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-                isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                isActive
+                  ? "bg-gray-100 text-gray-900"
+                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
               }`
             }
           >
             <Settings className="h-5 w-5" />
             <span>Settings</span>
           </NavLink>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full justify-start gap-3 mt-2"
             onClick={handleLogout}
           >
