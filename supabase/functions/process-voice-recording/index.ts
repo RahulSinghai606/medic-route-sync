@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -43,14 +44,21 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured')
     }
 
+    console.log("Starting transcription process...")
+
     // Process audio with OpenAI Whisper API for transcription
     const transcription = await processAudioWithWhisper(audioBase64, openaiApiKey)
     
+    console.log("Transcription successful:", transcription.substring(0, 50) + "...")
+    
     // Extract vitals from transcription
     const extractedVitals = extractVitalsFromText(transcription)
+    
+    console.log("Vitals extracted:", JSON.stringify(extractedVitals))
 
     // Generate AI clinical assessment
     const aiAssessment = await generateClinicalAssessment(transcription, extractedVitals, openaiApiKey)
+    console.log("AI assessment generated:", JSON.stringify(aiAssessment))
     
     // Add AI assessment to vitals data
     extractedVitals.ai_assessment = aiAssessment
@@ -79,31 +87,39 @@ serve(async (req) => {
 
 // Process audio with OpenAI Whisper API
 async function processAudioWithWhisper(audioBase64: string, apiKey: string): Promise<string> {
-  // Convert base64 to binary
-  const binaryAudio = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))
-  
-  // Create form data with audio file
-  const formData = new FormData()
-  const audioBlob = new Blob([binaryAudio], { type: 'audio/webm' })
-  formData.append('file', audioBlob, 'audio.webm')
-  formData.append('model', 'whisper-1')
-  
-  // Send to OpenAI
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: formData
-  })
-  
-  if (!response.ok) {
-    const errorData = await response.text()
-    throw new Error(`OpenAI API error: ${errorData}`)
+  try {
+    // Convert base64 to binary
+    const binaryAudio = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))
+    
+    // Create form data with audio file
+    const formData = new FormData()
+    const audioBlob = new Blob([binaryAudio], { type: 'audio/webm' })
+    formData.append('file', audioBlob, 'audio.webm')
+    formData.append('model', 'whisper-1')
+    
+    console.log("Sending audio to OpenAI (size: " + binaryAudio.length + " bytes)")
+    
+    // Send to OpenAI
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.text()
+      console.error("OpenAI API error response:", errorData)
+      throw new Error(`OpenAI API error: ${errorData}`)
+    }
+    
+    const data = await response.json()
+    return data.text
+  } catch (error) {
+    console.error("Error in processAudioWithWhisper:", error)
+    throw error
   }
-  
-  const data = await response.json()
-  return data.text
 }
 
 // Extract vitals from transcription text
@@ -209,6 +225,8 @@ async function generateClinicalAssessment(
     Specialty Tags: #Tag1 #Tag2 #Tag3
     `;
 
+    console.log("Sending AI assessment request to OpenAI...")
+
     // Call OpenAI API for clinical assessment
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -235,11 +253,13 @@ async function generateClinicalAssessment(
 
     if (!response.ok) {
       const errorData = await response.text();
+      console.error("OpenAI API error response:", errorData);
       throw new Error(`OpenAI API error: ${errorData}`);
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
+    console.log("AI response:", aiResponse);
     
     // Parse the AI response to extract the requested information
     const clinicalProbabilityMatch = aiResponse.match(/Clinical Probability:\s*(.*?)(?:\n|$)/);
@@ -255,14 +275,14 @@ async function generateClinicalAssessment(
     return {
       clinical_probability: clinicalProbabilityMatch?.[1] || "Assessment unavailable",
       care_recommendations: careRecommendationsMatch?.[1] || "Recommendations unavailable",
-      specialty_tags: specialtyTags
+      specialty_tags: specialtyTags.length > 0 ? specialtyTags : ["General"]
     };
   } catch (error) {
     console.error('Error generating clinical assessment:', error);
     return {
       clinical_probability: "Unable to generate clinical assessment",
       care_recommendations: "Please consult with a medical professional",
-      specialty_tags: []
+      specialty_tags: ["General"]
     };
   }
 }

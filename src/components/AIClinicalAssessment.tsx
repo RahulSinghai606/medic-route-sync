@@ -2,7 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Stethoscope, AlertTriangle } from 'lucide-react';
+import { Brain, Stethoscope, AlertTriangle, HospitalSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { navigateToHospitalsWithSpecialties } from '@/utils/hospitalUtils';
 
 interface AIClinicalAssessmentProps {
   assessment?: {
@@ -13,6 +16,23 @@ interface AIClinicalAssessmentProps {
 }
 
 const AIClinicalAssessment = ({ assessment }: AIClinicalAssessmentProps) => {
+  const navigate = useNavigate();
+  
+  const isCritical = assessment?.clinical_probability.toLowerCase().includes('critical') || 
+                     assessment?.clinical_probability.toLowerCase().includes('severe') ||
+                     assessment?.clinical_probability.toLowerCase().includes('emergency');
+  
+  const handleFindHospitals = () => {
+    if (assessment) {
+      navigateToHospitalsWithSpecialties(
+        navigate, 
+        assessment.specialty_tags, 
+        isCritical,
+        assessment.clinical_probability
+      );
+    }
+  };
+  
   if (!assessment) {
     return (
       <Card className="border-medical bg-medical/5">
@@ -41,9 +61,9 @@ const AIClinicalAssessment = ({ assessment }: AIClinicalAssessmentProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="bg-background rounded-md p-3 border border-medical/20">
+        <div className={`${isCritical ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-background border-medical/20'} rounded-md p-3 border`}>
           <div className="flex items-start gap-2">
-            <AlertTriangle className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+            <AlertTriangle className={`h-5 w-5 ${isCritical ? 'text-red-500' : 'text-warning'} mt-0.5 flex-shrink-0`} />
             <div>
               <h4 className="font-medium">Clinical Probability</h4>
               <p>{assessment.clinical_probability}</p>
@@ -71,6 +91,14 @@ const AIClinicalAssessment = ({ assessment }: AIClinicalAssessmentProps) => {
             ))}
           </div>
         </div>
+        
+        <Button
+          onClick={handleFindHospitals}
+          className="w-full mt-2 bg-medical hover:bg-medical/90 flex items-center gap-2 justify-center"
+        >
+          <HospitalSquare className="h-4 w-4" />
+          Find Matching Hospitals
+        </Button>
       </CardContent>
     </Card>
   );

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ambulance, Lock, AlertCircle, Mail } from 'lucide-react';
+import { Ambulance, Lock, AlertCircle, Mail, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const loginSchema = z.object({
@@ -59,8 +59,9 @@ const Login = () => {
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emergency mb-4">
             <Ambulance className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold">EmergConnect</h1>
-          <p className="text-gray-500">Ambulance-Side Web Platform</p>
+          <h1 className="text-2xl font-bold">TERO</h1>
+          <p className="text-gray-500">Triage and Emergency Routing Optimization</p>
+          <p className="text-xs text-gray-400 mt-1">Ambulance-Side Web Platform</p>
         </div>
 
         <Card>

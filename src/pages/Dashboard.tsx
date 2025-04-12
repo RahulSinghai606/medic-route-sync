@@ -1,304 +1,186 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { Bell, Clock, ClipboardList, MapPin, Users, ArrowRight, AlertTriangle, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { fetchPatients } from '@/lib/patientUtils';
-import { useAuth } from '@/contexts/AuthContext';
-import { 
-  AlertTriangle, 
-  Clock, 
-  MapPin, 
-  Calendar, 
-  Ambulance, 
-  Users, 
-  Activity,
-  PlusCircle,
-  BarChart3
-} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
-  const [patients, setPatients] = useState<any[]>([]);
-  const [latestPatient, setLatestPatient] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
   useEffect(() => {
-    const loadPatients = async () => {
-      setLoading(true);
-      const { data } = await fetchPatients();
-      if (data) {
-        setPatients(data);
-        
-        // Find patient with most recent vitals for active emergency
-        const patientsWithVitals = data.filter(p => p.vitals && p.vitals.length > 0);
-        if (patientsWithVitals.length > 0) {
-          // Sort by creation date
-          patientsWithVitals.sort((a, b) => {
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
           });
-          
-          setLatestPatient(patientsWithVitals[0]);
+          setIsLoadingLocation(false);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setLocationError("Unable to retrieve your location. Please check browser permissions.");
+          setIsLoadingLocation(false);
         }
-      }
-      setLoading(false);
-    };
-
-    loadPatients();
+      );
+    } else {
+      setLocationError("Geolocation is not supported by this browser.");
+      setIsLoadingLocation(false);
+    }
   }, []);
 
-  const handleNewCase = () => {
+  const formatLocation = (location: { lat: number; lng: number }) => {
+    return `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+  };
+
+  const goToAssessment = () => {
     navigate('/assessment');
   };
 
-  const getPatientVitals = (patient: any) => {
-    if (!patient || !patient.vitals || patient.vitals.length === 0) return null;
-    
-    // Get the most recent vitals
-    return patient.vitals.reduce((latest: any, current: any) => {
-      if (!latest) return current;
-      return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
-    }, null);
-  };
-
-  // Calculate minutes ago
-  const getTimeAgo = (dateString: string) => {
-    const minutes = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 60000);
-    if (minutes < 60) return `${minutes} min ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hr ago`;
-    return `${Math.floor(hours / 24)} days ago`;
+  const goToHospitals = () => {
+    navigate('/hospitals');
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1>Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {profile?.full_name || 'User'}. Here's your overview.</p>
-        </div>
-        <Button className="emergency-btn flex items-center gap-2" onClick={handleNewCase}>
-          <PlusCircle className="h-5 w-5" />
-          New Emergency Case
-        </Button>
+      <div>
+        <h1>Dashboard</h1>
+        <p className="text-muted-foreground">Ambulance operations overview</p>
       </div>
 
-      {/* Active Emergency Section */}
-      {latestPatient ? (
-        <Card className="border-emergency">
-          <CardHeader className="bg-emergency/10 pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-emergency flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Active Emergency
-              </CardTitle>
-              <Badge className="bg-emergency">Critical</Badge>
+      {/* Current Location Card */}
+      <Card className="border-medical">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-medical" />
+            Paramedic Location
+          </CardTitle>
+          <CardDescription>Your current GPS coordinates</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingLocation ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-medical"></div>
             </div>
-            <CardDescription>
-              <div className="flex flex-wrap gap-3 mt-1">
-                <div className="flex items-center gap-1 text-sm">
-                  <Clock className="h-4 w-4" />
-                  <span>Started {getTimeAgo(latestPatient.created_at)}</span>
+          ) : locationError ? (
+            <div className="bg-red-50 p-3 rounded-md text-red-800 flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Location Error</p>
+                <p className="text-sm">{locationError}</p>
+              </div>
+            </div>
+          ) : currentLocation ? (
+            <div className="space-y-3">
+              <div className="bg-gray-50 p-3 rounded-md">
+                <p className="font-mono text-sm">{formatLocation(currentLocation)}</p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This information helps optimize hospital routing and ETA calculations.
+              </p>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks and operations</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button 
+              variant="outline" 
+              className="w-full justify-between hover:bg-gray-50 py-6 text-left"
+              onClick={goToAssessment}
+            >
+              <div className="flex gap-3 items-center">
+                <div className="h-9 w-9 rounded-md bg-blue-50 flex items-center justify-center">
+                  <ClipboardList className="h-5 w-5 text-blue-500" />
                 </div>
-                <div className="flex items-center gap-1 text-sm">
-                  <MapPin className="h-4 w-4" />
-                  <span>Patient: {latestPatient.name || 'Unknown'}</span>
-                </div>
-                <div className="flex items-center gap-1 text-sm">
-                  <Calendar className="h-4 w-4" />
-                  <span>ID: {latestPatient.patient_id || 'Unknown'}</span>
+                <div>
+                  <p className="font-medium">New Patient Assessment</p>
+                  <p className="text-xs text-muted-foreground">Record vital signs and patient info</p>
                 </div>
               </div>
-            </CardDescription>
+              <ArrowRight className="h-5 w-5 text-muted-foreground" />
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-between hover:bg-gray-50 py-6 text-left"
+              onClick={goToHospitals}
+            >
+              <div className="flex gap-3 items-center">
+                <div className="h-9 w-9 rounded-md bg-medical/10 flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-medical" />
+                </div>
+                <div>
+                  <p className="font-medium">Find Hospital</p>
+                  <p className="text-xs text-muted-foreground">Locate suitable facilities for patient care</p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground" />
+            </Button>
+          </CardContent>
+        </Card>
+        
+        {/* Status Overview */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Status Overview</CardTitle>
+            <CardDescription>Today's activities and alerts</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {getPatientVitals(latestPatient) && (
-                <>
-                  <div className="vital-card">
-                    <div className="vital-label">Heart Rate</div>
-                    <div className={`vital-value ${getPatientVitals(latestPatient).heart_rate > 100 ? "text-emergency" : ""}`}>
-                      {getPatientVitals(latestPatient).heart_rate || '–'} bpm
-                    </div>
-                  </div>
-                  <div className="vital-card">
-                    <div className="vital-label">Blood Pressure</div>
-                    <div className="vital-value">
-                      {getPatientVitals(latestPatient).bp_systolic || '–'}/{getPatientVitals(latestPatient).bp_diastolic || '–'} mmHg
-                    </div>
-                  </div>
-                  <div className="vital-card">
-                    <div className="vital-label">SpO2</div>
-                    <div className={`vital-value ${getPatientVitals(latestPatient).spo2 < 95 ? "text-warning" : ""}`}>
-                      {getPatientVitals(latestPatient).spo2 || '–'}%
-                    </div>
-                  </div>
-                  <div className="vital-card">
-                    <div className="vital-label">Temperature</div>
-                    <div className="vital-value">
-                      {getPatientVitals(latestPatient).temperature || '–'}°C
-                    </div>
-                  </div>
-                </>
-              )}
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-4 rounded-md">
+                <Users className="h-5 w-5 text-gray-500 mb-2" />
+                <h3 className="text-2xl font-bold">3</h3>
+                <p className="text-sm text-gray-500">Patients Today</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-md">
+                <Clock className="h-5 w-5 text-gray-500 mb-2" />
+                <h3 className="text-2xl font-bold">45m</h3>
+                <p className="text-sm text-gray-500">Avg. Response Time</p>
+              </div>
             </div>
-            <div className="mt-4 flex flex-col sm:flex-row gap-2">
-              <Button className="medical-btn flex-1" onClick={() => navigate('/assessment')}>
-                Update Patient Status
-              </Button>
-              <Button variant="outline" className="flex-1" onClick={() => navigate('/patients')}>
-                View Case Details
-              </Button>
+            
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-medium mb-2">Recent Notifications</h3>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50">
+                  <Bell className="h-4 w-4 text-emergency mt-0.5" />
+                  <div>
+                    <div className="flex items-center">
+                      <p className="text-sm font-medium">System Alert</p>
+                      <Badge variant="outline" className="ml-2 text-xs">New</Badge>
+                    </div>
+                    <p className="text-xs text-gray-500">ER capacity updates for Memorial Hospital</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50">
+                  <Bell className="h-4 w-4 text-gray-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Traffic Update</p>
+                    <p className="text-xs text-gray-500">Route changes on Main St affecting ETAs</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="py-8">
-            <div className="flex flex-col items-center justify-center text-center">
-              <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No active emergency</h3>
-              <p className="text-muted-foreground mb-4">Create a new emergency case to track patient vitals and details</p>
-              <Button className="emergency-btn" onClick={handleNewCase}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                New Emergency Case
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Transports Today
-            </CardTitle>
-            <Ambulance className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{patients.length || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {patients.length > 0 ? `+${patients.length} from yesterday` : "No transports today"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Patients
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{patients.length || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {patients.length > 0 
-                ? `${Math.floor(patients.length/3)} critical, ${Math.floor(patients.length/3)} stable, ${patients.length - 2*Math.floor(patients.length/3)} minor`
-                : "No patients recorded"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Average Response Time
-            </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8.5 min</div>
-            <p className="text-xs text-muted-foreground">
-              -1.2 min from last week
-            </p>
-          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" className="w-full text-xs">View All Activity</Button>
+          </CardFooter>
         </Card>
       </div>
-
-      {/* Recent Cases and Analytics */}
-      <Tabs defaultValue="recent">
-        <TabsList>
-          <TabsTrigger value="recent">Recent Cases</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
-        <TabsContent value="recent" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Cases</CardTitle>
-              <CardDescription>
-                Your most recent emergency responses
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {loading ? (
-                  <p>Loading recent cases...</p>
-                ) : patients.length > 0 ? (
-                  patients.slice(0, 3).map((patient) => (
-                    <div key={patient.id} className="flex items-center justify-between border-b pb-4">
-                      <div>
-                        <h3 className="font-medium">{patient.name || 'Unknown Patient'}</h3>
-                        <div className="flex gap-4 text-sm text-muted-foreground">
-                          <span>{patient.patient_id || 'No ID'}</span>
-                          <span>{new Date(patient.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <Badge className={
-                        patient.vitals && patient.vitals.length > 0 ? 
-                          (getPatientVitals(patient)?.heart_rate > 100 || getPatientVitals(patient)?.bp_systolic > 140 || getPatientVitals(patient)?.spo2 < 92) ? 
-                            "bg-emergency" : 
-                            (getPatientVitals(patient)?.heart_rate > 90 || getPatientVitals(patient)?.bp_systolic > 130 || getPatientVitals(patient)?.spo2 < 95) ? 
-                              "bg-warning" : 
-                              "bg-success" 
-                          : "bg-gray-500"
-                      }>
-                        {patient.vitals && patient.vitals.length > 0 ? 
-                          (getPatientVitals(patient)?.heart_rate > 100 || getPatientVitals(patient)?.bp_systolic > 140 || getPatientVitals(patient)?.spo2 < 92) ? 
-                            "Critical" : 
-                            (getPatientVitals(patient)?.heart_rate > 90 || getPatientVitals(patient)?.bp_systolic > 130 || getPatientVitals(patient)?.spo2 < 95) ? 
-                              "Moderate" : 
-                              "Stable" 
-                          : "Unknown"
-                        }
-                      </Badge>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4">
-                    <p>No recent cases found.</p>
-                  </div>
-                )}
-              </div>
-              <Button variant="outline" className="w-full mt-4" onClick={() => navigate('/patients')}>
-                View All Cases
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="analytics" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Analytics</CardTitle>
-              <CardDescription>
-                Your response metrics and performance data
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-80 flex items-center justify-center">
-              <div className="flex flex-col items-center text-center">
-                <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="font-medium">Analytics Coming Soon</h3>
-                <p className="text-muted-foreground">
-                  Detailed performance metrics will be available in the next update.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };

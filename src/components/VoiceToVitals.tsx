@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Mic, StopCircle, Play, Loader2 } from 'lucide-react';
@@ -22,14 +22,28 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     care_recommendations: string;
     specialty_tags: string[];
   } | null>(null);
+  const [processingError, setProcessingError] = useState<string | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const { toast } = useToast();
 
+  // Clean up on component unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, [isRecording]);
+
   const startRecording = async () => {
     try {
+      setProcessingError(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       const mediaRecorder = new MediaRecorder(stream);
@@ -104,6 +118,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     }
     
     setIsProcessing(true);
+    setProcessingError(null);
     
     try {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
@@ -125,6 +140,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       });
     } catch (error) {
       console.error('Error processing recording:', error);
+      setProcessingError(error instanceof Error ? error.message : "Failed to extract vital signs");
       toast({
         title: "Processing failed",
         description: error instanceof Error ? error.message : "Failed to extract vital signs",
@@ -213,6 +229,15 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
                     </Button>
                   )}
                 </div>
+                
+                {processingError && (
+                  <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md border border-red-200 dark:border-red-800 mb-4 text-left">
+                    <p className="text-red-800 dark:text-red-300 text-sm flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <span>Error: {processingError}</span>
+                    </p>
+                  </div>
+                )}
                 
                 <div className="text-xs text-muted-foreground">
                   <p className="mb-1">Tips:</p>
