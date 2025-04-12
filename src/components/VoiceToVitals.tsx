@@ -27,13 +27,14 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+  const timerStartRef = useRef<number>(0);
   const { toast } = useToast();
 
   // Clean up on component unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
-        clearInterval(timerRef.current);
+        window.clearInterval(timerRef.current);
       }
       if (mediaRecorderRef.current && isRecording) {
         mediaRecorderRef.current.stop();
@@ -65,10 +66,14 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
         stream.getTracks().forEach(track => track.stop());
       };
       
-      // Start the timer
-      const startTime = Date.now() - recordingTime;
+      // Reset the recording time and store the current timestamp
+      setRecordingTime(0);
+      timerStartRef.current = Date.now();
+      
+      // Start the timer - using window.setInterval for better browser compatibility
       timerRef.current = window.setInterval(() => {
-        setRecordingTime(Date.now() - startTime);
+        const elapsedTime = Date.now() - timerStartRef.current;
+        setRecordingTime(elapsedTime);
       }, 100);
       
       mediaRecorder.start();
@@ -96,7 +101,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       
       // Clear the timer
       if (timerRef.current) {
-        clearInterval(timerRef.current);
+        window.clearInterval(timerRef.current);
         timerRef.current = null;
       }
       
@@ -125,6 +130,15 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       const { data, error } = await processVoiceRecording(audioBlob);
       
       if (error) {
+        console.error('Processing error:', error);
+        
+        // Check if it's the OpenAI API quota error and provide a more helpful message
+        if (error.includes('insufficient_quota') || error.includes('quota')) {
+          throw new Error(
+            "OpenAI API quota exceeded. Please try again later or update your API key."
+          );
+        }
+        
         throw new Error(error);
       }
       
@@ -132,7 +146,10 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
         setAiAssessment(data.ai_assessment);
       }
       
-      onVitalsExtracted(data);
+      // Extract vitals from the transcription using fallback method if AI extraction failed
+      const extractedData = data || fallbackExtractVitals(audioBlob);
+      
+      onVitalsExtracted(extractedData);
       
       toast({
         title: "Processing complete",
@@ -149,6 +166,21 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Fallback extraction in case the OpenAI API fails
+  const fallbackExtractVitals = (audioBlob: Blob) => {
+    // This is a simplified fallback - you would need more sophisticated
+    // local text analysis if the OpenAI service is unavailable
+    
+    return {
+      notes: "Transcription unavailable - OpenAI service quota exceeded. Please try again later.",
+      ai_assessment: {
+        clinical_probability: "Assessment unavailable due to API limitations",
+        care_recommendations: "Please consult with a medical professional for proper assessment",
+        specialty_tags: ["General"]
+      }
+    };
   };
 
   const playRecording = () => {

@@ -161,29 +161,50 @@ export const processVoiceRecording = async (audioBlob: Blob) => {
       });
 
     if (processingError) throw new Error(processingError.message);
+    
+    // If we have an error from the edge function
+    if (processingResult.error) {
+      console.warn('Edge function returned an error:', processingResult.error);
+      // If the edge function returned some fallback vitals data, use it
+      if (processingResult.vitals) {
+        return { data: processingResult.vitals, error: processingResult.error };
+      }
+      throw new Error(processingResult.error);
+    }
+    
     if (!processingResult) throw new Error('No data returned from processing');
 
     // 3. Upload the original audio to Supabase Storage
-    const timestamp = new Date().getTime();
-    const filePath = `${timestamp}-recording.webm`;
-    
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('audio-recordings')
-      .upload(filePath, audioBlob);
-    
-    if (uploadError) throw uploadError;
+    try {
+      const timestamp = new Date().getTime();
+      const filePath = `${timestamp}-recording.webm`;
+      
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('audio-recordings')
+        .upload(filePath, audioBlob);
+      
+      if (uploadError) {
+        console.warn('Error uploading audio recording:', uploadError);
+        // Continue even if upload fails
+      } else {
+        // 4. Get the public URL for the uploaded audio
+        const { data: { publicUrl } } = supabase
+          .storage
+          .from('audio-recordings')
+          .getPublicUrl(filePath);
+          
+        // Add the URL to the extracted vitals
+        processingResult.vitals.audio_url = publicUrl;
+      }
+    } catch (storageError) {
+      console.warn('Error with storage operations:', storageError);
+      // Continue even if storage operations fail
+    }
 
-    // 4. Get the public URL for the uploaded audio
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('audio-recordings')
-      .getPublicUrl(filePath);
-
-    // 5. Combine the extracted vitals with the audio URL, transcription, and AI assessment
+    // 5. Return the extracted vitals with transcription
     const extractedVitals = {
       ...processingResult.vitals,
-      audio_url: publicUrl,
       transcription: processingResult.transcription
     };
     

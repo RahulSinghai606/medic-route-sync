@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -47,32 +46,68 @@ serve(async (req) => {
     console.log("Starting transcription process...")
 
     // Process audio with OpenAI Whisper API for transcription
-    const transcription = await processAudioWithWhisper(audioBase64, openaiApiKey)
-    
-    console.log("Transcription successful:", transcription.substring(0, 50) + "...")
-    
-    // Extract vitals from transcription
-    const extractedVitals = extractVitalsFromText(transcription)
-    
-    console.log("Vitals extracted:", JSON.stringify(extractedVitals))
+    try {
+      const transcription = await processAudioWithWhisper(audioBase64, openaiApiKey)
+      
+      console.log("Transcription successful:", transcription.substring(0, 50) + "...")
+      
+      // Extract vitals from transcription
+      const extractedVitals = extractVitalsFromText(transcription)
+      
+      console.log("Vitals extracted:", JSON.stringify(extractedVitals))
 
-    // Generate AI clinical assessment
-    const aiAssessment = await generateClinicalAssessment(transcription, extractedVitals, openaiApiKey)
-    console.log("AI assessment generated:", JSON.stringify(aiAssessment))
-    
-    // Add AI assessment to vitals data
-    extractedVitals.ai_assessment = aiAssessment
-
-    return new Response(
-      JSON.stringify({
-        transcription,
-        vitals: extractedVitals
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+      // Generate AI clinical assessment
+      try {
+        const aiAssessment = await generateClinicalAssessment(transcription, extractedVitals, openaiApiKey)
+        console.log("AI assessment generated:", JSON.stringify(aiAssessment))
+        
+        // Add AI assessment to vitals data
+        extractedVitals.ai_assessment = aiAssessment
+      } catch (aiError) {
+        console.error('Error generating AI assessment:', aiError)
+        // Continue with basic vitals even if AI assessment fails
+        extractedVitals.ai_assessment = {
+          clinical_probability: "Assessment unavailable - API error",
+          care_recommendations: "Please consult with a medical professional",
+          specialty_tags: ["General"]
+        }
       }
-    )
+
+      return new Response(
+        JSON.stringify({
+          transcription,
+          vitals: extractedVitals
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      )
+    } catch (openaiError) {
+      // If OpenAI API fails, return a useful error message
+      console.error('OpenAI API error:', openaiError)
+      
+      // Perform basic extraction without OpenAI
+      const basicVitals: VitalsData = {
+        notes: "Transcription unavailable - OpenAI service error. Please try again later.",
+        ai_assessment: {
+          clinical_probability: "Assessment unavailable due to API limitations",
+          care_recommendations: "Please consult with a medical professional for proper assessment",
+          specialty_tags: ["General"]
+        }
+      }
+      
+      return new Response(
+        JSON.stringify({
+          error: openaiError.message,
+          vitals: basicVitals
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        }
+      )
+    }
   } catch (error) {
     console.error('Error processing audio:', error)
     return new Response(
@@ -111,6 +146,12 @@ async function processAudioWithWhisper(audioBase64: string, apiKey: string): Pro
     if (!response.ok) {
       const errorData = await response.text()
       console.error("OpenAI API error response:", errorData)
+      
+      // Check for quota exceeded error
+      if (errorData.includes('insufficient_quota')) {
+        throw new Error(`OpenAI API quota exceeded. Please check your billing details.`)
+      }
+      
       throw new Error(`OpenAI API error: ${errorData}`)
     }
     
