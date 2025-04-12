@@ -18,7 +18,9 @@ const Dashboard = () => {
           const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-            address: "Loading address..."
+            address: "Super Academic Building, IIT Ropar, Main Campus, IIT Ropar (Main Campus) Road, Rupnagar, Rupnagar - 140001, Punjab, India
+
+"
           };
           
           setCurrentLocation(location);
