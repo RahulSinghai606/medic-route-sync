@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { useSearchParams } from 'react-router-dom';
 import {
   Search,
   MapPin,
@@ -16,8 +17,11 @@ import {
   Phone,
   SendHorizontal,
   ListFilter,
-  Map as MapIcon
+  Map as MapIcon,
+  ArrowUp,
+  Tag
 } from 'lucide-react';
+import { matchHospitalsToPatient } from '@/lib/patientUtils';
 
 // Mock hospital data
 const hospitalData = [
@@ -72,10 +76,42 @@ const hospitalData = [
 ];
 
 const Hospitals = () => {
+  const [searchParams] = useSearchParams();
   const [selectedHospital, setSelectedHospital] = useState(hospitalData[0]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [rankedHospitals, setRankedHospitals] = useState(hospitalData);
 
-  const filteredHospitals = hospitalData.filter(hospital => 
+  useEffect(() => {
+    // Check if we have specialty tags from the URL
+    const specialtyTags = searchParams.get('specialties')?.split(',') || [];
+    const criticalCase = searchParams.get('critical') === 'true';
+    
+    // Demo vital signs for testing
+    const demoVitals = criticalCase ? {
+      heart_rate: 130,
+      bp_systolic: 90,
+      bp_diastolic: 60,
+      spo2: 91,
+      temperature: 38.5,
+      respiratory_rate: 24,
+      gcs: 12,
+      pain_level: 8
+    } : null;
+    
+    // Demo AI assessment
+    const demoAssessment = specialtyTags.length > 0 ? {
+      clinical_probability: searchParams.get('assessment') || "Probable case requiring specialized care",
+      care_recommendations: "Transfer to appropriate specialty unit. Monitor vital signs closely.",
+      specialty_tags: specialtyTags
+    } : undefined;
+    
+    // Use the hospital matching algorithm
+    const matchedHospitals = matchHospitalsToPatient(hospitalData, demoVitals, demoAssessment);
+    setRankedHospitals(matchedHospitals);
+    setSelectedHospital(matchedHospitals[0]);
+  }, [searchParams]);
+
+  const filteredHospitals = rankedHospitals.filter(hospital => 
     hospital.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     hospital.specialties.some(specialty => 
       specialty.toLowerCase().includes(searchQuery.toLowerCase())
@@ -120,34 +156,65 @@ const Hospitals = () => {
             </CardHeader>
             <CardContent className="px-0 py-0">
               <div className="divide-y">
-                {filteredHospitals.map(hospital => (
-                  <div 
-                    key={hospital.id}
-                    onClick={() => setSelectedHospital(hospital)}
-                    className={`p-4 cursor-pointer transition-colors hover:bg-gray-50 flex justify-between items-center ${selectedHospital.id === hospital.id ? 'bg-gray-50 border-l-4 border-medical' : ''}`}
-                  >
-                    <div>
-                      <h3 className="font-medium">{hospital.name}</h3>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          <span>{hospital.distance} mi</span>
+                {filteredHospitals.map(hospital => {
+                  const isPromoted = (hospital as any).promotedDueToSpecialty;
+                  const matchedSpecialties = (hospital as any).matchedSpecialties || [];
+                  
+                  return (
+                    <div 
+                      key={hospital.id}
+                      onClick={() => setSelectedHospital(hospital)}
+                      className={`p-4 cursor-pointer transition-colors hover:bg-gray-50 flex justify-between items-center ${selectedHospital.id === hospital.id ? 'bg-gray-50 border-l-4 border-medical' : ''}`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{hospital.name}</h3>
+                          {isPromoted && (
+                            <Badge className="bg-medical/20 text-medical border-medical flex items-center gap-1 p-1">
+                              <ArrowUp className="h-3 w-3" />
+                            </Badge>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>ETA {hospital.eta} min</span>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>{hospital.distance} mi</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>ETA {hospital.eta} min</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Bed className="h-3 w-3" />
+                            <span>{hospital.availableBeds} beds</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Bed className="h-3 w-3" />
-                          <span>{hospital.availableBeds} beds</span>
-                        </div>
+                        {isPromoted && matchedSpecialties.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {matchedSpecialties.slice(0, 2).map((specialty: string, index: number) => (
+                              <Badge key={index} variant="outline" className="text-xs py-0 px-1 bg-medical/5 text-medical border-medical/20">
+                                {specialty}
+                              </Badge>
+                            ))}
+                            {matchedSpecialties.length > 2 && (
+                              <Badge variant="outline" className="text-xs py-0 px-1">
+                                +{matchedSpecialties.length - 2} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
+                      <Badge className={`
+                        ${hospital.matchScore >= 90 ? 'bg-medical' : 
+                        hospital.matchScore >= 80 ? 'bg-success' : 
+                        'bg-muted'} 
+                        ${isPromoted ? 'border-2 border-white outline outline-1 outline-medical' : ''}
+                      `}>
+                        {hospital.matchScore}%
+                      </Badge>
                     </div>
-                    <Badge className={`${hospital.matchScore >= 90 ? 'bg-medical' : hospital.matchScore >= 80 ? 'bg-success' : 'bg-muted'}`}>
-                      {hospital.matchScore}%
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
                 {filteredHospitals.length === 0 && (
                   <div className="p-6 text-center text-muted-foreground">
                     No hospitals match your search criteria
@@ -175,9 +242,23 @@ const Hospitals = () => {
                         {selectedHospital.address}
                       </CardDescription>
                     </div>
-                    <Badge className={`${selectedHospital.matchScore >= 90 ? 'bg-medical' : selectedHospital.matchScore >= 80 ? 'bg-success' : 'bg-muted'}`}>
-                      {selectedHospital.matchScore}% Match
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className={`
+                        ${selectedHospital.matchScore >= 90 ? 'bg-medical' : 
+                        selectedHospital.matchScore >= 80 ? 'bg-success' : 
+                        'bg-muted'}
+                        ${(selectedHospital as any).promotedDueToSpecialty ? 'border-2 border-white outline outline-1 outline-medical' : ''}
+                      `}>
+                        {selectedHospital.matchScore}% Match
+                      </Badge>
+                      
+                      {(selectedHospital as any).promotedDueToSpecialty && (
+                        <Badge variant="outline" className="flex items-center gap-1 bg-medical/10 text-medical border-medical/20">
+                          <Tag className="h-3 w-3" />
+                          <span>Specialty Promoted</span>
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -222,10 +303,20 @@ const Hospitals = () => {
                         else if (specialty.includes('Trauma') || specialty.includes('Orthopedics')) icon = <Bone className="h-4 w-4" />;
                         else icon = <Bed className="h-4 w-4" />;
 
+                        // Check if this specialty is one of the matched ones for highlighting
+                        const isMatchedSpecialty = (selectedHospital as any).matchedSpecialties?.includes(specialty);
+
                         return (
-                          <Badge key={index} variant="outline" className="flex items-center gap-1 py-1 px-3">
+                          <Badge 
+                            key={index} 
+                            variant="outline" 
+                            className={`flex items-center gap-1 py-1 px-3 ${
+                              isMatchedSpecialty ? 'bg-medical/10 text-medical border-medical' : ''
+                            }`}
+                          >
                             {icon}
                             {specialty}
+                            {isMatchedSpecialty && <ArrowUp className="h-3 w-3 ml-1" />}
                           </Badge>
                         );
                       })}
@@ -251,8 +342,10 @@ const Hospitals = () => {
                   <div className="border-t pt-4">
                     <h3 className="text-lg font-semibold mb-3">Patient Matching</h3>
                     <p className="text-sm mb-4">
-                      This hospital has specialties matching the patient's cardiac symptoms
-                      with available capacity for immediate care.
+                      {(selectedHospital as any).promotedDueToSpecialty 
+                        ? `This hospital has been prioritized due to specialty match with the patient's needs: ${(selectedHospital as any).matchedSpecialties?.join(', ')}.`
+                        : `This hospital is recommended based on proximity and available capacity for immediate care.`
+                      }
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button className="medical-btn flex-1 flex items-center gap-2">

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -181,7 +180,7 @@ export const processVoiceRecording = async (audioBlob: Blob) => {
       .from('audio-recordings')
       .getPublicUrl(filePath);
 
-    // 5. Combine the extracted vitals with the audio URL and transcription
+    // 5. Combine the extracted vitals with the audio URL, transcription, and AI assessment
     const extractedVitals = {
       ...processingResult.vitals,
       audio_url: publicUrl,
@@ -217,4 +216,110 @@ export const usePatientOperations = () => {
   };
 
   return { handleSaveResult };
+};
+
+// Function to match hospitals based on patient needs and AI assessment
+type Hospital = {
+  id: number;
+  name: string;
+  distance: number;
+  eta: number;
+  specialties: string[];
+  availableBeds: number;
+  waitTime: number;
+  address: string;
+  phone: string;
+  matchScore: number;
+};
+
+export const matchHospitalsToPatient = (
+  hospitals: Hospital[],
+  vitals: any,
+  aiAssessment?: { clinical_probability: string; care_recommendations: string; specialty_tags: string[] }
+): Hospital[] => {
+  if (!hospitals || !hospitals.length) return [];
+  
+  // Deep clone the hospitals array to avoid mutating the original
+  const rankedHospitals = JSON.parse(JSON.stringify(hospitals)) as Hospital[];
+  
+  // Base case - no AI assessment or vitals
+  if (!vitals && !aiAssessment) return rankedHospitals;
+  
+  // Determine if this is a critical case based on vital signs
+  const isCriticalCase = vitals && (
+    (vitals.heart_rate && (vitals.heart_rate > 120 || vitals.heart_rate < 50)) ||
+    (vitals.bp_systolic && (vitals.bp_systolic > 180 || vitals.bp_systolic < 90)) ||
+    (vitals.spo2 && vitals.spo2 < 92) ||
+    (vitals.gcs && vitals.gcs < 9)
+  );
+  
+  // Determine required specialties from AI assessment
+  const requiredSpecialties = aiAssessment?.specialty_tags || [];
+  
+  // Calculate match scores with dynamic weighting
+  rankedHospitals.forEach(hospital => {
+    let proximityScore = 0;
+    let specialtyScore = 0;
+    let capacityScore = 0;
+    
+    // Proximity score (0-40) - inversely proportional to distance
+    proximityScore = Math.max(0, 40 - (hospital.distance * 8));
+    
+    // Specialty match score (0-50) - higher for specialty matches
+    if (requiredSpecialties.length > 0) {
+      const matchedSpecialties = hospital.specialties.filter(spec => {
+        // Check if any AI-identified specialty tag is included in this hospital specialty
+        return requiredSpecialties.some(tag => {
+          const tagLower = tag.toLowerCase();
+          const specLower = spec.toLowerCase();
+          return specLower.includes(tagLower) || (
+            // Handle common synonyms
+            (tagLower === 'cardiac' && specLower.includes('heart')) ||
+            (tagLower === 'respiratory' && (specLower.includes('pulmonary') || specLower.includes('lung'))) ||
+            (tagLower === 'neuro' && specLower.includes('brain')) ||
+            (tagLower === 'trauma' && specLower.includes('emergency')) ||
+            (tagLower === 'burns' && specLower.includes('burn'))
+          );
+        });
+      });
+      
+      specialtyScore = Math.min(50, matchedSpecialties.length * 25);
+      
+      // Boost specialty score for critical cases
+      if (isCriticalCase && matchedSpecialties.length > 0) {
+        specialtyScore = Math.min(50, specialtyScore * 1.5);
+      }
+    }
+    
+    // Capacity score (0-10) - higher for more available beds and lower wait times
+    capacityScore = Math.min(10, (hospital.availableBeds * 1.5) - (hospital.waitTime * 0.2));
+    
+    // Final score calculation with dynamic weighting
+    let finalScore = 0;
+    
+    if (isCriticalCase && specialtyScore > 0) {
+      // For critical cases with specialty match, prioritize specialty over proximity
+      finalScore = (specialtyScore * 0.6) + (proximityScore * 0.3) + (capacityScore * 0.1);
+    } else if (specialtyScore > 0) {
+      // For non-critical cases with specialty match, balance specialty and proximity
+      finalScore = (specialtyScore * 0.4) + (proximityScore * 0.5) + (capacityScore * 0.1);
+    } else {
+      // For cases without specialty match, prioritize proximity
+      finalScore = (proximityScore * 0.8) + (capacityScore * 0.2);
+    }
+    
+    // Set match score (scale to 0-100)
+    hospital.matchScore = Math.round(finalScore);
+    
+    // Add a flag if this hospital was promoted due to specialty match
+    if (specialtyScore > 25) {
+      (hospital as any).promotedDueToSpecialty = true;
+      (hospital as any).matchedSpecialties = hospital.specialties.filter(spec => 
+        requiredSpecialties.some(tag => spec.toLowerCase().includes(tag.toLowerCase()))
+      );
+    }
+  });
+  
+  // Sort hospitals by match score (descending)
+  return rankedHospitals.sort((a, b) => b.matchScore - a.matchScore);
 };
