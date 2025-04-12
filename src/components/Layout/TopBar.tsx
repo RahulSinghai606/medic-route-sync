@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Bell, Menu, MessageSquare, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSidebarContext } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import StatusToggle from '../StatusToggle';
 
 const TopBar = () => {
   const { user } = useAuth();
-  const { isOpen, toggle } = useSidebarContext();
+  const { isOpen, toggleSidebar: toggle } = useSidebar();
   const displayName = user?.user_metadata?.full_name || user?.email || 'User';
 
   return (

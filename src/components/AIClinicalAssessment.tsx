@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Stethoscope, AlertTriangle, HospitalSquare } from 'lucide-react';
+import { Brain, Stethoscope, AlertTriangle, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { navigateToHospitalsWithSpecialties } from '@/utils/hospitalUtils';
@@ -96,7 +96,7 @@ const AIClinicalAssessment = ({ assessment }: AIClinicalAssessmentProps) => {
           onClick={handleFindHospitals}
           className="w-full mt-2 bg-medical hover:bg-medical/90 flex items-center gap-2 justify-center"
         >
-          <HospitalSquare className="h-4 w-4" />
+          <Building2 className="h-4 w-4" />
           Find Matching Hospitals
         </Button>
       </CardContent>

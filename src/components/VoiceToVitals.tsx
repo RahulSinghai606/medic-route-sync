@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mic, StopCircle, Play, Loader2 } from 'lucide-react';
+import { Mic, StopCircle, Play, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { processVoiceRecording } from '@/lib/patientUtils';
 import AIClinicalAssessment from './AIClinicalAssessment';
