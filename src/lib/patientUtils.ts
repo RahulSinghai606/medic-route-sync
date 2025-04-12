@@ -160,15 +160,20 @@ export const processVoiceRecording = async (audioBlob: Blob) => {
         body: { audioBase64 }
       });
 
-    if (processingError) throw new Error(processingError.message);
+    if (processingError) {
+      console.error('Error invoking edge function:', processingError);
+      throw new Error(processingError.message);
+    }
     
-    // If we have an error from the edge function
+    // Edge function now always returns 200 status, but may contain error info in the body
     if (processingResult.error) {
-      console.warn('Edge function returned an error:', processingResult.error);
-      // If the edge function returned some fallback vitals data, use it
+      console.warn('Edge function returned an error in response body:', processingResult.error);
+      
+      // Check if there's still usable data despite the error
       if (processingResult.vitals) {
         return { data: processingResult.vitals, error: processingResult.error };
       }
+      
       throw new Error(processingResult.error);
     }
     
@@ -211,7 +216,18 @@ export const processVoiceRecording = async (audioBlob: Blob) => {
     return { data: extractedVitals, error: null };
   } catch (error: any) {
     console.error('Error processing voice recording:', error);
-    return { data: null, error: error.message };
+    // Return a more informative error to help with debugging
+    return { 
+      data: {
+        notes: `Error processing voice recording: ${error.message}`,
+        ai_assessment: {
+          clinical_probability: "Assessment unavailable due to processing error",
+          care_recommendations: "Please try again or record manually",
+          specialty_tags: ["General"]
+        }
+      }, 
+      error: error.message 
+    };
   }
 };
 

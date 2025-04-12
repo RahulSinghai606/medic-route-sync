@@ -26,21 +26,52 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<number | null>(null);
-  const timerStartRef = useRef<number>(0);
+  const timerIntervalRef = useRef<number | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
   const { toast } = useToast();
 
   // Clean up on component unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
+      if (timerIntervalRef.current) {
+        window.clearInterval(timerIntervalRef.current);
       }
       if (mediaRecorderRef.current && isRecording) {
         mediaRecorderRef.current.stop();
       }
     };
   }, [isRecording]);
+
+  // Separate effect for timer to ensure it runs independently
+  useEffect(() => {
+    if (isRecording && !timerIntervalRef.current) {
+      startTimer();
+    } else if (!isRecording && timerIntervalRef.current) {
+      stopTimer();
+    }
+    
+    return () => {
+      if (timerIntervalRef.current) {
+        window.clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [isRecording]);
+
+  const startTimer = () => {
+    recordingStartTimeRef.current = Date.now();
+    timerIntervalRef.current = window.setInterval(() => {
+      const elapsedTime = Date.now() - recordingStartTimeRef.current;
+      setRecordingTime(elapsedTime);
+    }, 100);
+  };
+
+  const stopTimer = () => {
+    if (timerIntervalRef.current) {
+      window.clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -66,15 +97,9 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
         stream.getTracks().forEach(track => track.stop());
       };
       
-      // Reset the recording time and store the current timestamp
+      // Reset the recording time
       setRecordingTime(0);
-      timerStartRef.current = Date.now();
-      
-      // Start the timer - using window.setInterval for better browser compatibility
-      timerRef.current = window.setInterval(() => {
-        const elapsedTime = Date.now() - timerStartRef.current;
-        setRecordingTime(elapsedTime);
-      }, 100);
+      recordingStartTimeRef.current = Date.now();
       
       mediaRecorder.start();
       setIsRecording(true);
@@ -99,11 +124,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
-      // Clear the timer
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      // The timer will be stopped by the useEffect
       
       toast({
         title: "Recording stopped",
@@ -135,7 +156,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
         // Check if it's the OpenAI API quota error and provide a more helpful message
         if (error.includes('insufficient_quota') || error.includes('quota')) {
           throw new Error(
-            "OpenAI API quota exceeded. Please try again later or update your API key."
+            "OpenAI API quota exceeded. Using fallback processing method."
           );
         }
         
@@ -174,7 +195,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     // local text analysis if the OpenAI service is unavailable
     
     return {
-      notes: "Transcription unavailable - OpenAI service quota exceeded. Please try again later.",
+      notes: "Transcription unavailable - Speech processing service unavailable. Please try again later.",
       ai_assessment: {
         clinical_probability: "Assessment unavailable due to API limitations",
         care_recommendations: "Please consult with a medical professional for proper assessment",

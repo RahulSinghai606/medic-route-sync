@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,18 +7,40 @@ import { Badge } from '@/components/ui/badge';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number, address?: string } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCurrentLocation({
+        async (position) => {
+          const location = {
             lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
+            lng: position.coords.longitude,
+            address: "Loading address..."
+          };
+          
+          setCurrentLocation(location);
+          
+          // Try to get address from coordinates using reverse geocoding
+          try {
+            const response = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.lat},${location.lng}&key=AIzaSyBNLrJhOMz6idD05pzwk17MCHTHkOfFrlI`
+            );
+            
+            const data = await response.json();
+            
+            if (data.status === "OK" && data.results.length > 0) {
+              // Get the formatted address from the first result
+              const address = data.results[0].formatted_address;
+              setCurrentLocation(prev => prev ? { ...prev, address } : location);
+            }
+          } catch (error) {
+            console.error("Error fetching address:", error);
+            // Keep coordinates if address lookup fails
+          }
+          
           setIsLoadingLocation(false);
         },
         (error) => {
@@ -35,7 +56,7 @@ const Dashboard = () => {
   }, []);
 
   const formatLocation = (location: { lat: number; lng: number }) => {
-    return `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+    return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
   };
 
   const goToAssessment = () => {
@@ -77,8 +98,13 @@ const Dashboard = () => {
             </div>
           ) : currentLocation ? (
             <div className="space-y-3">
-              <div className="bg-gray-50 p-3 rounded-md">
-                <p className="font-mono text-sm">{formatLocation(currentLocation)}</p>
+              {currentLocation.address && (
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+                  <p className="font-medium text-lg">{currentLocation.address}</p>
+                </div>
+              )}
+              <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-md">
+                <p className="font-mono text-xs text-muted-foreground">{formatLocation(currentLocation)}</p>
               </div>
               <p className="text-sm text-muted-foreground">
                 This information helps optimize hospital routing and ETA calculations.
@@ -98,12 +124,12 @@ const Dashboard = () => {
           <CardContent className="space-y-2">
             <Button 
               variant="outline" 
-              className="w-full justify-between hover:bg-gray-50 py-6 text-left"
+              className="w-full justify-between hover:bg-gray-50 dark:hover:bg-gray-800 py-6 text-left"
               onClick={goToAssessment}
             >
               <div className="flex gap-3 items-center">
-                <div className="h-9 w-9 rounded-md bg-blue-50 flex items-center justify-center">
-                  <ClipboardList className="h-5 w-5 text-blue-500" />
+                <div className="h-9 w-9 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                  <ClipboardList className="h-5 w-5 text-blue-500 dark:text-blue-400" />
                 </div>
                 <div>
                   <p className="font-medium">New Patient Assessment</p>
@@ -115,7 +141,7 @@ const Dashboard = () => {
             
             <Button 
               variant="outline" 
-              className="w-full justify-between hover:bg-gray-50 py-6 text-left"
+              className="w-full justify-between hover:bg-gray-50 dark:hover:bg-gray-800 py-6 text-left"
               onClick={goToHospitals}
             >
               <div className="flex gap-3 items-center">
@@ -140,37 +166,37 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-4 rounded-md">
-                <Users className="h-5 w-5 text-gray-500 mb-2" />
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                <Users className="h-5 w-5 text-gray-500 dark:text-gray-400 mb-2" />
                 <h3 className="text-2xl font-bold">3</h3>
-                <p className="text-sm text-gray-500">Patients Today</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Patients Today</p>
               </div>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <Clock className="h-5 w-5 text-gray-500 mb-2" />
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                <Clock className="h-5 w-5 text-gray-500 dark:text-gray-400 mb-2" />
                 <h3 className="text-2xl font-bold">45m</h3>
-                <p className="text-sm text-gray-500">Avg. Response Time</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Avg. Response Time</p>
               </div>
             </div>
             
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-2">Recent Notifications</h3>
               <div className="space-y-2">
-                <div className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50">
+                <div className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
                   <Bell className="h-4 w-4 text-emergency mt-0.5" />
                   <div>
                     <div className="flex items-center">
                       <p className="text-sm font-medium">System Alert</p>
                       <Badge variant="outline" className="ml-2 text-xs">New</Badge>
                     </div>
-                    <p className="text-xs text-gray-500">ER capacity updates for Memorial Hospital</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">ER capacity updates for Memorial Hospital</p>
                   </div>
                 </div>
                 
-                <div className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50">
+                <div className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
                   <Bell className="h-4 w-4 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">Traffic Update</p>
-                    <p className="text-xs text-gray-500">Route changes on Main St affecting ETAs</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Route changes on Main St affecting ETAs</p>
                   </div>
                 </div>
               </div>

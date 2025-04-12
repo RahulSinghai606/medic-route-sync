@@ -37,59 +37,52 @@ serve(async (req) => {
       throw new Error('No audio data provided')
     }
 
-    // Get OpenAI API key from environment variable
+    // Get API keys from environment variables
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured')
+    const huggingFaceApiKey = Deno.env.get('HUGGINGFACE_API_KEY')
+    
+    if (!openaiApiKey && !huggingFaceApiKey) {
+      throw new Error('No API keys configured. Please add either OpenAI or HuggingFace API key.')
     }
 
     console.log("Starting transcription process...")
+    let transcription = '';
+    let transcriptionError = null;
 
-    // Process audio with OpenAI Whisper API for transcription
-    try {
-      const transcription = await processAudioWithWhisper(audioBase64, openaiApiKey)
-      
-      console.log("Transcription successful:", transcription.substring(0, 50) + "...")
-      
-      // Extract vitals from transcription
-      const extractedVitals = extractVitalsFromText(transcription)
-      
-      console.log("Vitals extracted:", JSON.stringify(extractedVitals))
-
-      // Generate AI clinical assessment
+    // First try OpenAI if key is available
+    if (openaiApiKey) {
       try {
-        const aiAssessment = await generateClinicalAssessment(transcription, extractedVitals, openaiApiKey)
-        console.log("AI assessment generated:", JSON.stringify(aiAssessment))
-        
-        // Add AI assessment to vitals data
-        extractedVitals.ai_assessment = aiAssessment
-      } catch (aiError) {
-        console.error('Error generating AI assessment:', aiError)
-        // Continue with basic vitals even if AI assessment fails
-        extractedVitals.ai_assessment = {
-          clinical_probability: "Assessment unavailable - API error",
-          care_recommendations: "Please consult with a medical professional",
-          specialty_tags: ["General"]
+        transcription = await processAudioWithWhisper(audioBase64, openaiApiKey)
+        console.log("OpenAI transcription successful:", transcription.substring(0, 50) + "...")
+      } catch (openaiError) {
+        console.error('OpenAI API error:', openaiError)
+        transcriptionError = openaiError.message;
+        // We'll try HuggingFace as fallback
+      }
+    }
+
+    // If OpenAI failed or wasn't available, try HuggingFace
+    if (!transcription && huggingFaceApiKey) {
+      try {
+        transcription = await processAudioWithHuggingFace(audioBase64, huggingFaceApiKey)
+        console.log("HuggingFace transcription successful:", transcription.substring(0, 50) + "...")
+        transcriptionError = null; // Clear error if HuggingFace succeeded
+      } catch (hfError) {
+        console.error('HuggingFace API error:', hfError)
+        // If we already had an OpenAI error, keep that as primary
+        if (!transcriptionError) {
+          transcriptionError = hfError.message;
         }
       }
+    }
 
-      return new Response(
-        JSON.stringify({
-          transcription,
-          vitals: extractedVitals
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
-      )
-    } catch (openaiError) {
-      // If OpenAI API fails, return a useful error message
-      console.error('OpenAI API error:', openaiError)
+    // If both APIs failed, return a useful error message
+    if (!transcription) {
+      const errorMessage = transcriptionError || 'Failed to transcribe audio with all available services';
       
-      // Perform basic extraction without OpenAI
+      // Return basic extraction without transcription
       const basicVitals: VitalsData = {
-        notes: "Transcription unavailable - OpenAI service error. Please try again later.",
+        notes: `Transcription unavailable - API service error: ${errorMessage}. Please try again later.`,
         ai_assessment: {
           clinical_probability: "Assessment unavailable due to API limitations",
           care_recommendations: "Please consult with a medical professional for proper assessment",
@@ -99,22 +92,77 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({
-          error: openaiError.message,
+          error: errorMessage,
           vitals: basicVitals
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
+          status: 200 // Return 200 even with error to avoid Edge Function error in frontend
         }
       )
     }
-  } catch (error) {
-    console.error('Error processing audio:', error)
+    
+    // Extract vitals from transcription
+    const extractedVitals = extractVitalsFromText(transcription)
+    
+    console.log("Vitals extracted:", JSON.stringify(extractedVitals))
+
+    // Generate AI clinical assessment
+    try {
+      let aiAssessment;
+      if (openaiApiKey) {
+        aiAssessment = await generateClinicalAssessment(transcription, extractedVitals, openaiApiKey)
+      } else {
+        // Fallback assessment if OpenAI is not available
+        aiAssessment = {
+          clinical_probability: "Assessment unavailable - using transcription only",
+          care_recommendations: "Please consult with a medical professional for a complete assessment",
+          specialty_tags: ["General"]
+        };
+      }
+      
+      console.log("AI assessment generated:", JSON.stringify(aiAssessment))
+      
+      // Add AI assessment to vitals data
+      extractedVitals.ai_assessment = aiAssessment
+    } catch (aiError) {
+      console.error('Error generating AI assessment:', aiError)
+      // Continue with basic vitals even if AI assessment fails
+      extractedVitals.ai_assessment = {
+        clinical_probability: "Assessment unavailable - API error",
+        care_recommendations: "Please consult with a medical professional",
+        specialty_tags: ["General"]
+      }
+    }
+
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        transcription,
+        vitals: extractedVitals
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 200
+      }
+    )
+  } catch (error) {
+    console.error('Error processing audio:', error)
+    // Always return 200 with error in the body to avoid Edge Function error in frontend
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        vitals: {
+          notes: `Error: ${error.message}`,
+          ai_assessment: {
+            clinical_probability: "Assessment unavailable due to error",
+            care_recommendations: "Please try again later",
+            specialty_tags: ["General"]
+          }
+        }
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 // Return 200 even with error to avoid Edge Function error in frontend
       }
     )
   }
@@ -159,6 +207,41 @@ async function processAudioWithWhisper(audioBase64: string, apiKey: string): Pro
     return data.text
   } catch (error) {
     console.error("Error in processAudioWithWhisper:", error)
+    throw error
+  }
+}
+
+// Process audio with HuggingFace API
+async function processAudioWithHuggingFace(audioBase64: string, apiKey: string): Promise<string> {
+  try {
+    // Convert base64 to binary
+    const binaryAudio = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))
+    
+    console.log("Sending audio to HuggingFace (size: " + binaryAudio.length + " bytes)")
+    
+    // Convert to blob for fetch API
+    const audioBlob = new Blob([binaryAudio], { type: 'audio/webm' })
+    
+    // Send to HuggingFace Inference API - using automatic-speech-recognition
+    const response = await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'audio/webm'
+      },
+      body: audioBlob
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.text()
+      console.error("HuggingFace API error response:", errorData)
+      throw new Error(`HuggingFace API error: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    return data.text || data[0]?.generated_text || ''
+  } catch (error) {
+    console.error("Error in processAudioWithHuggingFace:", error)
     throw error
   }
 }
