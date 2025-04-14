@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -21,9 +20,11 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
     lng: number;
@@ -31,59 +32,94 @@ const Dashboard = () => {
   } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [reverseGeocodingAttempted, setReverseGeocodingAttempted] = useState(false);
 
-  useEffect(() => {
+  const getCurrentLocation = () => {
+    setIsLoadingLocation(true);
+    setLocationError(null);
+    
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
+        (position) => {
+          console.log("Successfully got current position:", position.coords);
           const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-            address:
-              "Super Academic Building, IIT Ropar, Main Campus, IIT Ropar (Main Campus) Road, Rupnagar, Rupnagar - 140001, Punjab, India",
           };
-
+          
           setCurrentLocation(location);
-
-          // Try to get address from coordinates using reverse geocoding
-          try {
-            const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.lat},${location.lng}&key=AIzaSyBNLrJhOMz6idD05pzwk17MCHTHkOfFrlI`
-            );
-
-            const data = await response.json();
-
-            if (data.status === "OK" && data.results.length > 0) {
-              // Get the formatted address from the first result
-              const address = data.results[0].formatted_address;
-              setCurrentLocation((prev) =>
-                prev ? { ...prev, address } : location
-              );
-            }
-          } catch (error) {
-            console.error("Error fetching address:", error);
-            // Keep coordinates if address lookup fails
-          }
-
+          reverseGeocode(location);
           setIsLoadingLocation(false);
         },
         (error) => {
           console.error("Error getting location:", error);
           setLocationError(
-            "Unable to retrieve your location. Please check browser permissions."
+            `Unable to retrieve your location: ${error.message}. Please check browser permissions.`
           );
           setIsLoadingLocation(false);
+          
+          toast({
+            title: "Location Error",
+            description: "Unable to get your current location. Using last known location.",
+            variant: "destructive",
+          });
+        },
+        { 
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     } else {
       setLocationError("Geolocation is not supported by this browser.");
       setIsLoadingLocation(false);
     }
+  };
+
+  const reverseGeocode = async (location: { lat: number, lng: number }) => {
+    try {
+      setReverseGeocodingAttempted(true);
+      console.log("Attempting reverse geocoding for:", location);
+      
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.lat},${location.lng}&key=AIzaSyBNLrJhOMz6idD05pzwk17MCHTHkOfFrlI`
+      );
+
+      const data = await response.json();
+      console.log("Geocoding API response:", data);
+
+      if (data.status === "OK" && data.results.length > 0) {
+        // Get the formatted address from the first result
+        const address = data.results[0].formatted_address;
+        console.log("Found address:", address);
+        setCurrentLocation((prev) =>
+          prev ? { ...prev, address } : { ...location, address }
+        );
+      } else {
+        console.warn("No results from geocoding API:", data.status);
+        // Keep the coordinates if address lookup fails
+      }
+    } catch (error) {
+      console.error("Error fetching address:", error);
+      // Keep coordinates if address lookup fails
+    }
+  };
+
+  useEffect(() => {
+    getCurrentLocation();
   }, []);
 
   const formatLocation = (location: { lat: number; lng: number }) => {
     // Show only 4 decimal places to make coordinates smaller and more readable
     return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
+  };
+
+  const refreshLocation = () => {
+    getCurrentLocation();
+    toast({
+      title: "Refreshing Location",
+      description: "Getting your current coordinates...",
+    });
   };
 
   const goToAssessment = () => {
@@ -104,10 +140,21 @@ const Dashboard = () => {
       {/* Current Location Card */}
       <Card className="border-medical">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-medical" />
-            Paramedic Location
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-medical" />
+              Paramedic Location
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={refreshLocation}
+              disabled={isLoadingLocation}
+              className="h-8"
+            >
+              Refresh
+            </Button>
+          </div>
           <CardDescription>Your current GPS coordinates</CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,10 +189,19 @@ const Dashboard = () => {
                 calculations.
               </p>
             </div>
-          ) : null}
+          ) : (
+            <div className="bg-amber-50 p-3 rounded-md text-amber-800 flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">No Location Data</p>
+                <p className="text-sm">Unable to retrieve your location. Click refresh to try again.</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Quick Actions */}
         <Card>

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Mic, StopCircle, Play, Loader2, AlertTriangle } from "lucide-react";
+import { Mic, StopCircle, Play, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { processVoiceRecording } from "@/lib/patientUtils";
 import AIClinicalAssessment from "./AIClinicalAssessment";
@@ -23,11 +23,11 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     specialty_tags: string[];
   } | null>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [transcription, setTranscription] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
+  const timerIntervalRef = useRef<number | null>(null);
   const { toast } = useToast();
 
   // Clean up all resources on component unmount
@@ -38,34 +38,38 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
         mediaRecorderRef.current.stop();
       }
     };
-  }, [isRecording]);
+  }, []);
 
-  // Timer effect runs independently from recording state
+  // Timer effect
   useEffect(() => {
-    if (isRecording && !timerRef.current) {
+    if (isRecording) {
       startTimer();
-    } else if (!isRecording && timerRef.current) {
+    } else {
       stopTimer();
     }
+
+    return () => stopTimer();
   }, [isRecording]);
 
   const startTimer = () => {
-    if (timerRef.current) return; // Timer already running
+    if (timerIntervalRef.current) return;
     
-    startTimeRef.current = Date.now() - recordingTime; // Account for any existing time
+    // Reset recording time when starting a new recording
+    setRecordingTime(0);
     
-    timerRef.current = window.setInterval(() => {
-      const elapsedTime = Date.now() - startTimeRef.current;
-      setRecordingTime(elapsedTime);
+    const startTime = Date.now();
+    
+    timerIntervalRef.current = window.setInterval(() => {
+      setRecordingTime(Date.now() - startTime);
     }, 100);
     
     console.log("Timer started");
   };
 
   const stopTimer = () => {
-    if (timerRef.current) {
-      window.clearInterval(timerRef.current);
-      timerRef.current = null;
+    if (timerIntervalRef.current) {
+      window.clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
       console.log("Timer stopped at", recordingTime);
     }
   };
@@ -73,6 +77,8 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   const startRecording = async () => {
     try {
       setProcessingError(null);
+      setTranscription(null);
+      setAiAssessment(null);
       
       console.log("Requesting audio stream...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -106,9 +112,6 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
           console.log("Audio track stopped");
         });
       };
-
-      // Reset the recording time
-      setRecordingTime(0);
       
       // Start the recorder
       mediaRecorder.start();
@@ -140,7 +143,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
 
       toast({
         title: "Recording stopped",
-        description: "Processing voice data to extract vital signs",
+        description: "Ready to process voice data",
       });
     }
   };
@@ -167,43 +170,59 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       const { data, error } = await processVoiceRecording(audioBlob);
 
       if (error) {
-        console.error("Processing error:", error);
+        console.warn("Processing warning:", error);
+        
+        // Show warning toast but don't block the process if we have fallback data
+        if (data) {
+          toast({
+            title: "Processing Warning",
+            description: "Using fallback processing due to API limits. Results may be less accurate.",
+            variant: "warning",
+          });
+        } else {
+          // If we have no data at all, it's a true error
+          throw new Error(error);
+        }
+      }
 
-        // Check if it's the OpenAI API quota error and provide a more helpful message
-        if (error.includes("insufficient_quota") || error.includes("quota")) {
-          throw new Error(
-            "OpenAI API quota exceeded. Using fallback processing method."
-          );
+      if (data) {
+        // Set transcription if available
+        if (data.transcription) {
+          setTranscription(data.transcription);
         }
 
-        throw new Error(error);
+        // Set AI assessment if available
+        if (data.ai_assessment) {
+          setAiAssessment(data.ai_assessment);
+        }
+
+        // Pass data to parent component
+        onVitalsExtracted(data);
+
+        toast({
+          title: "Processing complete",
+          description: data.transcription ? "Voice data processed successfully" : "Voice processed with limited results",
+        });
+      } else {
+        throw new Error("No data returned from processing");
       }
-
-      if (data && data.ai_assessment) {
-        setAiAssessment(data.ai_assessment);
-      }
-
-      // Extract vitals from the transcription using fallback method if AI extraction failed
-      const extractedData = data || fallbackExtractVitals(audioBlob);
-      console.log("Extracted data:", extractedData);
-
-      onVitalsExtracted(extractedData);
-
-      toast({
-        title: "Processing complete",
-        description: "Vital signs extracted successfully",
-      });
     } catch (error) {
       console.error("Error processing recording:", error);
-      setProcessingError(
-        error instanceof Error ? error.message : "Failed to extract vital signs"
-      );
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to extract vital signs";
+      
+      setProcessingError(errorMessage);
+      
+      // Try local fallback processing if API fails completely
+      const fallbackData = fallbackExtractVitals();
+      if (fallbackData) {
+        onVitalsExtracted(fallbackData);
+        setAiAssessment(fallbackData.ai_assessment);
+      }
+      
       toast({
         title: "Processing failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to extract vital signs",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -211,18 +230,15 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     }
   };
 
-  // Fallback extraction in case the OpenAI API fails
-  const fallbackExtractVitals = (audioBlob: Blob) => {
-    // This is a simplified fallback - you would need more sophisticated
-    // local text analysis if the OpenAI service is unavailable
-
+  // Fallback extraction in case the API fails
+  const fallbackExtractVitals = () => {
+    const currentTime = new Date().toLocaleTimeString();
+    
     return {
-      notes:
-        "Transcription unavailable - Speech processing service unavailable. Please try again later.",
+      notes: `Transcription unavailable at ${currentTime} - Speech processing service unavailable. Please try again later or enter vital signs manually.`,
       ai_assessment: {
         clinical_probability: "Assessment unavailable due to API limitations",
-        care_recommendations:
-          "Please consult with a medical professional for proper assessment",
+        care_recommendations: "Please enter patient data manually and consult with a medical professional",
         specialty_tags: ["General"],
       },
     };
@@ -311,10 +327,22 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
 
                 {processingError && (
                   <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md border border-red-200 dark:border-red-800 mb-4 text-left">
-                    <p className="text-red-800 dark:text-red-300 text-sm flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <span>Error: {processingError}</span>
-                    </p>
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-600" />
+                      <div>
+                        <p className="text-red-800 dark:text-red-300 text-sm font-medium">Error: {processingError}</p>
+                        <p className="text-red-700 dark:text-red-400 text-xs mt-1">
+                          Try entering vital signs manually if this error persists
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {transcription && (
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-200 dark:border-gray-600 mb-4 text-left">
+                    <h4 className="text-sm font-medium mb-1">Transcription:</h4>
+                    <p className="text-xs text-gray-700 dark:text-gray-300">{transcription}</p>
                   </div>
                 )}
 
@@ -327,6 +355,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
                       pressure 120 over 80")
                     </li>
                     <li>Mention all available measurements for best results</li>
+                    <li>If AI processing fails, you can still enter values manually</li>
                   </ul>
                 </div>
               </div>

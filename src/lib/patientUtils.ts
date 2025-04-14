@@ -141,89 +141,152 @@ export const fetchPatientDetails = async (patientId: string) => {
 // Function to process voice recording and extract vitals
 export const processVoiceRecording = async (audioBlob: Blob) => {
   try {
-    // 1. Convert audio blob to base64
+    // 1. Check if audio blob is valid
+    if (!audioBlob || audioBlob.size === 0) {
+      throw new Error('Invalid audio recording. Please try again.');
+    }
+
+    console.log('Processing audio recording of size:', audioBlob.size, 'bytes');
+
+    // 2. Convert audio blob to base64
     const reader = new FileReader();
-    const audioBase64Promise = new Promise<string>((resolve) => {
+    const audioBase64Promise = new Promise<string>((resolve, reject) => {
       reader.onloadend = () => {
-        const base64data = reader.result as string;
-        // Remove the data URL prefix (e.g., "data:audio/webm;base64,")
-        const base64Content = base64data.split(',')[1];
-        resolve(base64Content);
+        try {
+          const base64data = reader.result as string;
+          // Remove the data URL prefix (e.g., "data:audio/webm;base64,")
+          const base64Content = base64data.split(',')[1];
+          resolve(base64Content);
+        } catch (err) {
+          reject(new Error('Failed to convert audio to base64'));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read audio file'));
       };
     });
+    
     reader.readAsDataURL(audioBlob);
     const audioBase64 = await audioBase64Promise;
+    console.log('Successfully converted audio to base64');
 
-    // 2. Call our edge function to process the audio
-    const { data: processingResult, error: processingError } = await supabase
-      .functions
-      .invoke('process-voice-recording', {
-        body: { audioBase64 }
-      });
-
-    if (processingError) {
-      console.error('Error invoking edge function:', processingError);
-      throw new Error(processingError.message);
-    }
+    // 3. Call our edge function to process the audio with retry mechanism
+    let attempts = 0;
+    const maxAttempts = 2;
+    let lastError = null;
     
-    // Edge function now always returns 200 status, but may contain error info in the body
-    if (processingResult.error) {
-      console.warn('Edge function returned an error in response body:', processingResult.error);
+    while (attempts < maxAttempts) {
+      attempts++;
+      console.log(`Processing attempt ${attempts}/${maxAttempts}`);
       
-      // Check if there's still usable data despite the error
-      if (processingResult.vitals) {
-        return { data: processingResult.vitals, error: processingResult.error };
-      }
-      
-      throw new Error(processingResult.error);
-    }
-    
-    if (!processingResult) throw new Error('No data returned from processing');
+      try {
+        const { data: processingResult, error: processingError } = await supabase
+          .functions
+          .invoke('process-voice-recording', {
+            body: { audioBase64 }
+          });
 
-    // 3. Upload the original audio to Supabase Storage
-    try {
-      const timestamp = new Date().getTime();
-      const filePath = `${timestamp}-recording.webm`;
-      
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage
-        .from('audio-recordings')
-        .upload(filePath, audioBlob);
-      
-      if (uploadError) {
-        console.warn('Error uploading audio recording:', uploadError);
-        // Continue even if upload fails
-      } else {
-        // 4. Get the public URL for the uploaded audio
-        const { data: { publicUrl } } = supabase
-          .storage
-          .from('audio-recordings')
-          .getPublicUrl(filePath);
+        if (processingError) {
+          console.error('Error invoking edge function:', processingError);
+          throw new Error(processingError.message);
+        }
+        
+        // Edge function now always returns 200 status, but may contain error info in the body
+        if (processingResult.error) {
+          console.warn('Edge function returned an error in response body:', processingResult.error);
           
-        // Add the URL to the extracted vitals
-        processingResult.vitals.audio_url = publicUrl;
-      }
-    } catch (storageError) {
-      console.warn('Error with storage operations:', storageError);
-      // Continue even if storage operations fail
-    }
+          // Check if there's still usable data despite the error
+          if (processingResult.vitals) {
+            return { data: processingResult.vitals, error: processingResult.error };
+          }
+          
+          // If no vitals were extracted, try again if we have attempts left
+          lastError = processingResult.error;
+          if (attempts < maxAttempts) {
+            console.log('Retrying due to error:', lastError);
+            continue;
+          }
+          
+          throw new Error(processingResult.error);
+        }
+        
+        if (!processingResult) throw new Error('No data returned from processing');
 
-    // 5. Return the extracted vitals with transcription
-    const extractedVitals = {
-      ...processingResult.vitals,
-      transcription: processingResult.transcription
+        // 4. Upload the original audio to Supabase Storage
+        try {
+          const timestamp = new Date().getTime();
+          const filePath = `${timestamp}-recording.webm`;
+          
+          const { data: uploadData, error: uploadError } = await supabase
+            .storage
+            .from('audio-recordings')
+            .upload(filePath, audioBlob);
+          
+          if (uploadError) {
+            console.warn('Error uploading audio recording:', uploadError);
+            // Continue even if upload fails
+          } else {
+            // Get the public URL for the uploaded audio
+            const { data: { publicUrl } } = supabase
+              .storage
+              .from('audio-recordings')
+              .getPublicUrl(filePath);
+              
+            // Add the URL to the extracted vitals
+            processingResult.vitals.audio_url = publicUrl;
+          }
+        } catch (storageError) {
+          console.warn('Error with storage operations:', storageError);
+          // Continue even if storage operations fail
+        }
+
+        // 5. Return the extracted vitals with transcription
+        const extractedVitals = {
+          ...processingResult.vitals,
+          transcription: processingResult.transcription
+        };
+        
+        return { data: extractedVitals, error: null };
+      } catch (error: any) {
+        console.error(`Error on attempt ${attempts}:`, error);
+        lastError = error.message;
+        
+        // Only continue to next attempt if we haven't reached max attempts
+        if (attempts >= maxAttempts) {
+          break;
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // If we got here, all attempts failed
+    console.error('All processing attempts failed:', lastError);
+    
+    // Use fallback processing with minimal extracted information
+    const fallbackData = {
+      notes: `Automatic extraction failed after ${maxAttempts} attempts. Error: ${lastError}`,
+      ai_assessment: {
+        clinical_probability: "Use caution: AI assessment unavailable due to processing error",
+        care_recommendations: "Please enter patient data manually or try again with a shorter, clearer recording",
+        specialty_tags: ["General"]
+      }
     };
     
-    return { data: extractedVitals, error: null };
+    return { 
+      data: fallbackData, 
+      error: `Processing failed after ${maxAttempts} attempts: ${lastError}`
+    };
   } catch (error: any) {
-    console.error('Error processing voice recording:', error);
+    console.error('Fatal error processing voice recording:', error);
     // Return a more informative error to help with debugging
     return { 
       data: {
         notes: `Error processing voice recording: ${error.message}`,
         ai_assessment: {
           clinical_probability: "Assessment unavailable due to processing error",
-          care_recommendations: "Please try again or record manually",
+          care_recommendations: "Please try again with a shorter recording or record manually",
           specialty_tags: ["General"]
         }
       }, 
