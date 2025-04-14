@@ -17,10 +17,12 @@ import {
   ArrowRight,
   AlertTriangle,
   Activity,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -32,7 +34,44 @@ const Dashboard = () => {
   } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [locationPermissionStatus, setLocationPermissionStatus] = useState<PermissionState | null>(null);
   const [reverseGeocodingAttempted, setReverseGeocodingAttempted] = useState(false);
+
+  useEffect(() => {
+    checkLocationPermission();
+  }, []);
+
+  const checkLocationPermission = async () => {
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        setLocationPermissionStatus(result.state);
+        
+        result.onchange = () => {
+          setLocationPermissionStatus(result.state);
+          
+          if (result.state === 'granted' && !currentLocation) {
+            getCurrentLocation();
+          }
+        };
+        
+        if (result.state === 'granted') {
+          getCurrentLocation();
+        } else if (result.state === 'prompt') {
+          setIsLoadingLocation(false);
+          setLocationError("Location permission not yet granted. Click Refresh to allow access.");
+        } else if (result.state === 'denied') {
+          setIsLoadingLocation(false);
+          setLocationError("Location access has been blocked. Please update your browser settings to allow location access.");
+        }
+      } else {
+        getCurrentLocation();
+      }
+    } catch (error) {
+      console.error("Error checking location permission:", error);
+      getCurrentLocation();
+    }
+  };
 
   const getCurrentLocation = () => {
     setIsLoadingLocation(true);
@@ -50,19 +89,15 @@ const Dashboard = () => {
           setCurrentLocation(location);
           reverseGeocode(location);
           setIsLoadingLocation(false);
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          setLocationError(
-            `Unable to retrieve your location: ${error.message}. Please check browser permissions.`
-          );
-          setIsLoadingLocation(false);
           
           toast({
-            title: "Location Error",
-            description: "Unable to get your current location. Using last known location.",
-            variant: "destructive",
+            title: "Location Updated",
+            description: "Your current location has been successfully retrieved.",
           });
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          handleLocationError(error);
         },
         { 
           enableHighAccuracy: true,
@@ -74,6 +109,33 @@ const Dashboard = () => {
       setLocationError("Geolocation is not supported by this browser.");
       setIsLoadingLocation(false);
     }
+  };
+
+  const handleLocationError = (error: GeolocationPositionError) => {
+    let errorMessage = "Unable to retrieve your location.";
+    
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        errorMessage = "Location access was denied. Please enable location services in your browser settings.";
+        break;
+      case error.POSITION_UNAVAILABLE:
+        errorMessage = "Location information is unavailable. Please try again later.";
+        break;
+      case error.TIMEOUT:
+        errorMessage = "Location request timed out. Please try again.";
+        break;
+      default:
+        errorMessage = `Location error: ${error.message}`;
+    }
+    
+    setLocationError(errorMessage);
+    setIsLoadingLocation(false);
+    
+    toast({
+      title: "Location Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
   };
 
   const reverseGeocode = async (location: { lat: number, lng: number }) => {
@@ -89,7 +151,6 @@ const Dashboard = () => {
       console.log("Geocoding API response:", data);
 
       if (data.status === "OK" && data.results.length > 0) {
-        // Get the formatted address from the first result
         const address = data.results[0].formatted_address;
         console.log("Found address:", address);
         setCurrentLocation((prev) =>
@@ -97,20 +158,13 @@ const Dashboard = () => {
         );
       } else {
         console.warn("No results from geocoding API:", data.status);
-        // Keep the coordinates if address lookup fails
       }
     } catch (error) {
       console.error("Error fetching address:", error);
-      // Keep coordinates if address lookup fails
     }
   };
 
-  useEffect(() => {
-    getCurrentLocation();
-  }, []);
-
   const formatLocation = (location: { lat: number; lng: number }) => {
-    // Show only 4 decimal places to make coordinates smaller and more readable
     return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
   };
 
@@ -130,6 +184,26 @@ const Dashboard = () => {
     navigate("/hospitals");
   };
 
+  const renderLocationPermissionGuidance = () => {
+    if (locationPermissionStatus === 'denied') {
+      return (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Location Permission Blocked</AlertTitle>
+          <AlertDescription>
+            Location access has been blocked in your browser. To enable:
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>Click the lock/info icon in your browser's address bar</li>
+              <li>Find "Location" and change it to "Allow"</li>
+              <li>Refresh this page after changing the permission</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -137,7 +211,8 @@ const Dashboard = () => {
         <p className="text-muted-foreground">Ambulance operations overview</p>
       </div>
 
-      {/* Current Location Card */}
+      {renderLocationPermissionGuidance()}
+
       <Card className="border-medical">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
@@ -150,8 +225,9 @@ const Dashboard = () => {
               size="sm" 
               onClick={refreshLocation}
               disabled={isLoadingLocation}
-              className="h-8"
+              className="h-8 flex items-center gap-1"
             >
+              <RefreshCw className={`h-3 w-3 ${isLoadingLocation ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
@@ -163,7 +239,7 @@ const Dashboard = () => {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-medical"></div>
             </div>
           ) : locationError ? (
-            <div className="bg-red-50 p-3 rounded-md text-red-800 flex items-start gap-2">
+            <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md text-red-800 dark:text-red-300 flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium">Location Error</p>
@@ -180,7 +256,7 @@ const Dashboard = () => {
                 </div>
               )}
               <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-md">
-                <p className="font-mono text-xs text-muted-foreground">
+                <p className="font-mono text-sm">
                   GPS: {formatLocation(currentLocation)}
                 </p>
               </div>
@@ -190,20 +266,18 @@ const Dashboard = () => {
               </p>
             </div>
           ) : (
-            <div className="bg-amber-50 p-3 rounded-md text-amber-800 flex items-start gap-2">
+            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md text-amber-800 dark:text-amber-300 flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium">No Location Data</p>
-                <p className="text-sm">Unable to retrieve your location. Click refresh to try again.</p>
+                <p className="text-sm">Click the Refresh button to share your location.</p>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -250,7 +324,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Status Overview */}
         <Card>
           <CardHeader>
             <CardTitle>Status Overview</CardTitle>
