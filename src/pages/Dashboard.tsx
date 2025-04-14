@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -81,6 +82,7 @@ const Dashboard = () => {
   }, []);
 
   const formatLocation = (location: { lat: number; lng: number }) => {
+    // Show only 4 decimal places to make coordinates smaller and more readable
     return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
   };
 
@@ -132,7 +134,7 @@ const Dashboard = () => {
               )}
               <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-md">
                 <p className="font-mono text-xs text-muted-foreground">
-                  {formatLocation(currentLocation)}
+                  GPS: {formatLocation(currentLocation)}
                 </p>
               </div>
               <p className="text-sm text-muted-foreground">

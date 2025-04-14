@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -114,11 +115,7 @@ serve(async (req) => {
         aiAssessment = await generateClinicalAssessment(transcription, extractedVitals, openaiApiKey)
       } else {
         // Fallback assessment if OpenAI is not available
-        aiAssessment = {
-          clinical_probability: "Assessment unavailable - using transcription only",
-          care_recommendations: "Please consult with a medical professional for a complete assessment",
-          specialty_tags: ["General"]
-        };
+        aiAssessment = await generateBasicAssessment(transcription, extractedVitals, huggingFaceApiKey as string);
       }
       
       console.log("AI assessment generated:", JSON.stringify(aiAssessment))
@@ -211,7 +208,7 @@ async function processAudioWithWhisper(audioBase64: string, apiKey: string): Pro
   }
 }
 
-// Process audio with HuggingFace API
+// Process audio with HuggingFace API - improved implementation
 async function processAudioWithHuggingFace(audioBase64: string, apiKey: string): Promise<string> {
   try {
     // Convert base64 to binary
@@ -222,7 +219,7 @@ async function processAudioWithHuggingFace(audioBase64: string, apiKey: string):
     // Convert to blob for fetch API
     const audioBlob = new Blob([binaryAudio], { type: 'audio/webm' })
     
-    // Send to HuggingFace Inference API - using automatic-speech-recognition
+    // Send to HuggingFace Inference API - using whisper-large-v3
     const response = await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3', {
       method: 'POST',
       headers: {
@@ -235,87 +232,243 @@ async function processAudioWithHuggingFace(audioBase64: string, apiKey: string):
     if (!response.ok) {
       const errorData = await response.text()
       console.error("HuggingFace API error response:", errorData)
-      throw new Error(`HuggingFace API error: ${response.statusText}`)
+      throw new Error(`HuggingFace API error: ${response.statusText || errorData}`)
     }
     
     const data = await response.json()
-    return data.text || data[0]?.generated_text || ''
+    
+    // Handle different response formats from Hugging Face
+    if (typeof data === 'string') {
+      return data;
+    } else if (data.text) {
+      return data.text;
+    } else if (data[0]?.generated_text) {
+      return data[0].generated_text;
+    } else if (Array.isArray(data) && data.length > 0) {
+      return JSON.stringify(data);
+    }
+    
+    throw new Error('Unexpected response format from HuggingFace');
   } catch (error) {
     console.error("Error in processAudioWithHuggingFace:", error)
     throw error
   }
 }
 
-// Extract vitals from transcription text
+// Generate a basic assessment using Hugging Face models when OpenAI is not available
+async function generateBasicAssessment(
+  transcription: string, 
+  vitals: VitalsData,
+  apiKey: string
+): Promise<{ clinical_probability: string; care_recommendations: string; specialty_tags: string[] }> {
+  try {
+    // Prepare context from available vitals
+    const vitalSigns = [
+      vitals.heart_rate ? `Heart Rate: ${vitals.heart_rate} bpm` : null,
+      (vitals.bp_systolic && vitals.bp_diastolic) ? `Blood Pressure: ${vitals.bp_systolic}/${vitals.bp_diastolic} mmHg` : null,
+      vitals.spo2 ? `SpO2: ${vitals.spo2}%` : null,
+      vitals.temperature ? `Temperature: ${vitals.temperature}°C` : null,
+      vitals.respiratory_rate ? `Respiratory Rate: ${vitals.respiratory_rate} breaths/min` : null,
+      vitals.gcs ? `GCS: ${vitals.gcs}` : null,
+      vitals.pain_level ? `Pain Level: ${vitals.pain_level}/10` : null
+    ].filter(Boolean).join(', ');
+
+    const prompt = `
+    Patient information:
+    Transcription: "${transcription}"
+    Vital signs: ${vitalSigns}
+    
+    Based on this information:
+    1. Provide a clinical probability assessment in one sentence
+    2. Provide 2-3 care recommendations
+    3. List 2-4 appropriate medical specialty tags
+    `;
+
+    // Call HuggingFace model to generate assessment
+    const response = await fetch('https://api-inference.huggingface.co/models/google/flan-t5-xxl', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ inputs: prompt })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HuggingFace API error: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    const generatedText = Array.isArray(result) ? result[0].generated_text : result.generated_text;
+
+    // Process simple text output from model into structured data
+    const lines = generatedText.split('\n').filter(line => line.trim().length > 0);
+    
+    // Extract structured data from the generated text
+    let probability = "Assessment unavailable";
+    let recommendations = "Please consult with a medical professional";
+    let tags = ["General"];
+    
+    if (lines.length >= 1) probability = lines[0];
+    if (lines.length >= 2) recommendations = lines[1];
+    if (lines.length >= 3) {
+      // Parse tags from the third line
+      const tagText = lines[2];
+      const extractedTags = tagText.match(/#[a-zA-Z0-9]+/g) || 
+                          tagText.split(/[\s,]+/).filter(t => t.length > 2);
+      
+      if (extractedTags && extractedTags.length > 0) {
+        tags = extractedTags.map(t => t.startsWith('#') ? t.substring(1) : t);
+      }
+    }
+
+    return {
+      clinical_probability: probability,
+      care_recommendations: recommendations,
+      specialty_tags: tags
+    };
+  } catch (error) {
+    console.error('Error generating basic assessment with HuggingFace:', error);
+    return {
+      clinical_probability: "Assessment unavailable using HuggingFace fallback",
+      care_recommendations: "Please consult with a medical professional",
+      specialty_tags: ["General"]
+    };
+  }
+}
+
+// Extract vitals from transcription text - improved for better accuracy
 function extractVitalsFromText(text: string): VitalsData {
   const vitals: VitalsData = {
     notes: text // Save full transcription as notes
   }
   
-  // Extract blood pressure (e.g., "BP 120 over 80" or "blood pressure 120/80")
-  const bpPattern1 = /(?:BP|blood pressure)[:\s]+(\d+)[\s/]+over[\s/]+(\d+)/i
-  const bpPattern2 = /(?:BP|blood pressure)[:\s]+(\d+)[/](\d+)/i
+  // Improved blood pressure patterns with more variations
+  const bpPatterns = [
+    /(?:BP|blood pressure)[:\s]+(\d+)[\s/]+over[\s/]+(\d+)/i,
+    /(?:BP|blood pressure)[:\s]+(\d+)[/](\d+)/i,
+    /(?:BP|blood pressure)(?:[:\s]+|[\s]+is[\s]+)(\d+)[\s/](\d+)/i,
+    /(?:systolic|systole)[\s:]+(\d+)[\s,]+(?:diastolic|diastole)[\s:]+(\d+)/i
+  ];
   
-  const bpMatch = text.match(bpPattern1) || text.match(bpPattern2)
-  if (bpMatch) {
-    vitals.bp_systolic = parseInt(bpMatch[1])
-    vitals.bp_diastolic = parseInt(bpMatch[2])
+  for (const pattern of bpPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      vitals.bp_systolic = parseInt(match[1]);
+      vitals.bp_diastolic = parseInt(match[2]);
+      break;
+    }
   }
   
-  // Extract heart rate (e.g., "HR 72" or "heart rate 72 bpm")
-  const hrPattern = /(?:HR|heart rate|pulse)[:\s]+(\d+)(?:\s+bpm)?/i
-  const hrMatch = text.match(hrPattern)
-  if (hrMatch) {
-    vitals.heart_rate = parseInt(hrMatch[1])
+  // Improved heart rate patterns
+  const hrPatterns = [
+    /(?:HR|heart rate|pulse)[:\s]+(\d+)(?:\s+bpm)?/i,
+    /(?:HR|heart rate|pulse)(?:[:\s]+|[\s]+is[\s]+)(\d+)(?:\s+bpm)?/i,
+    /(?:HR|heart rate|pulse)(?:[:\s]+|[\s]+of[\s]+)(\d+)(?:\s+bpm)?/i,
+    /(?:HR|heart rate|pulse)[\s:]*(\d+)(?:\s+bpm)?/i
+  ];
+  
+  for (const pattern of hrPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      vitals.heart_rate = parseInt(match[1]);
+      break;
+    }
   }
   
-  // Extract SpO2 (e.g., "SpO2 98%" or "oxygen saturation 98 percent")
-  const spo2Pattern = /(?:SpO2|oxygen saturation|o2 sat)[:\s]+(\d+)(?:\s*%|\s+percent)?/i
-  const spo2Match = text.match(spo2Pattern)
-  if (spo2Match) {
-    vitals.spo2 = parseInt(spo2Match[1])
+  // Improved SpO2 patterns
+  const spo2Patterns = [
+    /(?:SpO2|oxygen saturation|o2 sat)[:\s]+(\d+)(?:\s*%|\s+percent)?/i,
+    /(?:SpO2|oxygen saturation|o2 sat)(?:[:\s]+|[\s]+is[\s]+)(\d+)(?:\s*%|\s+percent)?/i,
+    /(?:SpO2|oxygen saturation|o2 sat)(?:[:\s]+|[\s]+of[\s]+)(\d+)(?:\s*%|\s+percent)?/i,
+    /(?:oxygen|o2)[\s:]+(\d+)(?:\s*%|\s+percent)?/i
+  ];
+  
+  for (const pattern of spo2Patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      vitals.spo2 = parseInt(match[1]);
+      break;
+    }
   }
   
-  // Extract temperature (e.g., "Temp 37.2" or "temperature 98.6 F")
-  const tempPatternC = /(?:temp|temperature)[:\s]+(\d+\.?\d*)(?:\s*C|\s+celsius)?/i
-  const tempPatternF = /(?:temp|temperature)[:\s]+(\d+\.?\d*)(?:\s*F|\s+fahrenheit)?/i
+  // Improved temperature patterns for both C and F
+  const tempPatterns = [
+    /(?:temp|temperature)[:\s]+(\d+\.?\d*)(?:\s*C|\s+celsius)?/i,
+    /(?:temp|temperature)[:\s]+(\d+\.?\d*)(?:\s*F|\s+fahrenheit)?/i,
+    /(?:temp|temperature)(?:[:\s]+|[\s]+is[\s]+)(\d+\.?\d*)(?:\s*C|\s+celsius)?/i,
+    /(?:temp|temperature)(?:[:\s]+|[\s]+is[\s]+)(\d+\.?\d*)(?:\s*F|\s+fahrenheit)?/i,
+    /(?:temp|temperature)(?:[:\s]+|[\s]+of[\s]+)(\d+\.?\d*)(?:\s*C|\s+celsius)?/i,
+    /(?:temp|temperature)(?:[:\s]+|[\s]+of[\s]+)(\d+\.?\d*)(?:\s*F|\s+fahrenheit)?/i
+  ];
   
-  const tempMatchC = text.match(tempPatternC)
-  const tempMatchF = text.match(tempPatternF)
-  
-  if (tempMatchC) {
-    vitals.temperature = parseFloat(tempMatchC[1])
-  } else if (tempMatchF) {
-    // Convert F to C
-    const tempF = parseFloat(tempMatchF[1])
-    vitals.temperature = parseFloat(((tempF - 32) * 5/9).toFixed(1))
+  for (let i = 0; i < tempPatterns.length; i++) {
+    const match = text.match(tempPatterns[i]);
+    if (match) {
+      const tempValue = parseFloat(match[1]);
+      // Even-indexed patterns are for Celsius, odd-indexed for Fahrenheit
+      if (i % 2 === 0) {
+        vitals.temperature = tempValue;
+      } else {
+        // Convert Fahrenheit to Celsius
+        vitals.temperature = parseFloat(((tempValue - 32) * 5/9).toFixed(1));
+      }
+      break;
+    }
   }
   
-  // Extract respiratory rate (e.g., "RR 16" or "respiratory rate 16")
-  const rrPattern = /(?:RR|resp rate|respiratory rate)[:\s]+(\d+)/i
-  const rrMatch = text.match(rrPattern)
-  if (rrMatch) {
-    vitals.respiratory_rate = parseInt(rrMatch[1])
+  // Improved respiratory rate patterns
+  const rrPatterns = [
+    /(?:RR|resp rate|respiratory rate)[:\s]+(\d+)/i,
+    /(?:RR|resp rate|respiratory rate)(?:[:\s]+|[\s]+is[\s]+)(\d+)/i,
+    /(?:RR|resp rate|respiratory rate)(?:[:\s]+|[\s]+of[\s]+)(\d+)/i,
+    /(?:breathing|respirations)[\s:]+(\d+)/i
+  ];
+  
+  for (const pattern of rrPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      vitals.respiratory_rate = parseInt(match[1]);
+      break;
+    }
   }
   
-  // Extract GCS (e.g., "GCS 15" or "Glasgow Coma Scale 15")
-  const gcsPattern = /(?:GCS|glasgow coma scale)[:\s]+(\d+)/i
-  const gcsMatch = text.match(gcsPattern)
-  if (gcsMatch) {
-    vitals.gcs = parseInt(gcsMatch[1])
+  // Improved GCS patterns
+  const gcsPatterns = [
+    /(?:GCS|glasgow coma scale)[:\s]+(\d+)/i,
+    /(?:GCS|glasgow coma scale)(?:[:\s]+|[\s]+is[\s]+)(\d+)/i,
+    /(?:GCS|glasgow coma scale)(?:[:\s]+|[\s]+of[\s]+)(\d+)/i,
+    /(?:glasgow)[\s:]+(\d+)/i
+  ];
+  
+  for (const pattern of gcsPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      vitals.gcs = parseInt(match[1]);
+      break;
+    }
   }
   
-  // Extract pain level (e.g., "pain scale 5" or "pain level 5")
-  const painPattern = /(?:pain scale|pain level|pain)[:\s]+(\d+)(?:\/10)?/i
-  const painMatch = text.match(painPattern)
-  if (painMatch) {
-    vitals.pain_level = parseInt(painMatch[1])
+  // Improved pain level patterns
+  const painPatterns = [
+    /(?:pain scale|pain level|pain)[:\s]+(\d+)(?:\/10)?/i,
+    /(?:pain scale|pain level|pain)(?:[:\s]+|[\s]+is[\s]+)(\d+)(?:\/10)?/i,
+    /(?:pain scale|pain level|pain)(?:[:\s]+|[\s]+of[\s]+)(\d+)(?:\/10)?/i,
+    /(?:pain)[\s:]+(\d+)(?:\/10)?/i
+  ];
+  
+  for (const pattern of painPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      vitals.pain_level = parseInt(match[1]);
+      break;
+    }
   }
   
-  return vitals
+  return vitals;
 }
 
-// Generate AI clinical assessment
+// Generate AI clinical assessment using OpenAI
 async function generateClinicalAssessment(
   transcription: string, 
   vitals: VitalsData, 

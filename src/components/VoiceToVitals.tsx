@@ -26,84 +26,94 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const timerIntervalRef = useRef<number | null>(null);
-  const recordingStartTimeRef = useRef<number>(0);
+  const timerRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
   const { toast } = useToast();
 
-  // Clean up on component unmount
+  // Clean up all resources on component unmount
   useEffect(() => {
     return () => {
-      if (timerIntervalRef.current) {
-        window.clearInterval(timerIntervalRef.current);
-      }
+      stopTimer();
       if (mediaRecorderRef.current && isRecording) {
         mediaRecorderRef.current.stop();
       }
     };
   }, [isRecording]);
 
-  // Separate effect for timer to ensure it runs independently
+  // Timer effect runs independently from recording state
   useEffect(() => {
-    if (isRecording && !timerIntervalRef.current) {
+    if (isRecording && !timerRef.current) {
       startTimer();
-    } else if (!isRecording && timerIntervalRef.current) {
+    } else if (!isRecording && timerRef.current) {
       stopTimer();
     }
-
-    return () => {
-      if (timerIntervalRef.current) {
-        window.clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
-    };
   }, [isRecording]);
 
   const startTimer = () => {
-    recordingStartTimeRef.current = Date.now();
-    timerIntervalRef.current = window.setInterval(() => {
-      const elapsedTime = Date.now() - recordingStartTimeRef.current;
+    if (timerRef.current) return; // Timer already running
+    
+    startTimeRef.current = Date.now() - recordingTime; // Account for any existing time
+    
+    timerRef.current = window.setInterval(() => {
+      const elapsedTime = Date.now() - startTimeRef.current;
       setRecordingTime(elapsedTime);
     }, 100);
+    
+    console.log("Timer started");
   };
 
   const stopTimer = () => {
-    if (timerIntervalRef.current) {
-      window.clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+      console.log("Timer stopped at", recordingTime);
     }
   };
 
   const startRecording = async () => {
     try {
       setProcessingError(null);
+      
+      console.log("Requesting audio stream...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Audio stream obtained");
 
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
+      // Set up event handlers before starting the recorder
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          console.log("Audio chunk added, size:", event.data.size);
         }
       };
 
       mediaRecorder.onstop = () => {
+        console.log("MediaRecorder stopped");
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/webm",
         });
+        console.log("Audio blob created, size:", audioBlob.size);
+        
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
 
         // Stop all tracks to properly release the microphone
-        stream.getTracks().forEach((track) => track.stop());
+        stream.getTracks().forEach((track) => {
+          track.stop();
+          console.log("Audio track stopped");
+        });
       };
 
       // Reset the recording time
       setRecordingTime(0);
-      recordingStartTimeRef.current = Date.now();
-
+      
+      // Start the recorder
       mediaRecorder.start();
+      console.log("MediaRecorder started");
+      
       setIsRecording(true);
       setIsPaused(false);
 
@@ -124,10 +134,9 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      console.log("Stopping recording...");
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-
-      // The timer will be stopped by the useEffect
 
       toast({
         title: "Recording stopped",
@@ -153,6 +162,8 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       const audioBlob = new Blob(audioChunksRef.current, {
         type: "audio/webm",
       });
+      
+      console.log("Processing audio blob, size:", audioBlob.size);
       const { data, error } = await processVoiceRecording(audioBlob);
 
       if (error) {
@@ -174,6 +185,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
 
       // Extract vitals from the transcription using fallback method if AI extraction failed
       const extractedData = data || fallbackExtractVitals(audioBlob);
+      console.log("Extracted data:", extractedData);
 
       onVitalsExtracted(extractedData);
 
