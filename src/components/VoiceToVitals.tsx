@@ -177,7 +177,8 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
           toast({
             title: "Processing Warning",
             description: "Using fallback processing due to API limits. Results may be less accurate.",
-            variant: "warning",
+            // Change from "warning" to "default" to fix the type error
+            variant: "default",
           });
         } else {
           // If we have no data at all, it's a true error

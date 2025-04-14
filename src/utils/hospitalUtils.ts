@@ -12,6 +12,17 @@ export const navigateToHospitalsWithSpecialties = (
   navigate(`/hospitals?specialties=${specialtiesParam}&critical=${isCritical}&assessment=${encodeURIComponent(assessment)}`);
 };
 
+// Define weight configuration interface
+interface WeightConfiguration {
+  specialtyWeight?: number;
+  proximityWeight: number;
+  capacityWeight: number;
+  matchBonus?: number;
+  maxProximityScore: number;
+  waitTimeImpact: number;
+  perfectMatchThreshold?: number;
+}
+
 // Hospital matching algorithm using the Adaptive Medical Priority Parameters (AMPP)
 export const calculateHospitalMatch = (
   hospital: any,
@@ -19,48 +30,47 @@ export const calculateHospitalMatch = (
   isCritical: boolean
 ) => {
   // Dynamic weights based on patient condition and context
-  const getDynamicWeights = (isCritical: boolean, hasSpecialtyMatch: boolean) => {
-    // Base configuration
-    const baseWeights = {
-      // Default weights for critical cases with specialty match
-      criticalWithSpecialty: {
-        specialtyWeight: 0.7,
-        proximityWeight: 0.2,
-        capacityWeight: 0.1,
-        matchBonus: 15,
-      },
-      // Default weights for critical cases without specialty match
-      criticalNoSpecialty: {
-        proximityWeight: 0.75,
-        capacityWeight: 0.25,
-      },
-      // Default weights for standard cases with specialty match
-      standardWithSpecialty: {
-        specialtyWeight: 0.5,
-        proximityWeight: 0.4,
-        capacityWeight: 0.1,
-        matchBonus: 5,
-      },
-      // Default weights for standard cases without specialty match
-      standardNoSpecialty: {
-        proximityWeight: 0.8,
-        capacityWeight: 0.2,
-      },
-      // Common thresholds
+  const getDynamicWeights = (isCritical: boolean, hasSpecialtyMatch: boolean): WeightConfiguration => {
+    // Common thresholds that will be applied to all configurations
+    const commonThresholds = {
       maxProximityScore: 40,
       waitTimeImpact: 10,
       perfectMatchThreshold: 90,
     };
-
-    // Adjust weights based on the specific case
-    if (isCritical) {
-      return hasSpecialtyMatch 
-        ? baseWeights.criticalWithSpecialty 
-        : baseWeights.criticalNoSpecialty;
+    
+    // Base configuration for different scenarios
+    if (isCritical && hasSpecialtyMatch) {
+      // Critical case with specialty match
+      return {
+        specialtyWeight: 0.7,
+        proximityWeight: 0.2,
+        capacityWeight: 0.1,
+        matchBonus: 15,
+        ...commonThresholds
+      };
+    } else if (isCritical) {
+      // Critical without specialty match
+      return {
+        proximityWeight: 0.75,
+        capacityWeight: 0.25,
+        ...commonThresholds
+      };
+    } else if (hasSpecialtyMatch) {
+      // Standard case with specialty match
+      return {
+        specialtyWeight: 0.5,
+        proximityWeight: 0.4,
+        capacityWeight: 0.1,
+        matchBonus: 5,
+        ...commonThresholds
+      };
     } else {
-      return hasSpecialtyMatch 
-        ? baseWeights.standardWithSpecialty 
-        : baseWeights.standardNoSpecialty;
+      // Standard case without specialty match
+      return {
+        proximityWeight: 0.8,
+        capacityWeight: 0.2,
+        ...commonThresholds
+      };
     }
   };
 
@@ -100,19 +110,19 @@ export const calculateHospitalMatch = (
   
   if (isCritical && hasSpecialtyMatch) {
     // Critical case with specialty match - heavily prioritize specialty
-    totalScore = (specialtyScore * weights.specialtyWeight) + 
+    totalScore = (specialtyScore * (weights.specialtyWeight || 0)) + 
                 (proximityScore * weights.proximityWeight) + 
                 (capacityScore * weights.capacityWeight) + 
-                weights.matchBonus;
+                (weights.matchBonus || 0);
     matchReason = 'critical specialty need';
     promoted = true;
   } else if (hasSpecialtyMatch) {
     // Non-critical with specialty match - balance specialty and proximity
-    totalScore = (specialtyScore * weights.specialtyWeight) + 
+    totalScore = (specialtyScore * (weights.specialtyWeight || 0)) + 
                 (proximityScore * weights.proximityWeight) + 
                 (capacityScore * weights.capacityWeight);
     matchReason = 'specialty match';
-    promoted = totalScore >= weights.perfectMatchThreshold;
+    promoted = totalScore >= (weights.perfectMatchThreshold || 90);
   } else if (isCritical) {
     // Critical without specialty match - prioritize proximity but with urgency
     totalScore = (proximityScore * weights.proximityWeight) + 
