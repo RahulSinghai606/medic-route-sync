@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { calculateHospitalMatch } from "@/utils/hospitalUtils";
 
 // Function to save patient information
 export const savePatientInfo = async (patientData: any) => {
@@ -293,67 +294,18 @@ export const matchHospitalsToPatient = (
   // Determine required specialties from AI assessment
   const requiredSpecialties = aiAssessment?.specialty_tags || [];
   
-  // Calculate match scores with dynamic weighting
+  // Apply hospital matching algorithm to each hospital
   rankedHospitals.forEach(hospital => {
-    let proximityScore = 0;
-    let specialtyScore = 0;
-    let capacityScore = 0;
+    const matchResult = calculateHospitalMatch(hospital, requiredSpecialties, isCriticalCase);
+    hospital.matchScore = matchResult.matchScore;
     
-    // Proximity score (0-40) - inversely proportional to distance
-    proximityScore = Math.max(0, 40 - (hospital.distance * 8));
+    // Add additional properties to the hospital object
+    (hospital as any).matchReason = matchResult.matchReason;
+    (hospital as any).promoted = matchResult.promoted;
     
-    // Specialty match score (0-50) - higher for specialty matches
-    if (requiredSpecialties.length > 0) {
-      const matchedSpecialties = hospital.specialties.filter(spec => {
-        // Check if any AI-identified specialty tag is included in this hospital specialty
-        return requiredSpecialties.some(tag => {
-          const tagLower = tag.toLowerCase();
-          const specLower = spec.toLowerCase();
-          return specLower.includes(tagLower) || (
-            // Handle common synonyms
-            (tagLower === 'cardiac' && specLower.includes('heart')) ||
-            (tagLower === 'respiratory' && (specLower.includes('pulmonary') || specLower.includes('lung'))) ||
-            (tagLower === 'neuro' && specLower.includes('brain')) ||
-            (tagLower === 'trauma' && specLower.includes('emergency')) ||
-            (tagLower === 'burns' && specLower.includes('burn'))
-          );
-        });
-      });
-      
-      specialtyScore = Math.min(50, matchedSpecialties.length * 25);
-      
-      // Boost specialty score for critical cases
-      if (isCriticalCase && matchedSpecialties.length > 0) {
-        specialtyScore = Math.min(50, specialtyScore * 1.5);
-      }
-    }
-    
-    // Capacity score (0-10) - higher for more available beds and lower wait times
-    capacityScore = Math.min(10, (hospital.availableBeds * 1.5) - (hospital.waitTime * 0.2));
-    
-    // Final score calculation with dynamic weighting
-    let finalScore = 0;
-    
-    if (isCriticalCase && specialtyScore > 0) {
-      // For critical cases with specialty match, prioritize specialty over proximity
-      finalScore = (specialtyScore * 0.6) + (proximityScore * 0.3) + (capacityScore * 0.1);
-    } else if (specialtyScore > 0) {
-      // For non-critical cases with specialty match, balance specialty and proximity
-      finalScore = (specialtyScore * 0.4) + (proximityScore * 0.5) + (capacityScore * 0.1);
-    } else {
-      // For cases without specialty match, prioritize proximity
-      finalScore = (proximityScore * 0.8) + (capacityScore * 0.2);
-    }
-    
-    // Set match score (scale to 0-100)
-    hospital.matchScore = Math.round(finalScore);
-    
-    // Add a flag if this hospital was promoted due to specialty match
-    if (specialtyScore > 25) {
+    if (matchResult.matchedSpecialties && matchResult.matchedSpecialties.length > 0) {
+      (hospital as any).matchedSpecialties = matchResult.matchedSpecialties;
       (hospital as any).promotedDueToSpecialty = true;
-      (hospital as any).matchedSpecialties = hospital.specialties.filter(spec => 
-        requiredSpecialties.some(tag => spec.toLowerCase().includes(tag.toLowerCase()))
-      );
     }
   });
   

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -40,7 +41,7 @@ const AppSidebar = () => {
               height={32}
             />
           </div>
-          <h1 className="text-xl font-bold">Tero</h1>
+          <h1 className="text-xl font-bold">TERO</h1>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -116,7 +117,7 @@ const AppSidebar = () => {
                 }`
               }
             >
-              <ClipboardList className="h-5 w-5" />
+              <ClipboardList className="h-5 w-4" />
               <span>Cases</span>
             </NavLink>
           </SidebarMenuItem>
