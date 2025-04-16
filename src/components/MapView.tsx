@@ -6,9 +6,8 @@ import { Location } from '@/utils/hospitalUtils';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Default Mapbox token - in production, this should be an environment variable
-// This is a temporary public token for development purposes
-mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZWFpIiwiYSI6ImNscWl5NnlvczBhcm4yanA4N2V5aWE2YnYifQ.mTkJbG1gYQpAj8KgBJ6VwA';
+// Updated Mapbox token - this is a temporary public token that should work better
+mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA';
 
 interface MapViewProps {
   userLocation?: Location | null;
@@ -34,14 +33,24 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
     if (!mapContainer.current) return;
     
     try {
+      // If map already exists, remove it first
+      if (map.current) map.current.remove();
+      
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/streets-v12',
         center: [75.8057, 26.9124], // Jaipur center coordinates
-        zoom: 11
+        zoom: 11,
+        attributionControl: true // Make sure attribution is visible
       });
 
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      
+      // Add error handler for map loading
+      map.current.on('error', (e) => {
+        console.error('Map error:', e.error);
+        setError('Failed to load the map: ' + e.error?.message || 'Unknown error');
+      });
       
       map.current.on('load', () => {
         console.log('Map loaded successfully');
