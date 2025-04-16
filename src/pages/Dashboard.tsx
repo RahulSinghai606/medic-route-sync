@@ -24,50 +24,9 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { calculateHospitalMatch } from "@/utils/hospitalUtils";
-
-// Mock hospital data - same structure as in Hospitals.tsx
-const hospitalData = [
-  {
-    id: 1,
-    name: 'Memorial General Hospital',
-    distance: 2.4,
-    eta: 8,
-    specialties: ['Trauma Center', 'Cardiac Care'],
-    availableBeds: 5,
-    waitTime: 12,
-    address: '123 Medical Ave, Metropolis',
-    phone: '(555) 123-4567',
-    lat: 26.85,
-    lng: 75.80,
-  },
-  {
-    id: 2,
-    name: 'City Medical Center',
-    distance: 3.8,
-    eta: 12,
-    specialties: ['Stroke Center', 'Pediatric'],
-    availableBeds: 8,
-    waitTime: 15,
-    address: '456 Health Blvd, Metropolis',
-    phone: '(555) 987-6543',
-    lat: 26.86,
-    lng: 75.81,
-  },
-  {
-    id: 3,
-    name: 'University Hospital',
-    distance: 5.2,
-    eta: 17,
-    specialties: ['Neuro Center', 'Burn Unit'],
-    availableBeds: 2,
-    waitTime: 20,
-    address: '789 University Dr, College Town',
-    phone: '(555) 789-0123',
-    lat: 26.84,
-    lng: 75.79,
-  }
-];
+import { calculateHospitalMatch, Location } from "@/utils/hospitalUtils";
+import { jaipurHospitals, calculateDistanceAndETA } from "@/data/hospitals";
+import MapView from "@/components/MapView";
 
 // Function to match hospitals to patient needs based on location
 const matchHospitalsToPatient = (hospitals, specialties = [], isCritical = false, userLocation = null) => {
@@ -87,19 +46,34 @@ const matchHospitalsToPatient = (hospitals, specialties = [], isCritical = false
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [currentLocation, setCurrentLocation] = useState<{
-    lat: number;
-    lng: number;
-    address?: string;
-  } | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<PermissionState | null>(null);
   const [reverseGeocodingAttempted, setReverseGeocodingAttempted] = useState(false);
+  const [nearbyHospitals, setNearbyHospitals] = useState([]);
 
   useEffect(() => {
     checkLocationPermission();
   }, []);
+
+  // Update nearby hospitals whenever location changes
+  useEffect(() => {
+    if (currentLocation) {
+      try {
+        // Calculate distances for all hospitals
+        const hospitalsWithDistance = calculateDistanceAndETA(jaipurHospitals, currentLocation);
+        
+        // Sort by distance
+        const sortedHospitals = hospitalsWithDistance.sort((a, b) => a.distance - b.distance);
+        
+        // Take the nearest 3 hospitals
+        setNearbyHospitals(sortedHospitals.slice(0, 3));
+      } catch (error) {
+        console.error("Error updating nearby hospitals:", error);
+      }
+    }
+  }, [currentLocation]);
 
   const checkLocationPermission = async () => {
     try {
@@ -220,7 +194,7 @@ const Dashboard = () => {
         
         try {
           // Update hospital matches based on new location
-          const hospitalMatches = matchHospitalsToPatient(hospitalData, [], false, { 
+          const hospitalMatches = matchHospitalsToPatient(jaipurHospitals, [], false, { 
             lat: location.lat, 
             lng: location.lng, 
             address 
@@ -277,6 +251,19 @@ const Dashboard = () => {
       );
     }
     return null;
+  };
+  
+  // Generate navigation link to nearest hospital
+  const navigateToNearestHospital = () => {
+    if (nearbyHospitals.length > 0 && currentLocation) {
+      navigate(`/hospitals`);
+    } else {
+      toast({
+        title: "Location Required",
+        description: "Please enable location services to find nearby hospitals.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -350,6 +337,28 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Real-time map with nearby hospitals */}
+      {currentLocation && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Nearby Hospitals</CardTitle>
+            <CardDescription>Hospitals close to your current location</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <MapView userLocation={currentLocation} />
+          </CardContent>
+          <CardFooter>
+            <Button 
+              className="w-full medical-btn flex items-center gap-2"
+              onClick={navigateToNearestHospital}
+            >
+              <MapPin className="h-4 w-4" />
+              Find Nearest Hospitals
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -421,38 +430,37 @@ const Dashboard = () => {
             </div>
 
             <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-2">Recent Notifications</h3>
+              <h3 className="text-sm font-medium mb-2">Nearby Hospitals</h3>
               <div className="space-y-2">
-                <div className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
-                  <Bell className="h-4 w-4 text-emergency mt-0.5" />
-                  <div>
-                    <div className="flex items-center">
-                      <p className="text-sm font-medium">System Alert</p>
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        New
-                      </Badge>
+                {nearbyHospitals.length > 0 ? (
+                  nearbyHospitals.map(hospital => (
+                    <div 
+                      key={hospital.id}
+                      className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                      onClick={() => navigate(`/hospitals`)}
+                    >
+                      <MapPin className="h-4 w-4 text-medical mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">{hospital.name}</p>
+                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                          <span>{hospital.distance.toFixed(1)} km</span>
+                          <span className="mx-1">•</span>
+                          <span>{hospital.eta} min</span>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      ER capacity updates for Memorial Hospital
-                    </p>
+                  ))
+                ) : (
+                  <div className="text-center text-sm text-muted-foreground py-2">
+                    {currentLocation ? 'Loading nearby hospitals...' : 'Enable location to see nearby hospitals'}
                   </div>
-                </div>
-
-                <div className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
-                  <Bell className="h-4 w-4 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Traffic Update</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Route changes on Main St affecting ETAs
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="ghost" className="w-full text-xs">
-              View All Activity
+            <Button variant="ghost" className="w-full text-xs" onClick={goToHospitals}>
+              View All Hospitals
             </Button>
           </CardFooter>
         </Card>
@@ -462,4 +470,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
