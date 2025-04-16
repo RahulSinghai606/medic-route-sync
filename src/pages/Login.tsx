@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ambulance, Lock, AlertCircle, Mail } from 'lucide-react';
+import { Ambulance, Lock, AlertCircle, Mail, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
 
@@ -24,6 +24,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const Login = () => {
   const navigate = useNavigate();
   const { signIn, user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   
   React.useEffect(() => {
     if (user) {
@@ -41,16 +43,33 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    const { error } = await signIn(data.email, data.password);
-    if (!error) {
-      navigate('/');
+    setIsLoading(true);
+    setLoginError(null);
+    
+    try {
+      const { error } = await signIn(data.email, data.password);
+      if (error) {
+        console.error("Login error:", error);
+        setLoginError(error.message || "Failed to sign in. Please check your credentials.");
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      console.error("Unexpected error during login:", err);
+      setLoginError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEmergencyAccess = () => {
+    setIsLoading(true);
     // In a real app, we would implement quick emergency access
     // For now, we'll just redirect to the dashboard
-    navigate('/');
+    setTimeout(() => {
+      navigate('/');
+      setIsLoading(false);
+    }, 1000);
   };
 
   return (
@@ -77,6 +96,16 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {loginError && (
+              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md text-red-800 dark:text-red-300 mb-4 flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Login Error</p>
+                  <p className="text-sm">{loginError}</p>
+                </div>
+              </div>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -136,8 +165,15 @@ const Login = () => {
                   )}
                 />
                 
-                <Button type="submit" className="w-full medical-btn">
-                  Sign In
+                <Button type="submit" className="w-full medical-btn" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing In...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
               </form>
             </Form>
@@ -154,9 +190,19 @@ const Login = () => {
             <Button
               onClick={handleEmergencyAccess}
               className="mt-4 w-full emergency-btn flex items-center gap-2"
+              disabled={isLoading}
             >
-              <Lock className="h-4 w-4" />
-              Emergency Quick Access
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Please wait...
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4" />
+                  Emergency Quick Access
+                </>
+              )}
             </Button>
             <p className="mt-4 text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
               <AlertCircle className="h-3 w-3" />
