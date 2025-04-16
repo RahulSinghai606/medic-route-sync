@@ -24,6 +24,65 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { calculateHospitalMatch } from "@/utils/hospitalUtils";
+
+// Mock hospital data - same structure as in Hospitals.tsx
+const hospitalData = [
+  {
+    id: 1,
+    name: 'Memorial General Hospital',
+    distance: 2.4,
+    eta: 8,
+    specialties: ['Trauma Center', 'Cardiac Care'],
+    availableBeds: 5,
+    waitTime: 12,
+    address: '123 Medical Ave, Metropolis',
+    phone: '(555) 123-4567',
+    lat: 26.85,
+    lng: 75.80,
+  },
+  {
+    id: 2,
+    name: 'City Medical Center',
+    distance: 3.8,
+    eta: 12,
+    specialties: ['Stroke Center', 'Pediatric'],
+    availableBeds: 8,
+    waitTime: 15,
+    address: '456 Health Blvd, Metropolis',
+    phone: '(555) 987-6543',
+    lat: 26.86,
+    lng: 75.81,
+  },
+  {
+    id: 3,
+    name: 'University Hospital',
+    distance: 5.2,
+    eta: 17,
+    specialties: ['Neuro Center', 'Burn Unit'],
+    availableBeds: 2,
+    waitTime: 20,
+    address: '789 University Dr, College Town',
+    phone: '(555) 789-0123',
+    lat: 26.84,
+    lng: 75.79,
+  }
+];
+
+// Function to match hospitals to patient needs based on location
+const matchHospitalsToPatient = (hospitals, specialties = [], isCritical = false, userLocation = null) => {
+  return hospitals.map(hospital => {
+    const matchResult = calculateHospitalMatch(hospital, specialties, isCritical, userLocation);
+    return {
+      ...hospital,
+      matchScore: matchResult.matchScore,
+      matchReason: matchResult.matchReason,
+      promoted: matchResult.promoted,
+      matchedSpecialties: matchResult.matchedSpecialties || [],
+      promotedDueToSpecialty: matchResult.promoted
+    };
+  }).sort((a, b) => b.matchScore - a.matchScore);
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -159,15 +218,19 @@ const Dashboard = () => {
           prev ? { ...prev, address } : { ...location, address }
         );
         
-        // Update hospital matches based on new location
-        const hospitalMatches = matchHospitalsToPatient(hospitalData, [], false, { 
-          lat: location.lat, 
-          lng: location.lng, 
-          address 
-        });
-        
-        // You can dispatch this to your state management or handle as needed
-        console.log("Updated hospital matches:", hospitalMatches);
+        try {
+          // Update hospital matches based on new location
+          const hospitalMatches = matchHospitalsToPatient(hospitalData, [], false, { 
+            lat: location.lat, 
+            lng: location.lng, 
+            address 
+          });
+          
+          // You can dispatch this to your state management or handle as needed
+          console.log("Updated hospital matches:", hospitalMatches);
+        } catch (error) {
+          console.error("Error updating hospital matches:", error);
+        }
       } else {
         console.warn("No results from geocoding API");
       }

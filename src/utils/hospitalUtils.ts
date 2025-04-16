@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 
 // Function to navigate to hospitals page with specialty tags
@@ -23,7 +22,7 @@ interface WeightConfiguration {
   perfectMatchThreshold?: number;
 }
 
-interface Location {
+export interface Location {
   lat: number;
   lng: number;
   address?: string;
@@ -104,7 +103,9 @@ export const calculateHospitalMatch = (
       matchScore: Math.round((proximityScore * weights.proximityWeight) + 
                            (capacityScore * weights.capacityWeight)),
       matchReason: isCritical ? 'urgent proximity' : 'proximity',
-      promoted: false
+      promoted: false,
+      matchedSpecialties: [],
+      distance: calculateProximityScore(userLocation) / 4 // Convert back to kilometers
     };
   }
 
@@ -157,4 +158,3 @@ export const calculateHospitalMatch = (
     distance: calculateProximityScore(userLocation) / 4 // Convert back to kilometers
   };
 };
-
