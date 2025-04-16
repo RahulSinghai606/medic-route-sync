@@ -144,21 +144,32 @@ const Dashboard = () => {
       setReverseGeocodingAttempted(true);
       console.log("Attempting reverse geocoding for:", location);
       
+      // Using Nominatim OpenStreetMap service instead of Google Maps
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.lat},${location.lng}&key=AIzaSyBNLrJhOMz6idD05pzwk17MCHTHkOfFrlI`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.lat}&lon=${location.lng}`
       );
 
       const data = await response.json();
       console.log("Geocoding API response:", data);
 
-      if (data.status === "OK" && data.results.length > 0) {
-        const address = data.results[0].formatted_address;
+      if (data.display_name) {
+        const address = data.display_name;
         console.log("Found address:", address);
         setCurrentLocation((prev) =>
           prev ? { ...prev, address } : { ...location, address }
         );
+        
+        // Update hospital matches based on new location
+        const hospitalMatches = matchHospitalsToPatient(hospitalData, [], false, { 
+          lat: location.lat, 
+          lng: location.lng, 
+          address 
+        });
+        
+        // You can dispatch this to your state management or handle as needed
+        console.log("Updated hospital matches:", hospitalMatches);
       } else {
-        console.warn("No results from geocoding API:", data.status);
+        console.warn("No results from geocoding API");
       }
     } catch (error) {
       console.error("Error fetching address:", error);
@@ -251,9 +262,8 @@ const Dashboard = () => {
             <div className="space-y-3">
               {currentLocation.address && (
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
-                  <p className="font-medium text-lg">
-                    {currentLocation.address}
-                  </p>
+                  <p className="font-medium">Current Location:</p>
+                  <p className="text-sm mt-1">{currentLocation.address}</p>
                 </div>
               )}
               <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-md">
@@ -262,8 +272,7 @@ const Dashboard = () => {
                 </p>
               </div>
               <p className="text-sm text-muted-foreground">
-                This information helps optimize hospital routing and ETA
-                calculations.
+                Location data is being used to optimize hospital matching and routing
               </p>
             </div>
           ) : (
@@ -390,3 +399,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
