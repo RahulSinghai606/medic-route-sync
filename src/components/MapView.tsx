@@ -1,13 +1,12 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Location } from '@/utils/hospitalUtils';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Updated Mapbox token - this is a temporary public token that should work better
-mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA';
+// MapmyIndia API Keys
+const mapmyindiaKey = "0819ad2847700368a797234bc5f56c8b"; // From the provided image
 
 interface MapViewProps {
   userLocation?: Location | null;
@@ -17,12 +16,12 @@ interface MapViewProps {
 
 const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalName }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
+  const map = useRef<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isRouteFetched, setIsRouteFetched] = useState(false);
-  const userMarker = useRef<mapboxgl.Marker | null>(null);
-  const destinationMarker = useRef<mapboxgl.Marker | null>(null);
+  const userMarker = useRef<any | null>(null);
+  const destinationMarker = useRef<any | null>(null);
   const [routeInfo, setRouteInfo] = useState<{
     distance: string;
     duration: string;
@@ -33,32 +32,79 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
     if (!mapContainer.current) return;
     
     try {
-      // If map already exists, remove it first
-      if (map.current) map.current.remove();
-      
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [75.8057, 26.9124], // Jaipur center coordinates
-        zoom: 11,
-        attributionControl: true // Make sure attribution is visible
-      });
+      // Create MapmyIndia Map script
+      const loadMapScript = () => {
+        return new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = `https://apis.mapmyindia.com/advancedmaps/v1/${mapmyindiaKey}/map_load?v=1.5`;
+          script.async = true;
+          script.defer = true;
+          
+          script.onload = () => {
+            console.log('MapmyIndia script loaded successfully');
+            resolve();
+          };
+          
+          script.onerror = () => {
+            console.error('Failed to load MapmyIndia script');
+            setError('Failed to load the map. Please refresh the page.');
+            reject();
+          };
+          
+          document.head.appendChild(script);
+        });
+      };
 
-      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      
-      // Add error handler for map loading
-      map.current.on('error', (e) => {
-        console.error('Map error:', e.error);
-        setError('Failed to load the map: ' + e.error?.message || 'Unknown error');
-      });
-      
-      map.current.on('load', () => {
-        console.log('Map loaded successfully');
-        setIsMapLoaded(true);
-      });
+      const initializeMap = async () => {
+        // Check if MapmyIndia is already loaded
+        if (!(window as any).MapmyIndia) {
+          await loadMapScript();
+        }
+        
+        // Clear any existing map
+        if (map.current) {
+          mapContainer.current.innerHTML = '';
+        }
+
+        // Initialize the map
+        const MapmyIndia = (window as any).MapmyIndia;
+        
+        if (MapmyIndia && MapmyIndia.Map) {
+          map.current = new MapmyIndia.Map(mapContainer.current, {
+            center: [26.9124, 75.8057], // Jaipur center coordinates [lat, lng]
+            zoom: 11,
+            search: false,
+            location: true,
+          });
+          
+          // Handle map load
+          map.current.on('load', function() {
+            console.log('MapmyIndia map loaded successfully');
+            setIsMapLoaded(true);
+            updateMarkers();
+          });
+          
+          // Handle map error
+          map.current.on('error', function(e: any) {
+            console.error('Map error:', e);
+            setError('Failed to load the map: ' + (e.message || 'Unknown error'));
+          });
+        } else {
+          setError('MapmyIndia API not loaded correctly. Please refresh and try again.');
+        }
+      };
+
+      initializeMap();
 
       return () => {
-        map.current?.remove();
+        // Clean up
+        if (map.current) {
+          // Remove the map if it exists
+          if (map.current.remove) {
+            map.current.remove();
+          }
+          map.current = null;
+        }
       };
     } catch (err) {
       console.error('Error initializing map:', err);
@@ -66,80 +112,113 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
     }
   }, []);
 
-  // Add markers and fit bounds when locations change
-  useEffect(() => {
+  // Function to update markers
+  const updateMarkers = () => {
     if (!map.current || !isMapLoaded) return;
-
+    const MapmyIndia = (window as any).MapmyIndia;
+    
     // Clear existing markers
-    if (userMarker.current) userMarker.current.remove();
-    if (destinationMarker.current) destinationMarker.current.remove();
-
-    const bounds = new mapboxgl.LngLatBounds();
+    if (userMarker.current) {
+      map.current.removeLayer(userMarker.current);
+    }
+    if (destinationMarker.current) {
+      map.current.removeLayer(destinationMarker.current);
+    }
+    
+    const bounds = new MapmyIndia.LatLngBounds();
     
     // Add user location marker if available
     if (userLocation && userLocation.lat && userLocation.lng) {
-      userMarker.current = new mapboxgl.Marker({ color: '#3b82f6' })
-        .setLngLat([userLocation.lng, userLocation.lat])
-        .addTo(map.current);
+      const position = new MapmyIndia.LatLng(userLocation.lat, userLocation.lng);
+      
+      userMarker.current = new MapmyIndia.Marker({
+        map: map.current,
+        position: position,
+        icon: 'https://apis.mapmyindia.com/map_v3/1.png',
+        draggable: false,
+        title: 'Your Location'
+      });
       
       // Add popup for user location
-      new mapboxgl.Popup({ closeOnClick: false })
-        .setLngLat([userLocation.lng, userLocation.lat])
-        .setHTML('<div class="font-bold">Your Location</div>')
+      new MapmyIndia.Popup()
+        .setLatLng(position)
+        .setContent('<div class="font-bold">Your Location</div>')
         .addTo(map.current);
       
-      bounds.extend([userLocation.lng, userLocation.lat]);
+      bounds.extend(position);
     }
     
     // Add destination marker if available
     if (destination && destination.lat && destination.lng) {
-      destinationMarker.current = new mapboxgl.Marker({ color: '#ef4444' })
-        .setLngLat([destination.lng, destination.lat])
-        .addTo(map.current);
+      const position = new MapmyIndia.LatLng(destination.lat, destination.lng);
+      
+      destinationMarker.current = new MapmyIndia.Marker({
+        map: map.current,
+        position: position,
+        icon: 'https://apis.mapmyindia.com/map_v3/2.png',
+        draggable: false,
+        title: hospitalName || 'Hospital'
+      });
       
       // Add popup for hospital
-      new mapboxgl.Popup({ closeOnClick: false })
-        .setLngLat([destination.lng, destination.lat])
-        .setHTML(`<div class="font-bold">${hospitalName || 'Hospital'}</div>`)
+      new MapmyIndia.Popup()
+        .setLatLng(position)
+        .setContent(`<div class="font-bold">${hospitalName || 'Hospital'}</div>`)
         .addTo(map.current);
       
-      bounds.extend([destination.lng, destination.lat]);
+      bounds.extend(position);
     }
     
     // If we have both points, fit the map to show both
-    if (userLocation && destination && !bounds.isEmpty()) {
+    if (userLocation && destination && bounds.isValid()) {
       map.current.fitBounds(bounds, {
         padding: 70,
         maxZoom: 15
       });
+      
+      // Get directions
+      getRouteDirections();
+    }
+  };
+
+  // Update markers when locations change
+  useEffect(() => {
+    if (isMapLoaded) {
+      updateMarkers();
     }
   }, [userLocation, destination, hospitalName, isMapLoaded]);
 
   // Get directions when both locations are available
-  useEffect(() => {
-    const getDirections = async () => {
-      if (!userLocation || !destination || !isMapLoaded || isRouteFetched) return;
+  const getRouteDirections = async () => {
+    if (!userLocation || !destination || !isMapLoaded || isRouteFetched) return;
+    
+    try {
+      const MapmyIndia = (window as any).MapmyIndia;
       
-      try {
-        // Remove any existing route layers
-        if (map.current?.getLayer('route')) {
-          map.current.removeLayer('route');
-        }
-        if (map.current?.getSource('route')) {
-          map.current.removeSource('route');
-        }
+      // Remove any existing route layers
+      if (map.current.getLayer && map.current.getLayer('route')) {
+        map.current.removeLayer('route');
+      }
+      
+      if (map.current.getSource && map.current.getSource('route')) {
+        map.current.removeSource('route');
+      }
 
-        // Fetch directions from Mapbox Directions API
-        const response = await fetch(
-          `https://api.mapbox.com/directions/v5/mapbox/driving/${userLocation.lng},${userLocation.lat};${destination.lng},${destination.lat}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`
-        );
-        
-        if (!response.ok) throw new Error('Failed to fetch directions');
-        
-        const data = await response.json();
-        
-        if (data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
+      // Create directions service
+      const directionsService = new MapmyIndia.DirectionService();
+      const routeOptions = {
+        origin: `${userLocation.lat},${userLocation.lng}`,
+        destination: `${destination.lat},${destination.lng}`,
+        alternatives: false,
+        resource: 'route_eta'
+      };
+      
+      // Request directions
+      directionsService.route(routeOptions, (result: any) => {
+        if (result && result.results && result.results.trips && result.results.trips.length > 0) {
+          const route = result.results.trips[0];
+          
+          // Get distance and duration
           const distance = (route.distance / 1000).toFixed(1); // Convert to km
           const duration = Math.round(route.duration / 60); // Convert to minutes
           
@@ -148,41 +227,25 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
             duration: `${duration} min`
           });
           
-          // Add the route to the map
-          map.current?.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: route.geometry
-            }
-          });
-          
-          map.current?.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#3b82f6',
-              'line-width': 5,
-              'line-opacity': 0.8
-            }
-          });
+          // Draw the route on the map
+          if (route.geometry && route.geometry.coordinates) {
+            new MapmyIndia.Polygon({
+              map: map.current,
+              paths: route.geometry.coordinates,
+              strokeColor: '#3b82f6',
+              strokeOpacity: 0.8,
+              strokeWeight: 5
+            });
+          }
           
           setIsRouteFetched(true);
         }
-      } catch (err) {
-        console.error('Error fetching directions:', err);
-        setError('Failed to fetch directions. Please try again later.');
-      }
-    };
-
-    getDirections();
-  }, [userLocation, destination, isMapLoaded, isRouteFetched]);
+      });
+    } catch (err) {
+      console.error('Error fetching directions:', err);
+      setError('Failed to fetch directions. Please try again later.');
+    }
+  };
 
   // Function to open directions in Google Maps
   const openInGoogleMaps = () => {
@@ -234,3 +297,4 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
 };
 
 export default MapView;
+
