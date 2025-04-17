@@ -297,4 +297,3 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
 };
 
 export default MapView;
-

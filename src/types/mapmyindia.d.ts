@@ -81,4 +81,3 @@ declare namespace MapmyIndia {
 interface Window {
   MapmyIndia: typeof MapmyIndia;
 }
-
