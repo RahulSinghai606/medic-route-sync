@@ -184,7 +184,26 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
           
           geoJsonLayer.eachLayer((layer) => {
             if (layer instanceof L.Polyline) {
-              latLngs.push(...layer.getLatLngs().flat());
+              // Get all coordinate points from the polyline
+              const layerLatLngs = layer.getLatLngs();
+              
+              // Handle nested arrays properly
+              if (Array.isArray(layerLatLngs)) {
+                // Process flat or nested arrays of coordinates
+                const processLatLngs = (coords: any): L.LatLng[] => {
+                  if (coords.lat !== undefined && coords.lng !== undefined) {
+                    // This is a single LatLng object
+                    return [coords as L.LatLng];
+                  } else if (Array.isArray(coords)) {
+                    // This is an array that might contain LatLng objects or more arrays
+                    return coords.flatMap(c => processLatLngs(c));
+                  }
+                  return [];
+                };
+                
+                // Process all coordinates and add them to our array
+                latLngs.push(...processLatLngs(layerLatLngs));
+              }
             }
           });
           
