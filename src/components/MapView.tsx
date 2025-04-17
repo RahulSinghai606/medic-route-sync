@@ -1,12 +1,23 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { Location } from '@/utils/hospitalUtils';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-// MapmyIndia API Keys
-const mapmyindiaKey = "0819ad2847700368a797234bc5f56c8b"; // From the provided image
+// Import marker icons to fix the missing marker issue
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Fix default icon issue in Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+});
 
 interface MapViewProps {
   userLocation?: Location | null;
@@ -16,12 +27,12 @@ interface MapViewProps {
 
 const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalName }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<any | null>(null);
+  const map = useRef<L.Map | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [isRouteFetched, setIsRouteFetched] = useState(false);
-  const userMarker = useRef<any | null>(null);
-  const destinationMarker = useRef<any | null>(null);
+  const userMarker = useRef<L.Marker | null>(null);
+  const destinationMarker = useRef<L.Marker | null>(null);
+  const routeLine = useRef<L.Polyline | null>(null);
   const [routeInfo, setRouteInfo] = useState<{
     distance: string;
     duration: string;
@@ -32,154 +43,36 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
     if (!mapContainer.current) return;
     
     try {
-      // Create MapmyIndia Map script
-      const loadMapScript = () => {
-        return new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = `https://apis.mapmyindia.com/advancedmaps/v1/${mapmyindiaKey}/map_load?v=1.5`;
-          script.async = true;
-          script.defer = true;
-          
-          script.onload = () => {
-            console.log('MapmyIndia script loaded successfully');
-            resolve();
-          };
-          
-          script.onerror = () => {
-            console.error('Failed to load MapmyIndia script');
-            setError('Failed to load the map. Please refresh the page.');
-            reject();
-          };
-          
-          document.head.appendChild(script);
-        });
-      };
+      // If map already exists, clean it up
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
 
-      const initializeMap = async () => {
-        // Check if MapmyIndia is already loaded
-        if (!(window as any).MapmyIndia) {
-          await loadMapScript();
-        }
-        
-        // Clear any existing map
-        if (map.current) {
-          mapContainer.current.innerHTML = '';
-        }
+      // Create a new map
+      map.current = L.map(mapContainer.current).setView([26.9124, 75.8057], 11); // Jaipur center coordinates
 
-        // Initialize the map
-        const MapmyIndia = (window as any).MapmyIndia;
-        
-        if (MapmyIndia && MapmyIndia.Map) {
-          map.current = new MapmyIndia.Map(mapContainer.current, {
-            center: [26.9124, 75.8057], // Jaipur center coordinates [lat, lng]
-            zoom: 11,
-            search: false,
-            location: true,
-          });
-          
-          // Handle map load
-          map.current.on('load', function() {
-            console.log('MapmyIndia map loaded successfully');
-            setIsMapLoaded(true);
-            updateMarkers();
-          });
-          
-          // Handle map error
-          map.current.on('error', function(e: any) {
-            console.error('Map error:', e);
-            setError('Failed to load the map: ' + (e.message || 'Unknown error'));
-          });
-        } else {
-          setError('MapmyIndia API not loaded correctly. Please refresh and try again.');
-        }
-      };
+      // Add OpenStreetMap tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map.current);
 
-      initializeMap();
-
-      return () => {
-        // Clean up
-        if (map.current) {
-          // Remove the map if it exists
-          if (map.current.remove) {
-            map.current.remove();
-          }
-          map.current = null;
-        }
-      };
+      console.log('Leaflet map initialized successfully');
+      setIsMapLoaded(true);
+      updateMarkers();
     } catch (err) {
       console.error('Error initializing map:', err);
       setError('Failed to load the map. Please refresh the page.');
     }
-  }, []);
 
-  // Function to update markers
-  const updateMarkers = () => {
-    if (!map.current || !isMapLoaded) return;
-    const MapmyIndia = (window as any).MapmyIndia;
-    
-    // Clear existing markers
-    if (userMarker.current) {
-      map.current.removeLayer(userMarker.current);
-    }
-    if (destinationMarker.current) {
-      map.current.removeLayer(destinationMarker.current);
-    }
-    
-    const bounds = new MapmyIndia.LatLngBounds();
-    
-    // Add user location marker if available
-    if (userLocation && userLocation.lat && userLocation.lng) {
-      const position = new MapmyIndia.LatLng(userLocation.lat, userLocation.lng);
-      
-      userMarker.current = new MapmyIndia.Marker({
-        map: map.current,
-        position: position,
-        icon: 'https://apis.mapmyindia.com/map_v3/1.png',
-        draggable: false,
-        title: 'Your Location'
-      });
-      
-      // Add popup for user location
-      new MapmyIndia.Popup()
-        .setLatLng(position)
-        .setContent('<div class="font-bold">Your Location</div>')
-        .addTo(map.current);
-      
-      bounds.extend(position);
-    }
-    
-    // Add destination marker if available
-    if (destination && destination.lat && destination.lng) {
-      const position = new MapmyIndia.LatLng(destination.lat, destination.lng);
-      
-      destinationMarker.current = new MapmyIndia.Marker({
-        map: map.current,
-        position: position,
-        icon: 'https://apis.mapmyindia.com/map_v3/2.png',
-        draggable: false,
-        title: hospitalName || 'Hospital'
-      });
-      
-      // Add popup for hospital
-      new MapmyIndia.Popup()
-        .setLatLng(position)
-        .setContent(`<div class="font-bold">${hospitalName || 'Hospital'}</div>`)
-        .addTo(map.current);
-      
-      bounds.extend(position);
-    }
-    
-    // If we have both points, fit the map to show both
-    if (userLocation && destination && bounds.isValid()) {
-      map.current.fitBounds(bounds, {
-        padding: 70,
-        maxZoom: 15
-      });
-      
-      // Get directions
-      getRouteDirections();
-    }
-  };
+    // Clean up on unmount
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, []);
 
   // Update markers when locations change
   useEffect(() => {
@@ -188,63 +81,156 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
     }
   }, [userLocation, destination, hospitalName, isMapLoaded]);
 
-  // Get directions when both locations are available
+  // Function to update markers
+  const updateMarkers = () => {
+    if (!map.current || !isMapLoaded) return;
+    
+    // Clear existing markers
+    if (userMarker.current) {
+      userMarker.current.remove();
+      userMarker.current = null;
+    }
+    
+    if (destinationMarker.current) {
+      destinationMarker.current.remove();
+      destinationMarker.current = null;
+    }
+    
+    if (routeLine.current) {
+      routeLine.current.remove();
+      routeLine.current = null;
+    }
+    
+    const bounds = new L.LatLngBounds();
+    
+    // Add user location marker if available
+    if (userLocation && userLocation.lat && userLocation.lng) {
+      const position = new L.LatLng(userLocation.lat, userLocation.lng);
+      
+      userMarker.current = L.marker(position)
+        .addTo(map.current)
+        .bindPopup('<div class="font-bold">Your Location</div>');
+      
+      bounds.extend(position);
+    }
+    
+    // Add destination marker if available
+    if (destination && destination.lat && destination.lng) {
+      const position = new L.LatLng(destination.lat, destination.lng);
+      
+      // Custom hospital icon
+      const hospitalIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: markerShadow,
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+      
+      destinationMarker.current = L.marker(position, { icon: hospitalIcon })
+        .addTo(map.current)
+        .bindPopup(`<div class="font-bold">${hospitalName || 'Hospital'}</div>`);
+      
+      bounds.extend(position);
+    }
+    
+    // If we have both points, fit the map to show both and get directions
+    if (userLocation && destination && bounds.isValid()) {
+      map.current.fitBounds(bounds, {
+        padding: [70, 70],
+        maxZoom: 15
+      });
+      
+      // Calculate route using OSRM
+      getRouteDirections();
+    } else if (bounds.isValid()) {
+      // If we only have one point, fit to it
+      map.current.fitBounds(bounds, {
+        padding: [70, 70],
+        maxZoom: 13
+      });
+    }
+  };
+
+  // Function to get route directions using OSRM (OpenStreetMap Routing Machine)
   const getRouteDirections = async () => {
-    if (!userLocation || !destination || !isMapLoaded || isRouteFetched) return;
+    if (!userLocation || !destination) return;
     
     try {
-      const MapmyIndia = (window as any).MapmyIndia;
+      // Use OSRM demo server for routing (for production, should use own instance or service)
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`
+      );
       
-      // Remove any existing route layers
-      if (map.current.getLayer && map.current.getLayer('route')) {
-        map.current.removeLayer('route');
+      if (!response.ok) {
+        throw new Error('Failed to fetch route');
       }
       
-      if (map.current.getSource && map.current.getSource('route')) {
-        map.current.removeSource('route');
-      }
-
-      // Create directions service
-      const directionsService = new MapmyIndia.DirectionService();
-      const routeOptions = {
-        origin: `${userLocation.lat},${userLocation.lng}`,
-        destination: `${destination.lat},${destination.lng}`,
-        alternatives: false,
-        resource: 'route_eta'
-      };
+      const data = await response.json();
       
-      // Request directions
-      directionsService.route(routeOptions, (result: any) => {
-        if (result && result.results && result.results.trips && result.results.trips.length > 0) {
-          const route = result.results.trips[0];
-          
-          // Get distance and duration
-          const distance = (route.distance / 1000).toFixed(1); // Convert to km
-          const duration = Math.round(route.duration / 60); // Convert to minutes
-          
-          setRouteInfo({
-            distance: `${distance} km`,
-            duration: `${duration} min`
-          });
-          
-          // Draw the route on the map
-          if (route.geometry && route.geometry.coordinates) {
-            new MapmyIndia.Polygon({
-              map: map.current,
-              paths: route.geometry.coordinates,
-              strokeColor: '#3b82f6',
-              strokeOpacity: 0.8,
-              strokeWeight: 5
-            });
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        
+        // Draw the route
+        if (map.current && route.geometry) {
+          if (routeLine.current) {
+            routeLine.current.remove();
           }
           
-          setIsRouteFetched(true);
+          routeLine.current = L.geoJSON(route.geometry, {
+            style: {
+              color: '#3b82f6',
+              weight: 5,
+              opacity: 0.7
+            }
+          }).addTo(map.current);
         }
-      });
+        
+        // Calculate distance and duration
+        const distance = (route.distance / 1000).toFixed(1); // Convert to km
+        const duration = Math.round(route.duration / 60); // Convert to minutes
+        
+        setRouteInfo({
+          distance: `${distance} km`,
+          duration: `${duration} min`
+        });
+      }
     } catch (err) {
       console.error('Error fetching directions:', err);
-      setError('Failed to fetch directions. Please try again later.');
+      // Still set approximate route info based on direct line distance
+      if (userLocation && destination) {
+        const directDistance = calculateDirectDistance(
+          userLocation.lat, userLocation.lng,
+          destination.lat, destination.lng
+        );
+        
+        // Estimate duration based on average driving speed of 50 km/h
+        const estimatedDuration = Math.round((directDistance / 50) * 60);
+        
+        setRouteInfo({
+          distance: `~${directDistance.toFixed(1)} km`,
+          duration: `~${estimatedDuration} min (est.)`
+        });
+      }
     }
+  };
+
+  // Calculate direct distance between two points using Haversine formula
+  const calculateDirectDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const deg2rad = (deg) => {
+    return deg * (Math.PI/180);
   };
 
   // Function to open directions in Google Maps
