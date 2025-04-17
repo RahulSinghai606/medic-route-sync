@@ -101,7 +101,7 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
       routeLine.current = null;
     }
     
-    const bounds = new L.LatLngBounds();
+    const bounds = new L.LatLngBounds([]);
     
     // Add user location marker if available
     if (userLocation && userLocation.lat && userLocation.lng) {
@@ -178,12 +178,20 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
             routeLine.current.remove();
           }
           
-          routeLine.current = L.geoJSON(route.geometry, {
-            style: {
-              color: '#3b82f6',
-              weight: 5,
-              opacity: 0.7
+          // Convert GeoJSON to LatLng array for Polyline
+          const geoJsonLayer = L.geoJSON(route.geometry);
+          const latLngs: L.LatLng[] = [];
+          
+          geoJsonLayer.eachLayer((layer) => {
+            if (layer instanceof L.Polyline) {
+              latLngs.push(...layer.getLatLngs().flat());
             }
+          });
+          
+          routeLine.current = L.polyline(latLngs, {
+            color: '#3b82f6',
+            weight: 5,
+            opacity: 0.7
           }).addTo(map.current);
         }
         
@@ -217,7 +225,7 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
   };
 
   // Calculate direct distance between two points using Haversine formula
-  const calculateDirectDistance = (lat1, lon1, lat2, lon2) => {
+  const calculateDirectDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Earth's radius in km
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
@@ -229,7 +237,7 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, destination, hospitalNa
     return R * c;
   };
 
-  const deg2rad = (deg) => {
+  const deg2rad = (deg: number) => {
     return deg * (Math.PI/180);
   };
 
