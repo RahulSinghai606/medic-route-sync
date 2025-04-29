@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Stethoscope, AlertTriangle, Building2, HeartPulse, Thermometer, Lungs } from 'lucide-react';
+import { Brain, Stethoscope, AlertTriangle, Building2, HeartPulse, Thermometer, Wind } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { navigateToHospitalsWithSpecialties } from '@/utils/hospitalUtils';
@@ -48,7 +48,7 @@ const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAsses
             <div className="animate-pulse flex space-x-2 items-center">
               <HeartPulse className="h-5 w-5 text-medical animate-bounce" />
               <Thermometer className="h-5 w-5 text-medical animate-bounce delay-100" />
-              <Lungs className="h-5 w-5 text-medical animate-bounce delay-200" />
+              <Wind className="h-5 w-5 text-medical animate-bounce delay-200" />
             </div>
             <p className="text-muted-foreground">Processing clinical information...</p>
           </div>
