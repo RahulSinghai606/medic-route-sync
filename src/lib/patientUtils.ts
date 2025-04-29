@@ -139,7 +139,7 @@ export const fetchPatientDetails = async (patientId: string) => {
 };
 
 // Function to process voice recording and extract vitals
-export const processVoiceRecording = async (audioBlob: Blob) => {
+export const processVoiceRecording = async (audioBlob: Blob, medicalContext?: any) => {
   try {
     // 1. Check if audio blob is valid
     if (!audioBlob || audioBlob.size === 0) {
@@ -147,6 +147,7 @@ export const processVoiceRecording = async (audioBlob: Blob) => {
     }
 
     console.log('Processing audio recording of size:', audioBlob.size, 'bytes');
+    console.log('Medical context provided:', medicalContext ? 'Yes' : 'No');
 
     // 2. Convert audio blob to base64
     const reader = new FileReader();
@@ -183,7 +184,11 @@ export const processVoiceRecording = async (audioBlob: Blob) => {
         const { data: processingResult, error: processingError } = await supabase
           .functions
           .invoke('process-voice-recording', {
-            body: { audioBase64 }
+            body: { 
+              audioBase64,
+              // Include medical context if provided
+              medicalContext: medicalContext || null 
+            }
           });
 
         if (processingError) {
