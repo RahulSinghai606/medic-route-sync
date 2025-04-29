@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,13 +19,15 @@ import {
   Map as MapIcon,
   ArrowUp,
   Tag,
-  Navigation
+  Navigation,
+  BadgePercent
 } from 'lucide-react';
 import { calculateHospitalMatch, Location } from '@/utils/hospitalUtils';
 import { jaipurHospitals, calculateDistanceAndETA } from '@/data/hospitals';
 import MapView from '@/components/MapView';
 import { useToast } from '@/hooks/use-toast';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { fetchPatients } from '@/lib/patientUtils';
 
 const Hospitals = () => {
   const [searchParams] = useSearchParams();
@@ -38,11 +39,48 @@ const Hospitals = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [patientVitals, setPatientVitals] = useState(null);
+  const [isLoadingPatient, setIsLoadingPatient] = useState(true);
 
   // Get user's location on component mount
   useEffect(() => {
     getCurrentLocation();
+    fetchLatestPatientData();
   }, []);
+
+  // Fetch latest patient data to use for hospital matching
+  const fetchLatestPatientData = async () => {
+    setIsLoadingPatient(true);
+    try {
+      const { data } = await fetchPatients();
+      if (data && data.length > 0) {
+        // Sort patients by creation date to get the most recent one
+        const sortedPatients = data.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        const latestPatient = sortedPatients[0];
+        
+        // Get the most recent vitals for this patient
+        const latestVitals = latestPatient.vitals?.reduce((latest, current) => {
+          if (!latest) return current;
+          return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
+        }, null);
+        
+        if (latestVitals) {
+          setPatientVitals(latestVitals);
+          toast({
+            title: "Patient Data Loaded",
+            description: `Using vital signs from ${latestPatient.name || 'recent patient'}`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching patient data:", error);
+    } finally {
+      setIsLoadingPatient(false);
+    }
+  };
 
   // Load and rank hospitals when location or search params change
   useEffect(() => {
@@ -51,13 +89,20 @@ const Hospitals = () => {
     try {
       // Check if we have specialty tags from the URL
       const specialtyTags = searchParams.get('specialties')?.split(',') || [];
-      const criticalCase = searchParams.get('critical') === 'true';
+      const criticalCase = searchParams.get('critical') === 'true' || 
+                          (patientVitals && (
+                            (patientVitals.heart_rate > 120 || patientVitals.heart_rate < 50) ||
+                            (patientVitals.bp_systolic > 180 || patientVitals.bp_systolic < 90) ||
+                            (patientVitals.spo2 < 92) ||
+                            (patientVitals.gcs < 9)
+                          ));
       
       // Calculate distances for all hospitals
       const hospitalsWithDistance = calculateDistanceAndETA(jaipurHospitals, currentLocation);
       
       // Apply hospital matching algorithm
       const matchedHospitals = hospitalsWithDistance.map(hospital => {
+        // Use patient vitals for matching if available
         const matchResult = calculateHospitalMatch(hospital, specialtyTags, criticalCase, currentLocation);
         return {
           ...hospital,
@@ -79,7 +124,7 @@ const Hospitals = () => {
         variant: "destructive"
       });
     }
-  }, [currentLocation, searchParams]);
+  }, [currentLocation, searchParams, patientVitals]);
 
   const getCurrentLocation = () => {
     setIsLoadingLocation(true);
@@ -200,6 +245,22 @@ const Hospitals = () => {
     window.open(`tel:${phone}`, '_self');
   };
 
+  const getMatchScoreColor = (score) => {
+    if (score >= 90) return 'bg-medical text-white';
+    if (score >= 80) return 'bg-green-500 text-white';
+    if (score >= 70) return 'bg-blue-500 text-white';
+    if (score >= 60) return 'bg-amber-500 text-white';
+    return 'bg-gray-500 text-white';
+  };
+
+  const getMatchScoreClass = (score, isPromoted) => {
+    const baseClass = getMatchScoreColor(score);
+    const sizeClass = 'text-base font-bold px-3 py-1.5';
+    const promotedClass = isPromoted ? 'ring-2 ring-medical ring-offset-1' : '';
+    
+    return `${baseClass} ${sizeClass} ${promotedClass} flex items-center gap-1.5 rounded-full`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -217,12 +278,43 @@ const Hospitals = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="flex items-center gap-2" onClick={getCurrentLocation}>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2" 
+            onClick={() => {
+              getCurrentLocation();
+              fetchLatestPatientData();
+            }}
+          >
             <MapPin className="h-4 w-4" />
-            <span className="hidden sm:inline">Update Location</span>
+            <span className="hidden sm:inline">Update Data</span>
           </Button>
         </div>
       </div>
+
+      {/* Show patient data being used */}
+      {patientVitals && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md text-blue-800 dark:text-blue-300 flex items-start gap-2">
+          <BadgePercent className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Match scores based on patient vital signs</p>
+            <p className="text-sm">
+              Heart Rate: {patientVitals.heart_rate || 'N/A'} • 
+              BP: {patientVitals.bp_systolic || 'N/A'}/{patientVitals.bp_diastolic || 'N/A'} • 
+              SpO2: {patientVitals.spo2 || 'N/A'}% • 
+              GCS: {patientVitals.gcs || 'N/A'}
+            </p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={fetchLatestPatientData}
+            className="ml-auto"
+          >
+            Refresh
+          </Button>
+        </div>
+      )}
 
       {locationError && (
         <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-start gap-2">
@@ -279,7 +371,7 @@ const Hospitals = () => {
                         onClick={() => setSelectedHospital(hospital)}
                         className={`p-4 cursor-pointer transition-colors hover:bg-gray-50 flex justify-between items-center ${selectedHospital?.id === hospital.id ? 'bg-gray-50 border-l-4 border-medical' : ''}`}
                       >
-                        <div>
+                        <div className="flex-grow">
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium">{hospital.name}</h3>
                             {isPromoted && (
@@ -317,14 +409,12 @@ const Hospitals = () => {
                             </div>
                           )}
                         </div>
-                        <Badge className={`
-                          ${hospital.matchScore >= 90 ? 'bg-medical' : 
-                          hospital.matchScore >= 80 ? 'bg-success' : 
-                          'bg-muted'} 
-                          ${isPromoted ? 'border-2 border-white outline outline-1 outline-medical' : ''}
-                        `}>
-                          {hospital.matchScore}%
-                        </Badge>
+                        <div className="ml-3 flex-shrink-0">
+                          <div className={getMatchScoreClass(hospital.matchScore, isPromoted)}>
+                            <BadgePercent className="h-4 w-4" />
+                            {hospital.matchScore}%
+                          </div>
+                        </div>
                       </div>
                     );
                   })
@@ -357,14 +447,10 @@ const Hospitals = () => {
                         </CardDescription>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <Badge className={`
-                          ${selectedHospital.matchScore >= 90 ? 'bg-medical' : 
-                          selectedHospital.matchScore >= 80 ? 'bg-success' : 
-                          'bg-muted'}
-                          ${selectedHospital.promotedDueToSpecialty ? 'border-2 border-white outline outline-1 outline-medical' : ''}
-                        `}>
+                        <div className={getMatchScoreClass(selectedHospital.matchScore, selectedHospital.promotedDueToSpecialty)}>
+                          <BadgePercent className="h-4 w-4" />
                           {selectedHospital.matchScore}% Match
-                        </Badge>
+                        </div>
                         
                         {selectedHospital.promotedDueToSpecialty && (
                           <Badge variant="outline" className="flex items-center gap-1 bg-medical/10 text-medical border-medical/20">

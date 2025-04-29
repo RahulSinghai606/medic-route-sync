@@ -30,6 +30,8 @@ export interface Location {
 }
 
 // Hospital matching algorithm using the Adaptive Medical Priority Parameters (AMPP)
+// This algorithm is used to dynamically match hospitals to patient needs based on
+// real-time patient vitals and condition data from the Patients page
 export const calculateHospitalMatch = (
   hospital: any,
   specialties: string[],
