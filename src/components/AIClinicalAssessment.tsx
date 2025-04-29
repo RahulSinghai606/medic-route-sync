@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Stethoscope, AlertTriangle, Building2 } from 'lucide-react';
+import { Brain, Stethoscope, AlertTriangle, Building2, HeartPulse, Thermometer, Lungs } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { navigateToHospitalsWithSpecialties } from '@/utils/hospitalUtils';
@@ -13,9 +13,10 @@ interface AIClinicalAssessmentProps {
     care_recommendations: string;
     specialty_tags: string[];
   };
+  isLoading?: boolean;
 }
 
-const AIClinicalAssessment = ({ assessment }: AIClinicalAssessmentProps) => {
+const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAssessmentProps) => {
   const navigate = useNavigate();
   
   const isCritical = assessment?.clinical_probability.toLowerCase().includes('critical') || 
@@ -32,6 +33,29 @@ const AIClinicalAssessment = ({ assessment }: AIClinicalAssessmentProps) => {
       );
     }
   };
+  
+  if (isLoading) {
+    return (
+      <Card className="border-medical bg-medical/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-medical flex items-center gap-2">
+            <Brain className="h-5 w-5" />
+            AI Clinical Assessment
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 flex flex-col items-center space-y-2">
+            <div className="animate-pulse flex space-x-2 items-center">
+              <HeartPulse className="h-5 w-5 text-medical animate-bounce" />
+              <Thermometer className="h-5 w-5 text-medical animate-bounce delay-100" />
+              <Lungs className="h-5 w-5 text-medical animate-bounce delay-200" />
+            </div>
+            <p className="text-muted-foreground">Processing clinical information...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   if (!assessment) {
     return (

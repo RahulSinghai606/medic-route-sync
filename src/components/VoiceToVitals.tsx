@@ -24,6 +24,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   } | null>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
+  const [isAssessmentLoading, setIsAssessmentLoading] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -159,6 +160,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     }
 
     setIsProcessing(true);
+    setIsAssessmentLoading(true);
     setProcessingError(null);
 
     try {
@@ -167,7 +169,12 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       });
       
       console.log("Processing audio blob, size:", audioBlob.size);
-      const { data, error } = await processVoiceRecording(audioBlob);
+
+      // Add medical context to improve recognition
+      const enhancedMedicalContext = addMedicalContextToAudio();
+      console.log("Enhanced with medical context:", enhancedMedicalContext ? "Yes" : "No");
+      
+      const { data, error } = await processVoiceRecording(audioBlob, enhancedMedicalContext);
 
       if (error) {
         console.warn("Processing warning:", error);
@@ -177,7 +184,6 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
           toast({
             title: "Processing Warning",
             description: "Using fallback processing due to API limits. Results may be less accurate.",
-            // Change from "warning" to "default" to fix the type error
             variant: "default",
           });
         } else {
@@ -228,7 +234,33 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       });
     } finally {
       setIsProcessing(false);
+      setIsAssessmentLoading(false);
     }
+  };
+
+  // Add medical context to improve the accuracy of transcription
+  const addMedicalContextToAudio = () => {
+    // This is a client-side function that doesn't modify the audio
+    // but sends additional context to the processing function
+    return {
+      domain: "medical",
+      expectedTerms: [
+        "blood pressure", "BP", "heart rate", "pulse", "temperature",
+        "respiration", "respiratory rate", "oxygen saturation", "SpO2",
+        "Glasgow Coma Scale", "GCS", "pain level", "systolic", "diastolic",
+        "mmHg", "bpm", "celsius", "fahrenheit", "breaths per minute"
+      ],
+      prioritizeNumbers: true,
+      vitalsFormat: {
+        heartRate: "NUMBER bpm",
+        bloodPressure: "NUMBER/NUMBER mmHg",
+        temperature: "NUMBER celsius|fahrenheit",
+        respiratoryRate: "NUMBER breaths per minute",
+        oxygenSaturation: "NUMBER percent",
+        painLevel: "NUMBER out of 10",
+        gcs: "NUMBER out of 15"
+      }
+    };
   };
 
   // Fallback extraction in case the API fails
@@ -355,15 +387,19 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
                       Include vital sign values with their names (e.g., "Blood
                       pressure 120 over 80")
                     </li>
-                    <li>Mention all available measurements for best results</li>
-                    <li>If AI processing fails, you can still enter values manually</li>
+                    <li>Use medical terminology for better recognition</li>
+                    <li>Mention measurements with their units (e.g., "38 degrees celsius")</li>
+                    <li>Say "SpO2" as "S-P-O-2" or "oxygen saturation" for better recognition</li>
                   </ul>
                 </div>
               </div>
             </div>
 
             <div className="flex-1 w-full">
-              <AIClinicalAssessment assessment={aiAssessment || undefined} />
+              <AIClinicalAssessment 
+                assessment={aiAssessment || undefined} 
+                isLoading={isAssessmentLoading} 
+              />
             </div>
           </div>
         </CardContent>
