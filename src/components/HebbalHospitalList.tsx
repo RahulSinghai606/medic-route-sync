@@ -2,19 +2,48 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, Phone, Heart, User, AlertTriangle } from 'lucide-react';
-import { getHebbalHospitals, getMatchScoreColor, getMatchIndicator } from '@/data/hebbalHospitals';
+import { Clock, MapPin, Phone, Heart, User, AlertTriangle, Navigation, BadgePercent } from 'lucide-react';
+import { getHebbalHospitals, getMatchScoreColor, getMatchIndicator, HebbalHospital } from '@/data/hebbalHospitals';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Button } from '@/components/ui/button';
 
 const HebbalHospitalList: React.FC = () => {
   const { t } = useLanguage();
   const hospitals = getHebbalHospitals();
 
+  const getMatchScoreBadgeStyles = (score: number) => {
+    if (score >= 90) return 'bg-green-600 hover:bg-green-700 text-white';
+    if (score >= 75) return 'bg-yellow-500 hover:bg-yellow-600 text-white';
+    if (score >= 60) return 'bg-amber-500 hover:bg-amber-600 text-white';
+    return 'bg-red-600 hover:bg-red-700 text-white';
+  };
+
+  // Function to get paramedic name for the hospital (simulating NE Indian names)
+  const getParamedicName = (hospitalId: number) => {
+    const neIndianNames = [
+      "Tenzin Wangchuk",
+      "Bhaichung Bhutia",
+      "Lalsangzuali Sailo",
+      "Tarundeep Rai",
+      "Dipa Karmakar",
+      "Chekrovolu Swuro", 
+      "Mary Kom",
+      "Hima Das",
+      "Bimal Gurung",
+      "Lovlina Borgohain",
+      "Baichung Bhutia",
+      "Laishram Sarita Devi"
+    ];
+    
+    // Use hospital ID as a seed to consistently get the same name for each hospital
+    return neIndianNames[hospitalId % neIndianNames.length];
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Hebbal Hospitals - Courtyard Bengaluru</CardTitle>
-        <CardDescription>Emergency facility matching nearby Hebbal</CardDescription>
+        <CardTitle>{t('hebbal.title')}</CardTitle>
+        <CardDescription>{t('hebbal.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {hospitals.map((hospital) => (
@@ -36,9 +65,10 @@ const HebbalHospitalList: React.FC = () => {
                   <span>{hospital.eta} min</span>
                 </div>
               </div>
-              <div className={`text-right px-3 py-1 rounded-full font-medium text-sm ${getMatchScoreColor(hospital.matchScore)}`}>
-                {t('hospitals.match')}: {hospital.matchScore}%
-              </div>
+              <Button size="sm" className={`rounded-full px-3 py-1 flex gap-1 items-center ${getMatchScoreBadgeStyles(hospital.matchScore)}`}>
+                <BadgePercent className="h-3.5 w-3.5" />
+                <span className="font-bold">{hospital.matchScore}%</span>
+              </Button>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
@@ -73,9 +103,23 @@ const HebbalHospitalList: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-              <Phone className="h-3 w-3" />
-              <span>{hospital.phone}</span>
+            <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Phone className="h-3 w-3" />
+                <span>{hospital.phone}</span>
+              </div>
+              
+              <div className="flex items-center gap-1 text-xs">
+                <User className="h-3 w-3 text-medical" />
+                <span className="text-muted-foreground">On-call: {getParamedicName(hospital.id)}</span>
+              </div>
+            </div>
+            
+            <div className="mt-3 flex justify-end">
+              <Button size="sm" variant="outline" className="flex items-center gap-1 text-xs">
+                <Navigation className="h-3 w-3" />
+                Get Directions
+              </Button>
             </div>
           </div>
         ))}

@@ -137,14 +137,16 @@ export const getHebbalHospitals = () => {
 
 // Function to get match score color
 export const getMatchScoreColor = (score: number): string => {
-  if (score >= 80) return 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400';
-  if (score >= 60) return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400';
+  if (score >= 90) return 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400';
+  if (score >= 75) return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400';
+  if (score >= 60) return 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400';
   return 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400';
 };
 
 // Function to get match indicator (emoji)
 export const getMatchIndicator = (score: number): string => {
-  if (score >= 80) return '🟢';
-  if (score >= 60) return '🟡';
+  if (score >= 90) return '🟢';
+  if (score >= 75) return '🟡';
+  if (score >= 60) return '🟠';
   return '🔴';
 };

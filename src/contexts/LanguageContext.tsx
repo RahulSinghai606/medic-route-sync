@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
-export type Language = 'en' | 'hi' | 'as' | 'mz' | 'kh' | 'nm' | 'bo';
+export type Language = 'en' | 'hi' | 'as' | 'mz' | 'kh' | 'nm' | 'bo' | 'bn';
 
 interface LanguageContextType {
   language: Language;
@@ -83,7 +83,12 @@ const translations: Record<Language, Record<string, string>> = {
     'language.mz': 'Mizo',
     'language.kh': 'Khasi',
     'language.nm': 'Nagamese',
-    'language.bo': 'Bodo'
+    'language.bo': 'Bodo',
+    'language.bn': 'Bengali 🇧🇩',
+    
+    // Additional translations for hebbal hospitals
+    'hebbal.title': 'Hebbal Hospitals - Courtyard Bengaluru',
+    'hebbal.description': 'Emergency facility matching nearby Hebbal'
   },
   hi: {
     // General UI
@@ -155,14 +160,99 @@ const translations: Record<Language, Record<string, string>> = {
     'language.mz': 'मिज़ो',
     'language.kh': 'खासी',
     'language.nm': 'नागामीज़',
-    'language.bo': 'बोडो'
+    'language.bo': 'बोडो',
+    'language.bn': 'बंगाली 🇧🇩',
+    
+    // Additional translations for hebbal hospitals
+    'hebbal.title': 'हेब्बल अस्पताल - कॉर्टयार्ड बेंगलुरु',
+    'hebbal.description': 'हेब्बल के पास आपातकालीन सुविधा मिलान'
   },
-  // Simplified translations for other languages - duplicate Hindi translations for now as placeholders
-  as: { /* Same keys as Hindi translations, but would be in Assamese */ },
-  mz: { /* Same keys as Hindi translations, but would be in Mizo */ },
-  kh: { /* Same keys as Hindi translations, but would be in Khasi */ },
-  nm: { /* Same keys as Hindi translations, but would be in Nagamese */ },
-  bo: { /* Same keys as Hindi translations, but would be in Bodo */ }
+  
+  // Bengali translations 
+  bn: {
+    // General UI
+    'app.title': 'টেরো',
+    'app.subtitle': 'ত্রিয়েজ এবং জরুরী রাউটিং অপটিমাইজেশন',
+    'dashboard': 'ড্যাশবোর্ড',
+    'assessment': 'মূল্যায়ন',
+    'hospitals': 'হাসপাতাল',
+    'patients': 'রোগীরা',
+    'cases': 'কেস',
+    'logout': 'লগ আউট',
+    'paramedic': 'প্যারামেডিক',
+    'status.available': 'উপলব্ধ',
+    'status.busy': 'ব্যস্ত',
+    'status.offline': 'অফলাইন',
+    
+    // Voice to Vitals
+    'vitals.title': 'ভয়েস-টু-ভাইটালস',
+    'vitals.description': 'স্বয়ংক্রিয়ভাবে গুরুত্বপূর্ণ লক্ষণগুলি বের করতে আপনার কণ্ঠ রেকর্ড করুন',
+    'vitals.start': 'রেকর্ডিং শুরু করুন',
+    'vitals.stop': 'রেকর্ডিং বন্ধ করুন',
+    'vitals.play': 'রেকর্ডিং চালান',
+    'vitals.extract': 'ভাইটালস বের করুন',
+    'vitals.processing': 'প্রক্রিয়াকরণ হচ্ছে...',
+    'vitals.tips': 'টিপস:',
+    'vitals.tip1': 'স্পষ্টভাবে এবং স্বাভাবিক গতিতে কথা বলুন',
+    'vitals.tip2': 'গুরুত্বপূর্ণ লক্ষণের মানগুলি তাদের নাম সহ অন্তর্ভুক্ত করুন (যেমন, "ব্লাড প্রেশার ১২০ ওভার ৮০")',
+    'vitals.tip3': 'আরও ভাল স্বীকৃতির জন্য মেডিকেল শব্দাবলী ব্যবহার করুন',
+    'vitals.tip4': 'তাদের একক সহ পরিমাপ উল্লেখ করুন (যেমন, "৩৮ ডিগ্রি সেলসিয়াস")',
+    'vitals.tip5': '"SpO2" কে "এস-পি-ও-২" বা "অক্সিজেন স্যাচুরেশন" হিসেবে বলুন',
+    
+    // Clinical Assessment
+    'assessment.title': 'AI ক্লিনিকাল অ্যাসেসমেন্ট',
+    'assessment.probability': 'ক্লিনিকাল সম্ভাব্যতা',
+    'assessment.recommendations': 'যত্নের সুপারিশ',
+    'assessment.specialties': 'বিশেষজ্ঞতা প্রয়োজন',
+    'assessment.hospital': 'মিলে যাওয়া হাসপাতাল খুঁজুন',
+    'assessment.loading': 'ক্লিনিকাল তথ্য প্রক্রিয়াকরণ হচ্ছে...',
+    'assessment.unavailable': 'এখনও কোন AI মূল্যায়ন উপলব্ধ নেই।',
+    'assessment.record': 'মূল্যায়ন তৈরি করতে ভয়েস ইনপুট দিয়ে রোগীর ভাইটাল রেকর্ড করুন।',
+    
+    // Hospitals
+    'hospitals.nearby': 'কাছাকাছি হাসপাতাল',
+    'hospitals.description': 'আপনার বর্তমান অবস্থানের কাছে হাসপাতাল',
+    'hospitals.find': 'নিকটতম হাসপাতাল খুঁজুন',
+    'hospitals.match': 'ম্যাচ স্কোর',
+    'hospitals.eta': 'আনুমানিক সময়',
+    'hospitals.beds': 'উপলব্ধ বেড',
+    'hospitals.icu': 'ICU ক্ষমতা',
+    'hospitals.specialties': 'বিশেষত্ব',
+    
+    // Location
+    'location.title': 'প্যারামেডিক অবস্থান',
+    'location.description': 'আপনার বর্তমান GPS স্থানাঙ্ক',
+    'location.current': 'বর্তমান অবস্থান:',
+    'location.gps': 'GPS:',
+    'location.refresh': 'রিফ্রেশ',
+    'location.error': 'অবস্থান ত্রুটি',
+    'location.loading': 'আপনার অবস্থান পাওয়া হচ্ছে...',
+    'location.denied': 'অবস্থান অ্যাক্সেস অস্বীকার করা হয়েছে। আপনার ব্রাউজারের সেটিংসে অবস্থান পরিষেবা সক্ষম করুন।',
+    'location.unavailable': 'অবস্থানের তথ্য উপলব্ধ নেই। পরে আবার চেষ্টা করুন।',
+    'location.timeout': 'অবস্থান অনুরোধের সময় শেষ। আবার চেষ্টা করুন।',
+    
+    // Language selector
+    'language.select': 'ভাষা নির্বাচন করুন',
+    'language.en': 'ইংরেজি 🇬🇧',
+    'language.hi': 'হিন্দি 🇮🇳',
+    'language.as': 'অসমীয়া',
+    'language.mz': 'মিজো',
+    'language.kh': 'খাসি',
+    'language.nm': 'নাগামিজ',
+    'language.bo': 'বোডো',
+    'language.bn': 'বাংলা 🇧🇩',
+    
+    // Additional translations for hebbal hospitals
+    'hebbal.title': 'হেব্বাল হাসপাতাল - কোর্টইয়ার্ড বেঙ্গালুরু',
+    'hebbal.description': 'হেব্বালের কাছে জরুরি সুবিধা ম্যাচিং'
+  },
+  
+  // Simplified translations for other languages - add more complete translations as needed
+  as: { /* Same keys as Hindi/Bengali translations, but would be in Assamese */ },
+  mz: { /* Same keys as Hindi/Bengali translations, but would be in Mizo */ },
+  kh: { /* Same keys as Hindi/Bengali translations, but would be in Khasi */ },
+  nm: { /* Same keys as Hindi/Bengali translations, but would be in Nagamese */ },
+  bo: { /* Same keys as Hindi/Bengali translations, but would be in Bodo */ }
 };
 
 // Initialize other languages with Hindi translations as placeholders

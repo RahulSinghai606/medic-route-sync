@@ -12,6 +12,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 
@@ -30,6 +32,7 @@ const TopBar = () => {
     { code: 'kh', name: t('language.kh') },
     { code: 'nm', name: t('language.nm') },
     { code: 'bo', name: t('language.bo') },
+    { code: 'bn', name: t('language.bn') },
   ];
 
   return (
@@ -65,14 +68,19 @@ const TopBar = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Globe className="h-5 w-5 text-muted-foreground" />
+              <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-[10px] flex items-center justify-center text-white font-bold">
+                {language.toUpperCase()}
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[200px] bg-popover">
+            <DropdownMenuLabel>{t('language.select')}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
             {languages.map((lang) => (
               <DropdownMenuItem 
                 key={lang.code}
                 onClick={() => setLanguage(lang.code as Language)}
-                className={language === lang.code ? "bg-accent" : ""}
+                className={`${language === lang.code ? "bg-accent" : ""} cursor-pointer`}
               >
                 {lang.name}
               </DropdownMenuItem>

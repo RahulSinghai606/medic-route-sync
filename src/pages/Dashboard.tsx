@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   Activity,
   RefreshCw,
+  BadgePercent,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ import { jaipurHospitals, calculateDistanceAndETA } from "@/data/hospitals";
 import MapView from "@/components/MapView";
 import HebbalHospitalList from "@/components/HebbalHospitalList";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getHebbalHospitals, getMatchIndicator } from "@/data/hebbalHospitals";
 
 // Function to match hospitals to patient needs based on location
 const matchHospitalsToPatient = (hospitals, specialties = [], isCritical = false, userLocation = null) => {
@@ -54,6 +56,7 @@ const Dashboard = () => {
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<PermissionState | null>(null);
   const [reverseGeocodingAttempted, setReverseGeocodingAttempted] = useState(false);
   const [nearbyHospitals, setNearbyHospitals] = useState([]);
+  const hebbalHospitals = getHebbalHospitals().slice(0, 3); // Get top 3 Hebbal hospitals
 
   useEffect(() => {
     checkLocationPermission();
@@ -268,10 +271,18 @@ const Dashboard = () => {
     }
   };
 
+  // Function to get matching score display style
+  const getHospitalScoreStyle = (score) => {
+    if (score >= 90) return 'text-green-600';
+    if (score >= 75) return 'text-yellow-600';
+    if (score >= 60) return 'text-amber-600';
+    return 'text-red-600';
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1>Dashboard</h1>
+        <h1>{t('dashboard')}</h1>
         <p className="text-muted-foreground">{t('dashboard')}</p>
       </div>
 
@@ -431,6 +442,37 @@ const Dashboard = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Avg. Response Time
                 </p>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-medium mb-2">Hebbal Hospitals (Courtyard Bengaluru)</h3>
+              <div className="space-y-2">
+                {hebbalHospitals.map(hospital => (
+                  <div 
+                    key={hospital.id}
+                    className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                    onClick={() => navigate(`/hospitals`)}
+                  >
+                    <MapPin className="h-4 w-4 text-medical mt-0.5" />
+                    <div className="flex-grow">
+                      <p className="text-sm font-medium flex items-center gap-1">
+                        {hospital.name}
+                        <span>{getMatchIndicator(hospital.matchScore)}</span>
+                      </p>
+                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                        <span>{hospital.distance} km</span>
+                        <span className="mx-1">•</span>
+                        <span>{hospital.eta} min</span>
+                        <span className="ml-1">•</span>
+                        <span className="ml-1 flex items-center gap-0.5">
+                          <BadgePercent className="h-3 w-3" />
+                          <span className={`font-medium ${getHospitalScoreStyle(hospital.matchScore)}`}>{hospital.matchScore}%</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
