@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -158,13 +157,23 @@ const DisasterMode: React.FC = () => {
       const severityScores = [1, 2, 3, 4, 5]; // 1: Critical, 5: Minor
       const severity = severityScores[Math.floor(Math.random() * severityScores.length)];
       
+      // Fix: Make condition strictly "Critical", "Moderate", or "Stable" to match Patient interface
+      let condition: "Critical" | "Moderate" | "Stable";
+      if (severity <= 2) {
+        condition = "Critical";
+      } else if (severity === 3) {
+        condition = "Moderate";
+      } else {
+        condition = "Stable";
+      }
+      
       return {
         id: i + 1,
         name: neNames[i % neNames.length],
         age: Math.floor(Math.random() * 60) + 15,
         gender: Math.random() > 0.5 ? 'Male' : 'Female',
         location: selectedDisaster.affectedArea,
-        condition: severity <= 2 ? 'Critical' : severity === 3 ? 'Moderate' : 'Stable',
+        condition: condition, // Now properly typed
         needsVentilator: severity <= 2,
         severity: severity,
         injuries: severity <= 2 
