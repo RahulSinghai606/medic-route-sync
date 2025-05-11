@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Settings,
   LogOut,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -119,6 +120,21 @@ const AppSidebar = () => {
             >
               <ClipboardList className="h-5 w-4" />
               <span>Cases</span>
+            </NavLink>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <NavLink
+              to="/disaster"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+                  isActive
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                }`
+              }
+            >
+              <AlertTriangle className="h-5 w-5" />
+              <span>Disaster Mode</span>
             </NavLink>
           </SidebarMenuItem>
         </SidebarMenu>
