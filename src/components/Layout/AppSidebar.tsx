@@ -18,16 +18,23 @@ import {
   Settings,
   LogOut,
   AlertTriangle,
+  Language,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import logo from "./logo.jpg";
 
 const AppSidebar = () => {
   const { signOut, profile } = useAuth();
+  const { currentLanguage, changeLanguage } = useLanguage();
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  const handleLanguageChange = (lang: string) => {
+    changeLanguage(lang);
   };
 
   return (
@@ -43,6 +50,35 @@ const AppSidebar = () => {
             />
           </div>
           <h1 className="text-xl font-bold">TERO</h1>
+        </div>
+        <div className="flex mt-3 gap-2">
+          <Button 
+            variant={currentLanguage === 'en' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => handleLanguageChange('en')}
+            className="flex items-center gap-1"
+          >
+            <Language className="h-3 w-3" />
+            <span>EN</span>
+          </Button>
+          <Button 
+            variant={currentLanguage === 'hi' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => handleLanguageChange('hi')}
+            className="flex items-center gap-1"
+          >
+            <Language className="h-3 w-3" />
+            <span>HI</span>
+          </Button>
+          <Button 
+            variant={currentLanguage === 'bn' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => handleLanguageChange('bn')}
+            className="flex items-center gap-1"
+          >
+            <Language className="h-3 w-3" />
+            <span>BN</span>
+          </Button>
         </div>
       </SidebarHeader>
       <SidebarContent>

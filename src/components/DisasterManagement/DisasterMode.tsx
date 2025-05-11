@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,11 +7,21 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Tent, MapPin, Users, Activity, ArrowRight, Heart } from 'lucide-react';
+import { 
+  AlertTriangle, Tent, MapPin, Users, Activity, 
+  ArrowRight, Heart, Flood, Landslide, Hurricane 
+} from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useToast } from '@/hooks/use-toast';
 import DisasterPatientList from './DisasterPatientList';
 import DisasterMap from './DisasterMap';
 import HazardOverlay from './HazardOverlay';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface DisasterLocation {
   name: string;
@@ -137,14 +148,27 @@ const disasterLocations: DisasterLocation[] = [
   }
 ];
 
+interface Patient {
+  id: number;
+  name: string;
+  age: number;
+  gender: string;
+  location: string;
+  condition: 'Critical' | 'Moderate' | 'Stable';
+  needsVentilator: boolean;
+  severity: number;
+  injuries: string[];
+}
+
 const DisasterMode: React.FC = () => {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [disasterModeEnabled, setDisasterModeEnabled] = useState(false);
   const [selectedDisaster, setSelectedDisaster] = useState<DisasterLocation>(disasterLocations[0]);
   const [activeTab, setActiveTab] = useState('triage');
 
   // Simulate patients for triage
-  const [triagePatients] = useState(() => {
+  const [triagePatients, setTriagePatients] = useState<Patient[]>(() => {
     // Generate northeastern names
     const neNames = [
       "Tenzin Wangchuk", "Passang Dorjee", "Bhaichung Bhutia", "Lalsangzuali Sailo",
@@ -157,7 +181,7 @@ const DisasterMode: React.FC = () => {
       const severityScores = [1, 2, 3, 4, 5]; // 1: Critical, 5: Minor
       const severity = severityScores[Math.floor(Math.random() * severityScores.length)];
       
-      // Fix: Make condition strictly "Critical", "Moderate", or "Stable" to match Patient interface
+      // Make condition strictly "Critical", "Moderate", or "Stable"
       let condition: "Critical" | "Moderate" | "Stable";
       if (severity <= 2) {
         condition = "Critical";
@@ -173,7 +197,7 @@ const DisasterMode: React.FC = () => {
         age: Math.floor(Math.random() * 60) + 15,
         gender: Math.random() > 0.5 ? 'Male' : 'Female',
         location: selectedDisaster.affectedArea,
-        condition: condition, // Now properly typed
+        condition: condition,
         needsVentilator: severity <= 2,
         severity: severity,
         injuries: severity <= 2 
@@ -187,6 +211,72 @@ const DisasterMode: React.FC = () => {
 
   const handleDisasterModeToggle = () => {
     setDisasterModeEnabled(!disasterModeEnabled);
+    
+    toast({
+      title: !disasterModeEnabled ? "Disaster Mode Activated" : "Disaster Mode Deactivated",
+      description: !disasterModeEnabled 
+        ? "System is now operating in mass casualty triage mode." 
+        : "Returned to normal operations.",
+      variant: !disasterModeEnabled ? "destructive" : "default",
+    });
+  };
+
+  const handleDisasterSelection = (disaster: DisasterLocation) => {
+    setSelectedDisaster(disaster);
+    
+    // Update patient locations when disaster changes
+    setTriagePatients(prev => 
+      prev.map(patient => ({
+        ...patient,
+        location: disaster.affectedArea
+      }))
+    );
+    
+    toast({
+      title: "Disaster Scenario Changed",
+      description: `Now showing data for ${disaster.name} in ${disaster.region}`,
+    });
+  };
+
+  const handleResourceRequest = () => {
+    toast({
+      title: "Resource Request Sent",
+      description: `Additional resources requested for ${selectedDisaster.name}`,
+    });
+  };
+
+  const handleStatusUpdate = () => {
+    toast({
+      title: "Status Updated",
+      description: "Disaster status information has been updated and shared with authorities",
+    });
+  };
+
+  const handleTrainingClick = () => {
+    toast({
+      title: "Training Module",
+      description: "Mass casualty training module will be available soon",
+    });
+  };
+
+  const handleProtocolsClick = () => {
+    toast({
+      title: "Disaster Protocols",
+      description: "Northeast India specific disaster protocols loaded",
+    });
+  };
+
+  const getDisasterIcon = (type: string) => {
+    switch(type) {
+      case 'landslide':
+        return <Landslide className="h-4 w-4" />;
+      case 'flood':
+        return <Flood className="h-4 w-4" />;
+      case 'earthquake':
+        return <Hurricane className="h-4 w-4" />;
+      default:
+        return <AlertTriangle className="h-4 w-4" />;
+    }
   };
 
   return (
@@ -219,15 +309,32 @@ const DisasterMode: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <CardTitle>{selectedDisaster.name}</CardTitle>
                   <CardDescription>{selectedDisaster.region} - {selectedDisaster.affectedArea}</CardDescription>
                 </div>
-                <Badge variant="destructive" className="h-fit flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  {selectedDisaster.type.toUpperCase()}
-                </Badge>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      {getDisasterIcon(selectedDisaster.type)}
+                      <span className="uppercase">{selectedDisaster.type}</span>
+                      <span className="sr-only">Change disaster</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {disasterLocations.map((disaster) => (
+                      <DropdownMenuItem 
+                        key={disaster.name}
+                        onClick={() => handleDisasterSelection(disaster)}
+                        className="flex items-center gap-2"
+                      >
+                        {getDisasterIcon(disaster.type)}
+                        <span>{disaster.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </CardHeader>
             <CardContent>
@@ -306,10 +413,14 @@ const DisasterMode: React.FC = () => {
               </div>
             </CardContent>
             <CardFooter className="justify-end">
-              <Button variant="outline" className="mr-2">
+              <Button 
+                variant="outline" 
+                className="mr-2" 
+                onClick={handleResourceRequest}
+              >
                 Request Additional Resources
               </Button>
-              <Button>
+              <Button onClick={handleStatusUpdate}>
                 Update Status
               </Button>
             </CardFooter>
@@ -348,6 +459,7 @@ const DisasterMode: React.FC = () => {
               <Button 
                 variant="outline" 
                 className="w-full justify-between hover:bg-gray-50 dark:hover:bg-gray-800 py-6 text-left"
+                onClick={handleProtocolsClick}
               >
                 <div className="flex gap-3 items-center">
                   <div className="h-9 w-9 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
@@ -366,6 +478,7 @@ const DisasterMode: React.FC = () => {
               <Button 
                 variant="outline" 
                 className="w-full justify-between hover:bg-gray-50 dark:hover:bg-gray-800 py-6 text-left"
+                onClick={handleTrainingClick}
               >
                 <div className="flex gap-3 items-center">
                   <div className="h-9 w-9 rounded-md bg-medical/10 flex items-center justify-center">

@@ -21,61 +21,61 @@ import {
   Check
 } from 'lucide-react';
 
-// Mock case data
+// Mock case data with Northeast Indian names and locations
 const caseData = [
   {
     id: 'EC-1001',
-    patient: 'John Doe',
+    patient: 'Tenzin Wangchuk',
     date: 'Apr 11, 2025',
     time: '10:30 AM',
     status: 'active',
     type: 'Cardiac',
-    location: '123 Main St, Metropolis',
-    hospital: 'Memorial General Hospital',
+    location: 'Gangtok, Sikkim',
+    hospital: 'STNM Hospital',
     severity: 'critical'
   },
   {
     id: 'EC-1002',
-    patient: 'Sarah Johnson',
+    patient: 'Lalsangzuali Sailo',
     date: 'Apr 11, 2025',
     time: '11:15 AM',
     status: 'en-route',
     type: 'Trauma',
-    location: '456 Oak Ave, Metropolis',
-    hospital: 'City Medical Center',
+    location: 'Aizawl, Mizoram',
+    hospital: 'Mizoram State Hospital',
     severity: 'moderate'
   },
   {
     id: 'EC-1003',
-    patient: 'Robert Chen',
+    patient: 'Baichung Bhutia',
     date: 'Apr 11, 2025',
     time: '09:45 AM',
     status: 'completed',
     type: 'Respiratory',
-    location: '789 Pine St, Metropolis',
-    hospital: 'University Hospital',
+    location: 'Namchi, Sikkim',
+    hospital: 'District Hospital Namchi',
     severity: 'critical'
   },
   {
     id: 'EC-1004',
-    patient: 'Emily Wilson',
+    patient: 'Hima Das',
     date: 'Apr 10, 2025',
     time: '08:30 AM',
     status: 'completed',
     type: 'Pediatric',
-    location: '321 Elm St, Metropolis',
-    hospital: 'Children\'s Hospital',
+    location: 'Dhing, Assam',
+    hospital: 'Nagaon Civil Hospital',
     severity: 'stable'
   },
   {
     id: 'EC-1005',
-    patient: 'Michael Garcia',
+    patient: 'Lovlina Borgohain',
     date: 'Apr 10, 2025',
     time: '12:10 PM',
     status: 'completed',
     type: 'Neurological',
-    location: '654 Maple Dr, Metropolis',
-    hospital: 'Neuro Center',
+    location: 'Golaghat, Assam',
+    hospital: 'Kushal Konwar Civil Hospital',
     severity: 'moderate'
   }
 ];

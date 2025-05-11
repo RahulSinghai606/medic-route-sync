@@ -23,7 +23,7 @@ import {
   BadgePercent
 } from 'lucide-react';
 import { calculateHospitalMatch, Location } from '@/utils/hospitalUtils';
-import { jaipurHospitals, calculateDistanceAndETA } from '@/data/hospitals';
+import { hebbalHospitals, calculateDistanceAndETA } from '@/data/hospitals';
 import MapView from '@/components/MapView';
 import { useToast } from '@/hooks/use-toast';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
@@ -97,8 +97,8 @@ const Hospitals = () => {
                             (patientVitals.gcs < 9)
                           ));
       
-      // Calculate distances for all hospitals
-      const hospitalsWithDistance = calculateDistanceAndETA(jaipurHospitals, currentLocation);
+      // Calculate distances for all hospitals - use Hebbal hospitals data instead of Jaipur
+      const hospitalsWithDistance = calculateDistanceAndETA(hebbalHospitals, currentLocation);
       
       // Apply hospital matching algorithm
       const matchedHospitals = hospitalsWithDistance.map(hospital => {
