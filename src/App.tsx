@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ import Cases from "./pages/Cases";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import DisasterMode from "./components/DisasterManagement/DisasterMode";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,7 @@ const AppRoutes = () => {
         <Route path="/assessment" element={<Assessment />} />
         <Route path="/hospitals" element={<Hospitals />} />
         <Route path="/cases" element={<Cases />} />
+        <Route path="/disaster" element={<DisasterMode />} />
       </Route>
       
       <Route path="*" element={<NotFound />} />
