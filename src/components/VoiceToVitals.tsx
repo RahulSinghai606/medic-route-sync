@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,12 +6,21 @@ import { Mic, StopCircle, Play, Loader2, AlertTriangle, RefreshCw } from "lucide
 import { useToast } from "@/hooks/use-toast";
 import { processVoiceRecording } from "@/lib/patientUtils";
 import AIClinicalAssessment from "./AIClinicalAssessment";
+import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface VoiceToVitalsProps {
   onVitalsExtracted: (vitals: any) => void;
 }
 
 const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
+  const { t, language } = useLanguage();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -24,11 +34,21 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
   const [isAssessmentLoading, setIsAssessmentLoading] = useState(false);
+  const [speechLanguage, setSpeechLanguage] = useState<string>(language === 'hi' ? 'hi-IN' : 'en-US');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<number | null>(null);
   const { toast } = useToast();
+
+  // Update speech language when app language changes
+  useEffect(() => {
+    if (language === 'hi') {
+      setSpeechLanguage('hi-IN');
+    } else if (language === 'en') {
+      setSpeechLanguage('en-US');
+    }
+  }, [language]);
 
   // Clean up all resources on component unmount
   useEffect(() => {
@@ -121,8 +141,8 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       setIsPaused(false);
 
       toast({
-        title: "Recording started",
-        description: "Speak clearly to record the patient's vital signs",
+        title: t('vitals.start'),
+        description: t('vitals.description'),
       });
     } catch (error) {
       console.error("Error starting recording:", error);
@@ -142,8 +162,8 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       setIsRecording(false);
 
       toast({
-        title: "Recording stopped",
-        description: "Ready to process voice data",
+        title: t('vitals.stop'),
+        description: t('vitals.extract'),
       });
     }
   };
@@ -239,11 +259,42 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
 
   // Add medical context to improve the accuracy of transcription
   const addMedicalContextToAudio = () => {
-    // This is a client-side function that doesn't modify the audio
-    // but sends additional context to the processing function
-    return {
+    const commonHindiMedicalTerms = [
+      "छाती में दर्द", // chest pain
+      "दिल का दौरा", // heart attack
+      "बुखार", // fever
+      "साँस लेने में तकलीफ", // difficulty breathing
+      "सिरदर्द", // headache
+      "चक्कर आना", // dizziness
+      "सांप ने काटा", // snake bite
+      "बोल नहीं पा रहा है", // can't speak
+      "खून बह रहा है", // bleeding
+      "दस्त", // diarrhea
+      "उल्टी", // vomiting
+      "पेट दर्द", // stomach pain
+      "जलना", // burning
+      "फ्रैक्चर", // fracture
+      "बेहोश", // unconscious
+      "मधुमेह", // diabetes
+      "रक्तचाप", // blood pressure
+      "हृदय गति", // heart rate
+    ];
+
+    // Setup context based on selected language
+    const medicalContext = {
       domain: "medical",
-      expectedTerms: [
+      language: speechLanguage,
+      expectedTerms: speechLanguage === 'hi-IN' ? [
+        ...commonHindiMedicalTerms,
+        "नब्ज", // pulse
+        "ऑक्सीजन", // oxygen
+        "ह्रदय गति", // heart rate
+        "रक्तचाप", // blood pressure
+        "तापमान", // temperature
+        "श्वास दर", // respiratory rate
+        "जीसीएस", // GCS
+        "दर्द स्तर", // pain level
+      ] : [
         "blood pressure", "BP", "heart rate", "pulse", "temperature",
         "respiration", "respiratory rate", "oxygen saturation", "SpO2",
         "Glasgow Coma Scale", "GCS", "pain level", "systolic", "diastolic",
@@ -251,15 +302,28 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       ],
       prioritizeNumbers: true,
       vitalsFormat: {
-        heartRate: "NUMBER bpm",
-        bloodPressure: "NUMBER/NUMBER mmHg",
-        temperature: "NUMBER celsius|fahrenheit",
-        respiratoryRate: "NUMBER breaths per minute",
-        oxygenSaturation: "NUMBER percent",
-        painLevel: "NUMBER out of 10",
-        gcs: "NUMBER out of 15"
-      }
+        heartRate: speechLanguage === 'hi-IN' ? "NUMBER प्रति मिनट" : "NUMBER bpm",
+        bloodPressure: speechLanguage === 'hi-IN' ? "NUMBER/NUMBER mmHg" : "NUMBER/NUMBER mmHg",
+        temperature: speechLanguage === 'hi-IN' ? "NUMBER डिग्री" : "NUMBER celsius|fahrenheit",
+        respiratoryRate: speechLanguage === 'hi-IN' ? "NUMBER सांस प्रति मिनट" : "NUMBER breaths per minute",
+        oxygenSaturation: speechLanguage === 'hi-IN' ? "NUMBER प्रतिशत" : "NUMBER percent",
+        painLevel: speechLanguage === 'hi-IN' ? "NUMBER में से" : "NUMBER out of 10",
+        gcs: speechLanguage === 'hi-IN' ? "NUMBER में से" : "NUMBER out of 15"
+      },
+      commonPhrases: speechLanguage === 'hi-IN' ? [
+        "मरीज की हालत गंभीर है",
+        "मरीज को तुरंत अस्पताल ले जाना चाहिए",
+        "मरीज बेहोश है",
+        "मरीज को सांस लेने में तकलीफ है"
+      ] : [
+        "patient is in critical condition",
+        "patient needs immediate hospitalization",
+        "patient is unconscious",
+        "patient has difficulty breathing"
+      ]
     };
+    
+    return medicalContext;
   };
 
   // Fallback extraction in case the API fails
@@ -292,6 +356,33 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       .padStart(2, "0")}`;
   };
 
+  // Language options for speech recognition
+  const languageOptions = [
+    { value: 'en-US', label: 'English (US)' },
+    { value: 'hi-IN', label: 'Hindi (भारत)' },
+    { value: 'en-IN', label: 'English (India)' }
+  ];
+
+  // Examples based on the selected language
+  const getExamples = () => {
+    if (speechLanguage === 'hi-IN') {
+      return [
+        "छाती में दर्द (chest pain)",
+        "साँस लेने में तकलीफ (difficulty breathing)",
+        "सांप ने काटा (snake bite)",
+        "बोल नहीं पा रहा है (can't speak)",
+        "ह्रदय गति 80 प्रति मिनट (heart rate 80 bpm)"
+      ];
+    }
+    return [
+      "Blood pressure 120 over 80",
+      "Heart rate 85 beats per minute",
+      "Oxygen saturation 95 percent",
+      "Temperature 37.5 degrees celsius",
+      "GCS score of 15"
+    ];
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -299,10 +390,28 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
           <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="flex-1 w-full md:w-auto">
               <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-center">
-                <h3 className="text-lg font-medium mb-2">Voice-to-Vitals</h3>
+                <h3 className="text-lg font-medium mb-2">{t('vitals.title')}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Record your voice to automatically extract vital signs
+                  {t('vitals.description')}
                 </p>
+
+                <div className="mb-4">
+                  <Select
+                    value={speechLanguage}
+                    onValueChange={(value) => setSpeechLanguage(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Speech Language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languageOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="flex flex-wrap justify-center gap-3 mb-4">
                   {isRecording ? (
@@ -312,7 +421,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
                       onClick={stopRecording}
                     >
                       <StopCircle className="h-4 w-4" />
-                      Stop Recording ({formatTime(recordingTime)})
+                      {t('vitals.stop')} ({formatTime(recordingTime)})
                     </Button>
                   ) : (
                     <Button
@@ -322,7 +431,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
                       disabled={isProcessing}
                     >
                       <Mic className="h-4 w-4" />
-                      Start Recording
+                      {t('vitals.start')}
                     </Button>
                   )}
 
@@ -334,7 +443,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
                       disabled={isProcessing}
                     >
                       <Play className="h-4 w-4" />
-                      Play Recording
+                      {t('vitals.play')}
                     </Button>
                   )}
 
@@ -348,10 +457,10 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
                       {isProcessing ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Processing...
+                          {t('vitals.processing')}
                         </>
                       ) : (
-                        <>Extract Vitals</>
+                        <>{t('vitals.extract')}</>
                       )}
                     </Button>
                   )}
@@ -379,17 +488,25 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
                 )}
 
                 <div className="text-xs text-muted-foreground">
-                  <p className="mb-1">Tips:</p>
+                  <p className="mb-1">{t('vitals.tips')}</p>
                   <ul className="list-disc list-inside text-left text-xs">
-                    <li>Speak clearly and at a normal pace</li>
-                    <li>
-                      Include vital sign values with their names (e.g., "Blood
-                      pressure 120 over 80")
-                    </li>
-                    <li>Use medical terminology for better recognition</li>
-                    <li>Mention measurements with their units (e.g., "38 degrees celsius")</li>
-                    <li>Say "SpO2" as "S-P-O-2" or "oxygen saturation" for better recognition</li>
+                    <li>{t('vitals.tip1')}</li>
+                    <li>{t('vitals.tip2')}</li>
+                    <li>{t('vitals.tip3')}</li>
+                    <li>{t('vitals.tip4')}</li>
+                    <li>{t('vitals.tip5')}</li>
                   </ul>
+
+                  <div className="mt-3 border-t pt-2">
+                    <p className="font-medium mb-1">Example phrases:</p>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded-md text-left">
+                      <ul className="list-disc list-inside">
+                        {getExamples().map((example, i) => (
+                          <li key={i} className="text-xs">{example}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

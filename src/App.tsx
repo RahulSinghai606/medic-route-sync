@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { LanguageProvider } from './contexts/LanguageContext';
 
 // Layouts
 import AppLayout from "./components/Layout/AppLayout";
@@ -63,22 +63,26 @@ const AppRoutes = () => {
   );
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <ThemeProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <SidebarProvider>
-              <AppRoutes />
-            </SidebarProvider>
-          </BrowserRouter>
-        </ThemeProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <SidebarProvider>
+                  <AppRoutes />
+                </SidebarProvider>
+              </BrowserRouter>
+            </ThemeProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
+  );
+}
 
 export default App;

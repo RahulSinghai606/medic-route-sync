@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -27,6 +26,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { calculateHospitalMatch, Location } from "@/utils/hospitalUtils";
 import { jaipurHospitals, calculateDistanceAndETA } from "@/data/hospitals";
 import MapView from "@/components/MapView";
+import HebbalHospitalList from "@/components/HebbalHospitalList";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Function to match hospitals to patient needs based on location
 const matchHospitalsToPatient = (hospitals, specialties = [], isCritical = false, userLocation = null) => {
@@ -46,6 +47,7 @@ const matchHospitalsToPatient = (hospitals, specialties = [], isCritical = false
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
@@ -270,7 +272,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div>
         <h1>Dashboard</h1>
-        <p className="text-muted-foreground">Ambulance operations overview</p>
+        <p className="text-muted-foreground">{t('dashboard')}</p>
       </div>
 
       {renderLocationPermissionGuidance()}
@@ -280,7 +282,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-medical" />
-              Paramedic Location
+              {t('location.title')}
             </CardTitle>
             <Button 
               variant="outline" 
@@ -290,10 +292,10 @@ const Dashboard = () => {
               className="h-8 flex items-center gap-1"
             >
               <RefreshCw className={`h-3 w-3 ${isLoadingLocation ? 'animate-spin' : ''}`} />
-              Refresh
+              {t('location.refresh')}
             </Button>
           </div>
-          <CardDescription>Your current GPS coordinates</CardDescription>
+          <CardDescription>{t('location.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoadingLocation ? (
@@ -304,7 +306,7 @@ const Dashboard = () => {
             <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md text-red-800 dark:text-red-300 flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium">Location Error</p>
+                <p className="font-medium">{t('location.error')}</p>
                 <p className="text-sm">{locationError}</p>
               </div>
             </div>
@@ -312,13 +314,13 @@ const Dashboard = () => {
             <div className="space-y-3">
               {currentLocation.address && (
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
-                  <p className="font-medium">Current Location:</p>
+                  <p className="font-medium">{t('location.current')}</p>
                   <p className="text-sm mt-1">{currentLocation.address}</p>
                 </div>
               )}
               <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-md">
                 <p className="font-mono text-sm">
-                  GPS: {formatLocation(currentLocation)}
+                  {t('location.gps')} {formatLocation(currentLocation)}
                 </p>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -337,12 +339,15 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Hebbal Hospital List */}
+      <HebbalHospitalList />
+
       {/* Real-time map with nearby hospitals */}
       {currentLocation && (
         <Card>
           <CardHeader>
-            <CardTitle>Nearby Hospitals</CardTitle>
-            <CardDescription>Hospitals close to your current location</CardDescription>
+            <CardTitle>{t('hospitals.nearby')}</CardTitle>
+            <CardDescription>{t('hospitals.description')}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <MapView userLocation={currentLocation} />
@@ -353,7 +358,7 @@ const Dashboard = () => {
               onClick={navigateToNearestHospital}
             >
               <MapPin className="h-4 w-4" />
-              Find Nearest Hospitals
+              {t('hospitals.find')}
             </Button>
           </CardFooter>
         </Card>

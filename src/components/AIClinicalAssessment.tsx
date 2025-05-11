@@ -6,6 +6,7 @@ import { Brain, Stethoscope, AlertTriangle, Building2, HeartPulse, Thermometer, 
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { navigateToHospitalsWithSpecialties } from '@/utils/hospitalUtils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AIClinicalAssessmentProps {
   assessment?: {
@@ -18,6 +19,7 @@ interface AIClinicalAssessmentProps {
 
 const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAssessmentProps) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   
   const isCritical = assessment?.clinical_probability.toLowerCase().includes('critical') || 
                      assessment?.clinical_probability.toLowerCase().includes('severe') ||
@@ -40,7 +42,7 @@ const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAsses
         <CardHeader className="pb-2">
           <CardTitle className="text-medical flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            AI Clinical Assessment
+            {t('assessment.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -50,7 +52,7 @@ const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAsses
               <Thermometer className="h-5 w-5 text-medical animate-bounce delay-100" />
               <Wind className="h-5 w-5 text-medical animate-bounce delay-200" />
             </div>
-            <p className="text-muted-foreground">Processing clinical information...</p>
+            <p className="text-muted-foreground">{t('assessment.loading')}</p>
           </div>
         </CardContent>
       </Card>
@@ -63,13 +65,13 @@ const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAsses
         <CardHeader className="pb-2">
           <CardTitle className="text-medical flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            AI Clinical Assessment
+            {t('assessment.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4 text-muted-foreground">
-            <p>No AI assessment available yet.</p>
-            <p className="text-sm mt-2">Record patient vitals with voice input to generate an assessment.</p>
+            <p>{t('assessment.unavailable')}</p>
+            <p className="text-sm mt-2">{t('assessment.record')}</p>
           </div>
         </CardContent>
       </Card>
@@ -81,7 +83,7 @@ const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAsses
       <CardHeader className="pb-2">
         <CardTitle className="text-medical flex items-center gap-2">
           <Brain className="h-5 w-5" />
-          AI Clinical Assessment
+          {t('assessment.title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -89,7 +91,7 @@ const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAsses
           <div className="flex items-start gap-2">
             <AlertTriangle className={`h-5 w-5 ${isCritical ? 'text-red-500' : 'text-warning'} mt-0.5 flex-shrink-0`} />
             <div>
-              <h4 className="font-medium">Clinical Probability</h4>
+              <h4 className="font-medium">{t('assessment.probability')}</h4>
               <p>{assessment.clinical_probability}</p>
             </div>
           </div>
@@ -99,14 +101,14 @@ const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAsses
           <div className="flex items-start gap-2">
             <Stethoscope className="h-5 w-5 text-medical mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="font-medium">Care Recommendations</h4>
+              <h4 className="font-medium">{t('assessment.recommendations')}</h4>
               <p>{assessment.care_recommendations}</p>
             </div>
           </div>
         </div>
         
         <div>
-          <h4 className="font-medium mb-2">Specialty Requirements</h4>
+          <h4 className="font-medium mb-2">{t('assessment.specialties')}</h4>
           <div className="flex flex-wrap gap-2">
             {assessment.specialty_tags.map((tag, index) => (
               <Badge key={index} variant="outline" className="bg-medical/10 text-medical">
@@ -121,7 +123,7 @@ const AIClinicalAssessment = ({ assessment, isLoading = false }: AIClinicalAsses
           className="w-full mt-2 bg-medical hover:bg-medical/90 flex items-center gap-2 justify-center"
         >
           <Building2 className="h-4 w-4" />
-          Find Matching Hospitals
+          {t('assessment.hospital')}
         </Button>
       </CardContent>
     </Card>

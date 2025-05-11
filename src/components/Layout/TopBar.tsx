@@ -1,17 +1,36 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Bell, Menu, User } from 'lucide-react';
+import { Bell, Menu, User, Globe } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import StatusToggle from '../StatusToggle';
 import ThemeToggle from '../ThemeToggle';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useLanguage, Language } from '@/contexts/LanguageContext';
 
 const TopBar = () => {
   const { user } = useAuth();
   const { state, toggleSidebar } = useSidebar();
+  const { language, setLanguage, t } = useLanguage();
+  
   const displayName = user?.user_metadata?.full_name || user?.email || 'User';
+  
+  const languages = [
+    { code: 'en', name: t('language.en') },
+    { code: 'hi', name: t('language.hi') },
+    { code: 'as', name: t('language.as') },
+    { code: 'mz', name: t('language.mz') },
+    { code: 'kh', name: t('language.kh') },
+    { code: 'nm', name: t('language.nm') },
+    { code: 'bo', name: t('language.bo') },
+  ];
 
   return (
     <header className="h-16 px-4 border-b flex items-center justify-between bg-background">
@@ -31,8 +50,8 @@ const TopBar = () => {
             </div>
           </div>
           <div className="hidden md:block">
-            <h1 className="text-xl font-bold">TERO</h1>
-            <p className="text-xs text-muted-foreground">Triage and Emergency Routing Optimization</p>
+            <h1 className="text-xl font-bold">{t('app.title')}</h1>
+            <p className="text-xs text-muted-foreground">{t('app.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -41,6 +60,25 @@ const TopBar = () => {
         <StatusToggle />
         
         <ThemeToggle />
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Globe className="h-5 w-5 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[200px] bg-popover">
+            {languages.map((lang) => (
+              <DropdownMenuItem 
+                key={lang.code}
+                onClick={() => setLanguage(lang.code as Language)}
+                className={language === lang.code ? "bg-accent" : ""}
+              >
+                {lang.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         
         <div className="relative hidden md:block">
           <Bell className="h-5 w-5 text-muted-foreground" />
@@ -52,7 +90,7 @@ const TopBar = () => {
         <div className="hidden md:flex items-center gap-3">
           <div className="text-right">
             <p className="text-sm font-medium">{displayName}</p>
-            <p className="text-xs text-muted-foreground">Paramedic</p>
+            <p className="text-xs text-muted-foreground">{t('paramedic')}</p>
           </div>
           <div className="h-8 w-8 bg-accent rounded-full flex items-center justify-center">
             <User className="h-4 w-4 text-muted-foreground" />
