@@ -30,7 +30,7 @@ const HazardOverlay: React.FC<HazardOverlayProps> = ({ type, region }) => {
             
             <div>
               <h3 className="font-medium mb-2">Hazard Patterns:</h3>
-              <ul className="list-disc pl-5 space-y-2">
+              <ul className="list-disc pl-5 space-y-2 text-sm">
                 <li>
                   <span className="font-medium">High Risk Areas:</span> Tawang Town, Jang, Zemithang
                 </li>
@@ -70,7 +70,7 @@ const HazardOverlay: React.FC<HazardOverlayProps> = ({ type, region }) => {
             
             <div>
               <h3 className="font-medium mb-2">Hazard Patterns:</h3>
-              <ul className="list-disc pl-5 space-y-2">
+              <ul className="list-disc pl-5 space-y-2 text-sm">
                 <li>
                   <span className="font-medium">Submerged Areas:</span> Barpeta Town, Howli, Sarthebari
                 </li>
@@ -110,7 +110,7 @@ const HazardOverlay: React.FC<HazardOverlayProps> = ({ type, region }) => {
             
             <div>
               <h3 className="font-medium mb-2">Hazard Patterns:</h3>
-              <ul className="list-disc pl-5 space-y-2">
+              <ul className="list-disc pl-5 space-y-2 text-sm">
                 <li>
                   <span className="font-medium">Damaged Structures:</span> Gangtok, Namchi, Mangan districts
                 </li>
@@ -140,17 +140,13 @@ const HazardOverlay: React.FC<HazardOverlayProps> = ({ type, region }) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          Hazard Assessment
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {renderHazardInfo()}
-      </CardContent>
-    </Card>
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <AlertTriangle className="h-5 w-5 text-destructive" />
+        <h2 className="text-lg font-semibold">Hazard Assessment</h2>
+      </div>
+      {renderHazardInfo()}
+    </div>
   );
 };
 

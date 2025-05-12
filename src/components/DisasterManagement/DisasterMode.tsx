@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -327,7 +326,7 @@ const DisasterMode = () => {
                 onClick={() => handleDisasterSelect(disaster.id)}
               >
                 <disaster.icon className={`h-8 w-8 ${selectedDisaster === disaster.id ? 'text-white' : `text-${disaster.color}-500`}`} />
-                <span>{disaster.name}</span>
+                <span className="text-center">{disaster.name}</span>
                 <Badge variant="secondary" className="mt-1">{disaster.activePatients}</Badge>
               </Button>
             ))}
@@ -344,32 +343,40 @@ const DisasterMode = () => {
         </TabsList>
         
         <TabsContent value="map" className="space-y-4">
-          {/* Map integration */}
-          <Card className="border-warning">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2">
-                <Map className="h-5 w-5 text-warning" />
-                Disaster Zone Map
-              </CardTitle>
-              <CardDescription>Live view of disaster area with responder locations</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="relative h-[400px] w-full">
-                <DisasterMap 
-                  medicalCamps={medicalCamps} 
-                  disasterLocation={getCurrentDisasterLocation()} 
-                />
-                {selectedDisaster && 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Map integration */}
+            <Card className="border-warning">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2">
+                  <Map className="h-5 w-5 text-warning" />
+                  Disaster Zone Map
+                </CardTitle>
+                <CardDescription>Live view of disaster area with responder locations</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="relative h-[400px] w-full">
+                  <DisasterMap 
+                    medicalCamps={medicalCamps} 
+                    disasterLocation={getCurrentDisasterLocation()} 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Hazard overlay moved to right side on large screens */}
+            {selectedDisaster && (
+              <Card>
+                <CardContent className="pt-4">
                   <HazardOverlay 
                     type={selectedDisaster as "flood" | "landslide" | "earthquake"}
                     region={getDisasterRegion()}
                   />
-                }
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
+          </div>
           
-          {/* Patient list */}
+          {/* Patient list with full width */}
           <DisasterPatientList patients={getDisasterPatients()} />
         </TabsContent>
         
@@ -390,7 +397,7 @@ const DisasterMode = () => {
                   className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   onClick={() => handleNERProtocolClick(protocol)}
                 >
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
                     <h3 className="font-medium">{protocol.title}</h3>
                     <Badge className={protocolStatusColor(protocol.status)}>{protocol.status}</Badge>
                   </div>
@@ -450,7 +457,7 @@ const DisasterMode = () => {
                   className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   onClick={() => handleTrainingClick(module)}
                 >
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
                     <h3 className="font-medium">{module.title}</h3>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                       {module.completion}
