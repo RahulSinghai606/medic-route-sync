@@ -8,14 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ambulance, User, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Ambulance, User, Mail, Lock, Hospital, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name must be at least 3 characters long' }),
   email: z.string().email({ message: 'Please enter a valid email address' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters long' }),
-  confirmPassword: z.string()
+  confirmPassword: z.string(),
+  role: z.enum(['paramedic', 'hospital'], { 
+    required_error: 'Please select your role' 
+  })
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -40,11 +44,12 @@ const Signup = () => {
       email: '',
       password: '',
       confirmPassword: '',
+      role: 'paramedic'
     },
   });
 
   const onSubmit = async (data: SignupFormValues) => {
-    const { error } = await signUp(data.email, data.password, data.fullName);
+    const { error } = await signUp(data.email, data.password, data.fullName, data.role);
     if (!error) {
       navigate('/login');
     }
@@ -133,6 +138,44 @@ const Signup = () => {
                           <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                           <Input className="pl-10" type="password" placeholder="******" {...field} />
                         </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>I am registering as</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-6"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="paramedic" />
+                            </FormControl>
+                            <FormLabel className="font-normal flex items-center">
+                              <Ambulance className="h-4 w-4 mr-2 text-emergency" />
+                              Paramedic Staff
+                            </FormLabel>
+                          </FormItem>
+                          
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="hospital" />
+                            </FormControl>
+                            <FormLabel className="font-normal flex items-center">
+                              <Hospital className="h-4 w-4 mr-2 text-blue-600" />
+                              Hospital Staff
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
