@@ -48,7 +48,7 @@ interface DisasterLocation {
 // Mock data for Northeast India disaster scenarios
 const disasterLocations: DisasterLocation[] = [
   {
-    name: 'Tawang Landslide',
+    name: 'Landslide',
     type: 'landslide',
     region: 'Arunachal Pradesh',
     affectedArea: 'Tawang District, Jang-Mukto Area',
@@ -81,7 +81,7 @@ const disasterLocations: DisasterLocation[] = [
     ]
   },
   {
-    name: 'Barpeta Floods',
+    name: 'Flood',
     type: 'flood',
     region: 'Assam',
     affectedArea: 'Barpeta District, Brahmaputra Valley',
@@ -114,14 +114,14 @@ const disasterLocations: DisasterLocation[] = [
     ]
   },
   {
-    name: 'Sikkim Earthquake',
+    name: 'Earthquake',
     type: 'earthquake',
-    region: 'Sikkim',
-    affectedArea: 'Gangtok & Surrounding Areas',
+    region: 'Manipur',
+    affectedArea: 'Imphal & Surrounding Areas',
     casualties: 27,
     coordinates: {
-      lat: 27.3389,
-      lng: 88.6065
+      lat: 24.8170,
+      lng: 93.9368
     },
     medicalCamps: [
       {
@@ -130,8 +130,8 @@ const disasterLocations: DisasterLocation[] = [
         capacity: 100,
         availableResources: ['Surgery Unit', 'Ventilators (12)', 'X-Ray Machines'],
         coordinates: {
-          lat: 27.3380,
-          lng: 88.6070
+          lat: 24.8160,
+          lng: 93.9370
         }
       },
       {
@@ -140,8 +140,8 @@ const disasterLocations: DisasterLocation[] = [
         capacity: 60,
         availableResources: ['International Medical Team', 'Trauma Care', 'Emergency Supplies'],
         coordinates: {
-          lat: 27.3400,
-          lng: 88.6050
+          lat: 24.8180,
+          lng: 93.9360
         }
       }
     ]

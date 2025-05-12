@@ -6,9 +6,11 @@ import { Clock, MapPin, Phone, Heart, User, AlertTriangle, Navigation, BadgePerc
 import { getHebbalHospitals, getMatchScoreColor, getMatchIndicator, HebbalHospital } from '@/data/hebbalHospitals';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const HebbalHospitalList: React.FC = () => {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const hospitals = getHebbalHospitals();
 
   const getMatchScoreBadgeStyles = (score: number) => {
@@ -37,6 +39,31 @@ const HebbalHospitalList: React.FC = () => {
     
     // Use hospital ID as a seed to consistently get the same name for each hospital
     return neIndianNames[hospitalId % neIndianNames.length];
+  };
+  
+  const handleGetDirections = (hospital: HebbalHospital) => {
+    // Use current location if available, otherwise use a default location
+    const origin = navigator.geolocation ? 
+      new Promise(resolve => {
+        navigator.geolocation.getCurrentPosition(
+          position => resolve(`${position.coords.latitude},${position.coords.longitude}`),
+          () => resolve("current+location") // Fallback to "current location" text if permission denied
+        );
+      }) :
+      Promise.resolve("current+location");
+      
+    origin.then((originText) => {
+      const destination = `${hospital.lat},${hospital.lng}`;
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originText}&destination=${destination}`;
+      
+      // Open in a new tab
+      window.open(mapsUrl, '_blank');
+      
+      toast({
+        title: "Opening Maps",
+        description: `Getting directions to ${hospital.name}`,
+      });
+    });
   };
 
   return (
@@ -116,7 +143,7 @@ const HebbalHospitalList: React.FC = () => {
             </div>
             
             <div className="mt-3 flex justify-end">
-              <Button size="sm" variant="outline" className="flex items-center gap-1 text-xs">
+              <Button size="sm" variant="outline" className="flex items-center gap-1 text-xs" onClick={() => handleGetDirections(hospital)}>
                 <Navigation className="h-3 w-3" />
                 Get Directions
               </Button>

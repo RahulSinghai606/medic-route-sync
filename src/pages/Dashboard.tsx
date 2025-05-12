@@ -475,35 +475,6 @@ const Dashboard = () => {
                 ))}
               </div>
             </div>
-
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-2">Nearby Hospitals</h3>
-              <div className="space-y-2">
-                {nearbyHospitals.length > 0 ? (
-                  nearbyHospitals.map(hospital => (
-                    <div 
-                      key={hospital.id}
-                      className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                      onClick={() => navigate(`/hospitals`)}
-                    >
-                      <MapPin className="h-4 w-4 text-medical mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">{hospital.name}</p>
-                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                          <span>{hospital.distance.toFixed(1)} km</span>
-                          <span className="mx-1">•</span>
-                          <span>{hospital.eta} min</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center text-sm text-muted-foreground py-2">
-                    {currentLocation ? 'Loading nearby hospitals...' : 'Enable location to see nearby hospitals'}
-                  </div>
-                )}
-              </div>
-            </div>
           </CardContent>
           <CardFooter>
             <Button variant="ghost" className="w-full text-xs" onClick={goToHospitals}>

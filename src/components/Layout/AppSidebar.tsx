@@ -51,33 +51,36 @@ const AppSidebar = () => {
           </div>
           <h1 className="text-xl font-bold">TERO</h1>
         </div>
-        <div className="flex mt-3 gap-2">
+        <div className="flex mt-3">
           <Button 
-            variant={language === 'en' ? "default" : "outline"} 
+            variant="outline" 
             size="sm" 
-            onClick={() => handleLanguageChange('en')}
             className="flex items-center gap-1"
           >
             <Globe className="h-3 w-3" />
-            <span>English</span>
-          </Button>
-          <Button 
-            variant={language === 'hi' ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => handleLanguageChange('hi')}
-            className="flex items-center gap-1"
-          >
-            <Globe className="h-3 w-3" />
-            <span>Hindi</span>
-          </Button>
-          <Button 
-            variant={language === 'bn' ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => handleLanguageChange('bn')}
-            className="flex items-center gap-1"
-          >
-            <Globe className="h-3 w-3" />
-            <span>Bengali</span>
+            <span>Languages</span>
+            <div className="ml-1 flex gap-1">
+              <span 
+                className={`cursor-pointer px-1 ${language === 'en' ? 'font-bold text-primary' : 'text-muted-foreground'}`}
+                onClick={() => handleLanguageChange('en')}
+              >
+                EN
+              </span>
+              <span className="text-muted-foreground">|</span>
+              <span 
+                className={`cursor-pointer px-1 ${language === 'hi' ? 'font-bold text-primary' : 'text-muted-foreground'}`}
+                onClick={() => handleLanguageChange('hi')}
+              >
+                HI
+              </span>
+              <span className="text-muted-foreground">|</span>
+              <span 
+                className={`cursor-pointer px-1 ${language === 'bn' ? 'font-bold text-primary' : 'text-muted-foreground'}`}
+                onClick={() => handleLanguageChange('bn')}
+              >
+                BN
+              </span>
+            </div>
           </Button>
         </div>
       </SidebarHeader>
