@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   BellRing, Clock, MapPin, Activity, Users, User, AlertTriangle, MessageSquare, 
-  CheckCircle, RefreshCw, ArrowRight, Hospital, Bed, FileText, Map as MapIcon
+  CheckCircle, RefreshCw, ArrowRight, Hospital, Bed, FileText, Map
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -530,7 +529,7 @@ const HospitalPlatform = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MapIcon className="h-5 w-5 text-medical" />
+                <Map className="h-5 w-5 text-medical" />
                 Live Ambulance Tracking
               </CardTitle>
               <CardDescription>Real-time location of ambulances en route to the hospital</CardDescription>

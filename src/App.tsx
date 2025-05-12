@@ -26,9 +26,15 @@ import HospitalPlatform from "./pages/HospitalPlatform";
 
 const queryClient = new QueryClient();
 
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
+// Protected route component with role checking
+const ProtectedRoute = ({ 
+  children,
+  allowedRole
+}: { 
+  children: React.ReactNode,
+  allowedRole?: string 
+}) => {
+  const { user, isLoading, profile } = useAuth();
   
   if (isLoading) {
     return <div className="h-screen w-full flex items-center justify-center">Loading...</div>;
@@ -37,20 +43,40 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!user) {
     return <Navigate to="/login" />;
   }
+
+  // If a specific role is required and the user doesn't have it
+  if (allowedRole && profile?.role !== allowedRole) {
+    // Redirect hospital staff to hospital platform
+    if (profile?.role === 'hospital') {
+      return <Navigate to="/hospital-platform" />;
+    }
+    // Redirect paramedics to main dashboard
+    return <Navigate to="/" />;
+  }
   
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-      <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
+      <Route path="/login" element={user ? (
+        profile?.role === 'hospital' ? 
+          <Navigate to="/hospital-platform" /> : 
+          <Navigate to="/" />
+      ) : <Login />} />
       
+      <Route path="/signup" element={user ? (
+        profile?.role === 'hospital' ? 
+          <Navigate to="/hospital-platform" /> : 
+          <Navigate to="/" />
+      ) : <Signup />} />
+      
+      {/* Paramedic routes */}
       <Route element={
-        <ProtectedRoute>
+        <ProtectedRoute allowedRole="paramedic">
           <AppLayout />
         </ProtectedRoute>
       }>
@@ -60,8 +86,14 @@ const AppRoutes = () => {
         <Route path="/hospitals" element={<Hospitals />} />
         <Route path="/cases" element={<Cases />} />
         <Route path="/disaster" element={<DisasterMode />} />
-        <Route path="/hospital-platform" element={<HospitalPlatform />} />
       </Route>
+      
+      {/* Hospital platform route */}
+      <Route path="/hospital-platform" element={
+        <ProtectedRoute allowedRole="hospital">
+          <HospitalPlatform />
+        </ProtectedRoute>
+      } />
       
       <Route path="*" element={<NotFound />} />
     </Routes>

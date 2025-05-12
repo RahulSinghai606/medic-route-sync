@@ -9,21 +9,25 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ambulance, Lock, AlertCircle, Mail, Loader2 } from 'lucide-react';
+import { Ambulance, Lock, AlertCircle, Mail, Loader2, Hospital } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
   password: z.string().min(1, { message: 'Password is required' }),
   remember: z.boolean().default(false),
+  userRole: z.enum(['paramedic', 'hospital'], {
+    required_error: "Please select your role",
+  }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, user } = useAuth();
+  const { signIn, user, updateProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   
@@ -39,6 +43,7 @@ const Login = () => {
       email: '',
       password: '',
       remember: false,
+      userRole: 'paramedic',
     },
   });
 
@@ -52,7 +57,15 @@ const Login = () => {
         console.error("Login error:", error);
         setLoginError(error.message || "Failed to sign in. Please check your credentials.");
       } else {
-        navigate('/');
+        // Update user role in profile
+        await updateProfile({ role: data.userRole });
+        
+        // Redirect based on role
+        if (data.userRole === 'hospital') {
+          navigate('/hospital-platform');
+        } else {
+          navigate('/');
+        }
       }
     } catch (err) {
       console.error("Unexpected error during login:", err);
@@ -85,7 +98,7 @@ const Login = () => {
           </div>
           <h1 className="text-2xl font-bold">TERO</h1>
           <p className="text-muted-foreground">Triage and Emergency Routing Optimization</p>
-          <p className="text-xs text-muted-foreground mt-1">Ambulance-Side Web Platform</p>
+          <p className="text-xs text-muted-foreground mt-1">Medical Services Platform</p>
         </div>
 
         <Card className="border-border bg-card">
@@ -141,6 +154,43 @@ const Login = () => {
                           <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input className="pl-10" type="password" placeholder="Your password" {...field} />
                         </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="userRole"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Select your role</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1 sm:flex-row sm:space-x-6 sm:space-y-0"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="paramedic" />
+                            </FormControl>
+                            <FormLabel className="font-normal flex items-center">
+                              <Ambulance className="mr-2 h-4 w-4 text-medical" />
+                              Paramedic
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="hospital" />
+                            </FormControl>
+                            <FormLabel className="font-normal flex items-center">
+                              <Hospital className="mr-2 h-4 w-4 text-medical" />
+                              Hospital Staff
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
