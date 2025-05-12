@@ -29,7 +29,7 @@ interface DisasterPatientListProps {
   patients: Patient[];
 }
 
-const DisasterPatientList: React.FC<DisasterPatientListProps> = ({ patients }) => {
+const DisasterPatientList: React.FC<DisasterPatientListProps> = ({ patients = [] }) => {
   const [sortByField, setSortByField] = useState<keyof Patient>('severity');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedPatients, setSelectedPatients] = useState<number[]>([]);

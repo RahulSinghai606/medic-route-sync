@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,153 @@ interface Protocol {
   description: string;
   status: 'active' | 'standby' | 'completed';
 }
+
+// Sample data for medical camps and disaster locations
+const medicalCamps = [
+  {
+    name: "NER Medical Camp Alpha",
+    organization: "Red Cross",
+    capacity: 150,
+    availableResources: ["Field Surgery", "Ventilators", "Trauma Team"],
+    coordinates: {
+      lat: 26.1158,
+      lng: 91.7086
+    }
+  },
+  {
+    name: "NER Medical Camp Beta",
+    organization: "Doctors Without Borders",
+    capacity: 100,
+    availableResources: ["Emergency Triage", "Ambulances", "Medical Supplies"],
+    coordinates: {
+      lat: 25.5788,
+      lng: 91.8933
+    }
+  },
+  {
+    name: "NER Relief Center",
+    organization: "Government",
+    capacity: 200,
+    availableResources: ["Food Supplies", "Shelter", "Basic Medical Aid"],
+    coordinates: {
+      lat: 27.3314,
+      lng: 88.6138
+    }
+  }
+];
+
+// Disaster locations based on type
+const disasterLocations = {
+  flood: {
+    name: "Floods",
+    type: "flood" as const,
+    region: "Brahmaputra Valley",
+    affectedArea: "12 districts",
+    casualties: 28,
+    coordinates: {
+      lat: 26.2006,
+      lng: 92.9376
+    }
+  },
+  landslide: {
+    name: "Landslides",
+    type: "landslide" as const,
+    region: "Arunachal Pradesh",
+    affectedArea: "5 districts",
+    casualties: 12,
+    coordinates: {
+      lat: 27.1004,
+      lng: 93.6167
+    }
+  },
+  earthquake: {
+    name: "Earthquakes",
+    type: "earthquake" as const,
+    region: "Meghalaya",
+    affectedArea: "3 districts",
+    casualties: 15,
+    coordinates: {
+      lat: 25.4670,
+      lng: 91.3662
+    }
+  }
+};
+
+// Sample patient data for each disaster type
+const patientsByDisaster = {
+  flood: [
+    {
+      id: 1,
+      name: "Mohan Singh",
+      age: 45,
+      gender: "Male",
+      location: "Majuli Island",
+      condition: "Stable" as const,
+      needsVentilator: false,
+      severity: 3,
+      injuries: ["Water aspiration", "Minor cuts"]
+    },
+    {
+      id: 2,
+      name: "Priya Gogoi",
+      age: 32,
+      gender: "Female",
+      location: "Dibrugarh",
+      condition: "Critical" as const,
+      needsVentilator: true,
+      severity: 1,
+      injuries: ["Respiratory distress", "Hypothermia"]
+    }
+  ],
+  landslide: [
+    {
+      id: 3,
+      name: "Rajesh Kumar",
+      age: 28,
+      gender: "Male",
+      location: "Itanagar",
+      condition: "Moderate" as const,
+      needsVentilator: false,
+      severity: 2,
+      injuries: ["Crush injury", "Fractured tibia"]
+    },
+    {
+      id: 4,
+      name: "Divya Sharma",
+      age: 19,
+      gender: "Female",
+      location: "Ziro Valley",
+      condition: "Moderate" as const,
+      needsVentilator: false,
+      severity: 3,
+      injuries: ["Concussion", "Lacerations"]
+    }
+  ],
+  earthquake: [
+    {
+      id: 5,
+      name: "Ankit Roy",
+      age: 52,
+      gender: "Male",
+      location: "Shillong",
+      condition: "Critical" as const,
+      needsVentilator: true,
+      severity: 1,
+      injuries: ["Spinal injury", "Internal bleeding"]
+    },
+    {
+      id: 6,
+      name: "Meena Barua",
+      age: 67,
+      gender: "Female",
+      location: "Cherrapunji",
+      condition: "Stable" as const,
+      needsVentilator: false,
+      severity: 4,
+      injuries: ["Minor fractures", "Dehydration"]
+    }
+  ]
+};
 
 const DisasterMode = () => {
   const { toast } = useToast();
@@ -134,6 +280,23 @@ const DisasterMode = () => {
     }
   };
 
+  // Get the current disaster location based on selection
+  const getCurrentDisasterLocation = () => {
+    if (selectedDisaster && disasterLocations[selectedDisaster as keyof typeof disasterLocations]) {
+      return disasterLocations[selectedDisaster as keyof typeof disasterLocations];
+    }
+    // Default disaster location if none selected
+    return disasterLocations.flood;
+  };
+
+  // Get patients for the selected disaster
+  const getDisasterPatients = () => {
+    if (selectedDisaster && patientsByDisaster[selectedDisaster as keyof typeof patientsByDisaster]) {
+      return patientsByDisaster[selectedDisaster as keyof typeof patientsByDisaster];
+    }
+    return [];
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -185,14 +348,21 @@ const DisasterMode = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="relative h-[400px] w-full">
-                <DisasterMap />
-                {selectedDisaster && <HazardOverlay type={selectedDisaster} />}
+                <DisasterMap 
+                  medicalCamps={medicalCamps} 
+                  disasterLocation={getCurrentDisasterLocation()} 
+                />
+                {selectedDisaster && 
+                  <HazardOverlay 
+                    type={selectedDisaster as "flood" | "landslide" | "earthquake"} 
+                  />
+                }
               </div>
             </CardContent>
           </Card>
           
           {/* Patient list */}
-          <DisasterPatientList disasterType={selectedDisaster} />
+          <DisasterPatientList patients={getDisasterPatients()} />
         </TabsContent>
         
         <TabsContent value="protocols" className="space-y-4">
