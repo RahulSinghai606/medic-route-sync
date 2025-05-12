@@ -1,4 +1,9 @@
 
+import { HebbalHospital, hebbalHospitals } from './hebbalHospitals';
+
+// Re-export hebbalHospitals from hebbalHospitals.ts
+export { hebbalHospitals };
+
 // Real hospitals in Jaipur with accurate location data
 export const jaipurHospitals = [
   {
@@ -100,6 +105,12 @@ export const jaipurHospitals = [
     matchScore: 0,
   }
 ];
+
+export interface Location {
+  lat: number;
+  lng: number;
+  address?: string;
+}
 
 export const calculateDistanceAndETA = (
   hospitals,

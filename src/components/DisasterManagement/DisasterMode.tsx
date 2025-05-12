@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   AlertTriangle, Tent, MapPin, Users, Activity, 
-  ArrowRight, Heart, Flood, Landslide, Hurricane 
+  ArrowRight, Heart, Cloud, Mountain, Wind
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
@@ -269,11 +269,11 @@ const DisasterMode: React.FC = () => {
   const getDisasterIcon = (type: string) => {
     switch(type) {
       case 'landslide':
-        return <Landslide className="h-4 w-4" />;
+        return <Mountain className="h-4 w-4" />;
       case 'flood':
-        return <Flood className="h-4 w-4" />;
+        return <Cloud className="h-4 w-4" />;
       case 'earthquake':
-        return <Hurricane className="h-4 w-4" />;
+        return <Wind className="h-4 w-4" />;
       default:
         return <AlertTriangle className="h-4 w-4" />;
     }

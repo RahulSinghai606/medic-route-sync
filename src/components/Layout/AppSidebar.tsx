@@ -18,7 +18,7 @@ import {
   Settings,
   LogOut,
   AlertTriangle,
-  Language,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,14 +27,14 @@ import logo from "./logo.jpg";
 
 const AppSidebar = () => {
   const { signOut, profile } = useAuth();
-  const { currentLanguage, changeLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   const handleLogout = async () => {
     await signOut();
   };
 
   const handleLanguageChange = (lang: string) => {
-    changeLanguage(lang);
+    setLanguage(lang as any);
   };
 
   return (
@@ -53,31 +53,31 @@ const AppSidebar = () => {
         </div>
         <div className="flex mt-3 gap-2">
           <Button 
-            variant={currentLanguage === 'en' ? "default" : "outline"} 
+            variant={language === 'en' ? "default" : "outline"} 
             size="sm" 
             onClick={() => handleLanguageChange('en')}
             className="flex items-center gap-1"
           >
-            <Language className="h-3 w-3" />
-            <span>EN</span>
+            <Globe className="h-3 w-3" />
+            <span>English</span>
           </Button>
           <Button 
-            variant={currentLanguage === 'hi' ? "default" : "outline"} 
+            variant={language === 'hi' ? "default" : "outline"} 
             size="sm" 
             onClick={() => handleLanguageChange('hi')}
             className="flex items-center gap-1"
           >
-            <Language className="h-3 w-3" />
-            <span>HI</span>
+            <Globe className="h-3 w-3" />
+            <span>Hindi</span>
           </Button>
           <Button 
-            variant={currentLanguage === 'bn' ? "default" : "outline"} 
+            variant={language === 'bn' ? "default" : "outline"} 
             size="sm" 
             onClick={() => handleLanguageChange('bn')}
             className="flex items-center gap-1"
           >
-            <Language className="h-3 w-3" />
-            <span>BN</span>
+            <Globe className="h-3 w-3" />
+            <span>Bengali</span>
           </Button>
         </div>
       </SidebarHeader>
