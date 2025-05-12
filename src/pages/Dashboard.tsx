@@ -28,6 +28,7 @@ import { calculateHospitalMatch, Location } from "@/utils/hospitalUtils";
 import { jaipurHospitals, calculateDistanceAndETA } from "@/data/hospitals";
 import MapView from "@/components/MapView";
 import HebbalHospitalList from "@/components/HebbalHospitalList";
+import HospitalPlatformLink from "@/components/HospitalPlatform/HospitalPlatformLink";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getHebbalHospitals, getMatchIndicator } from "@/data/hebbalHospitals";
 
@@ -66,8 +67,8 @@ const Dashboard = () => {
   useEffect(() => {
     if (currentLocation) {
       try {
-        // Calculate distances for all hospitals
-        const hospitalsWithDistance = calculateDistanceAndETA(jaipurHospitals, currentLocation);
+        // We'll only use Hebbal hospitals for the dashboard
+        const hospitalsWithDistance = calculateDistanceAndETA(getHebbalHospitals(), currentLocation);
         
         // Sort by distance
         const sortedHospitals = hospitalsWithDistance.sort((a, b) => a.distance - b.distance);
@@ -199,7 +200,7 @@ const Dashboard = () => {
         
         try {
           // Update hospital matches based on new location
-          const hospitalMatches = matchHospitalsToPatient(jaipurHospitals, [], false, { 
+          const hospitalMatches = matchHospitalsToPatient(getHebbalHospitals(), [], false, { 
             lat: location.lat, 
             lng: location.lng, 
             address 
@@ -349,6 +350,9 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Hospital Platform Link */}
+      <HospitalPlatformLink />
 
       {/* Hebbal Hospital List */}
       <HebbalHospitalList />

@@ -22,6 +22,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
 import DisasterMode from "./components/DisasterManagement/DisasterMode";
+import HospitalPlatform from "./pages/HospitalPlatform";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const AppRoutes = () => {
         <Route path="/hospitals" element={<Hospitals />} />
         <Route path="/cases" element={<Cases />} />
         <Route path="/disaster" element={<DisasterMode />} />
+        <Route path="/hospital-platform" element={<HospitalPlatform />} />
       </Route>
       
       <Route path="*" element={<NotFound />} />

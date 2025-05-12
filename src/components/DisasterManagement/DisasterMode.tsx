@@ -1,511 +1,359 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  AlertTriangle, Tent, MapPin, Users, Activity, 
-  ArrowRight, Heart, Cloud, Mountain, Wind
-} from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from '@/components/ui/separator';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import DisasterPatientList from './DisasterPatientList';
-import DisasterMap from './DisasterMap';
+import { 
+  Cloud, Waves, Mountain, Wind, Flame, Shield, AlertTriangle, Users, Map, BookOpen, Phone, 
+  Activity, Building, FileText, MessageSquare, Clock, Radio, CheckSquare, LucideIcon
+} from 'lucide-react';
 import HazardOverlay from './HazardOverlay';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import DisasterMap from './DisasterMap';
+import DisasterPatientList from './DisasterPatientList';
 
-interface DisasterLocation {
+// Types for disaster data
+interface DisasterType {
+  id: string;
   name: string;
-  type: 'landslide' | 'flood' | 'earthquake';
-  region: string;
-  affectedArea: string;
-  casualties: number;
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-  medicalCamps: {
-    name: string;
-    organization: string;
-    capacity: number;
-    availableResources: string[];
-    coordinates: {
-      lat: number;
-      lng: number;
-    };
-  }[];
+  icon: LucideIcon;
+  activePatients: number;
+  color: string;
 }
 
-// Mock data for Northeast India disaster scenarios
-const disasterLocations: DisasterLocation[] = [
-  {
-    name: 'Landslide',
-    type: 'landslide',
-    region: 'Arunachal Pradesh',
-    affectedArea: 'Tawang District, Jang-Mukto Area',
-    casualties: 12,
-    coordinates: {
-      lat: 27.5859,
-      lng: 91.8580
-    },
-    medicalCamps: [
-      {
-        name: 'Army Medical Camp - Tawang',
-        organization: 'Indian Army',
-        capacity: 50,
-        availableResources: ['Ventilators (5)', 'Emergency Supplies', 'Trauma Unit'],
-        coordinates: {
-          lat: 27.5850,
-          lng: 91.8590
-        }
-      },
-      {
-        name: 'NDRF Relief Camp',
-        organization: 'NDRF',
-        capacity: 30,
-        availableResources: ['First Aid', 'Rescue Equipment', 'Temporary Shelter'],
-        coordinates: {
-          lat: 27.5870,
-          lng: 91.8560
-        }
-      }
-    ]
-  },
-  {
-    name: 'Flood',
-    type: 'flood',
-    region: 'Assam',
-    affectedArea: 'Barpeta District, Brahmaputra Valley',
-    casualties: 8,
-    coordinates: {
-      lat: 26.3154,
-      lng: 91.0093
-    },
-    medicalCamps: [
-      {
-        name: 'Red Cross Relief Camp',
-        organization: 'Indian Red Cross Society',
-        capacity: 75,
-        availableResources: ['Boats (10)', 'Medical Supplies', 'Food Packets'],
-        coordinates: {
-          lat: 26.3160,
-          lng: 91.0100
-        }
-      },
-      {
-        name: 'State Medical Response Unit',
-        organization: 'Assam Govt.',
-        capacity: 40,
-        availableResources: ['Mobile Medical Unit', 'Water Purification', 'Vaccines'],
-        coordinates: {
-          lat: 26.3140,
-          lng: 91.0080
-        }
-      }
-    ]
-  },
-  {
-    name: 'Earthquake',
-    type: 'earthquake',
-    region: 'Manipur',
-    affectedArea: 'Imphal & Surrounding Areas',
-    casualties: 27,
-    coordinates: {
-      lat: 24.8170,
-      lng: 93.9368
-    },
-    medicalCamps: [
-      {
-        name: 'Army Field Hospital',
-        organization: 'Indian Army',
-        capacity: 100,
-        availableResources: ['Surgery Unit', 'Ventilators (12)', 'X-Ray Machines'],
-        coordinates: {
-          lat: 24.8160,
-          lng: 93.9370
-        }
-      },
-      {
-        name: 'Doctors Without Borders Camp',
-        organization: 'MSF',
-        capacity: 60,
-        availableResources: ['International Medical Team', 'Trauma Care', 'Emergency Supplies'],
-        coordinates: {
-          lat: 24.8180,
-          lng: 93.9360
-        }
-      }
-    ]
-  }
-];
-
-interface Patient {
-  id: number;
-  name: string;
-  age: number;
-  gender: string;
-  location: string;
-  condition: 'Critical' | 'Moderate' | 'Stable';
-  needsVentilator: boolean;
-  severity: number;
-  injuries: string[];
+interface Protocol {
+  id: string;
+  title: string;
+  description: string;
+  status: 'active' | 'standby' | 'completed';
 }
 
-const DisasterMode: React.FC = () => {
-  const { t } = useLanguage();
+const DisasterMode = () => {
   const { toast } = useToast();
-  const [disasterModeEnabled, setDisasterModeEnabled] = useState(false);
-  const [selectedDisaster, setSelectedDisaster] = useState<DisasterLocation>(disasterLocations[0]);
-  const [activeTab, setActiveTab] = useState('triage');
+  const navigate = useNavigate();
+  const [selectedDisaster, setSelectedDisaster] = useState<string | null>(null);
+  const [protocolsVisible, setProtocolsVisible] = useState(false);
+  const [trainingVisible, setTrainingVisible] = useState(false);
+  
+  // Available disaster types
+  const disasterTypes: DisasterType[] = [
+    { id: 'flood', name: 'Floods', icon: Waves, activePatients: 32, color: 'blue' },
+    { id: 'landslide', name: 'Landslides', icon: Mountain, activePatients: 18, color: 'amber' },
+    { id: 'cyclone', name: 'Cyclones', icon: Wind, activePatients: 24, color: 'cyan' },
+    { id: 'earthquake', name: 'Earthquakes', icon: Mountain, activePatients: 45, color: 'orange' },
+    { id: 'fire', name: 'Wildfires', icon: Flame, activePatients: 12, color: 'red' },
+  ];
 
-  // Simulate patients for triage
-  const [triagePatients, setTriagePatients] = useState<Patient[]>(() => {
-    // Generate northeastern names
-    const neNames = [
-      "Tenzin Wangchuk", "Passang Dorjee", "Bhaichung Bhutia", "Lalsangzuali Sailo",
-      "Tarundeep Rai", "Dipa Karmakar", "Chekrovolu Swuro", "Mary Kom",
-      "Hima Das", "Bimal Gurung", "Lovlina Borgohain", "Laishram Sarita Devi"
-    ];
+  // NER Protocols
+  const nerProtocols: Protocol[] = [
+    {
+      id: 'evac',
+      title: 'NER Emergency Evacuation Protocol',
+      description: 'Guidelines for safe evacuation in the Northeast region, including helicopter landing zones, boat usage, and mountain rescue techniques.',
+      status: 'active'
+    },
+    {
+      id: 'triage',
+      title: 'NER Special Triage Protocol',
+      description: 'Modified triage protocols for multi-casualty incidents in remote areas with limited resources and transport options.',
+      status: 'active'
+    },
+    {
+      id: 'comms',
+      title: 'Communication Protocol',
+      description: 'Emergency communication systems with satellite backup for areas with poor network connectivity.',
+      status: 'standby'
+    },
+    {
+      id: 'transport',
+      title: 'Transportation Protocol',
+      description: 'Guidelines for patient movement in difficult terrain including air evacuation criteria.',
+      status: 'completed'
+    }
+  ];
+
+  // Training modules
+  const trainingModules = [
+    {
+      id: 'mci',
+      title: 'Mass Casualty Incident Management',
+      description: 'Training on handling multiple patients in disaster scenarios with limited resources.',
+      completion: '85%'
+    },
+    {
+      id: 'terrain',
+      title: 'Terrain-Specific Medical Response',
+      description: 'Specialized training for medical emergencies in mountainous regions, floodplains, and forest areas.',
+      completion: '70%'
+    },
+    {
+      id: 'cultural',
+      title: 'Cultural Sensitivity in Emergency Response',
+      description: 'Training on respecting local customs and traditions during emergency operations.',
+      completion: '90%'
+    }
+  ];
+
+  const handleDisasterSelect = (disasterId: string) => {
+    setSelectedDisaster(disasterId);
+    const disasterName = disasterTypes.find(d => d.id === disasterId)?.name;
     
-    // Create mock patient data with northeastern names
-    return Array.from({ length: 15 }, (_, i) => {
-      const severityScores = [1, 2, 3, 4, 5]; // 1: Critical, 5: Minor
-      const severity = severityScores[Math.floor(Math.random() * severityScores.length)];
-      
-      // Make condition strictly "Critical", "Moderate", or "Stable"
-      let condition: "Critical" | "Moderate" | "Stable";
-      if (severity <= 2) {
-        condition = "Critical";
-      } else if (severity === 3) {
-        condition = "Moderate";
-      } else {
-        condition = "Stable";
-      }
-      
-      return {
-        id: i + 1,
-        name: neNames[i % neNames.length],
-        age: Math.floor(Math.random() * 60) + 15,
-        gender: Math.random() > 0.5 ? 'Male' : 'Female',
-        location: selectedDisaster.affectedArea,
-        condition: condition,
-        needsVentilator: severity <= 2,
-        severity: severity,
-        injuries: severity <= 2 
-          ? ['Head Trauma', 'Internal Bleeding'] 
-          : severity === 3 
-            ? ['Fractures', 'Dehydration'] 
-            : ['Minor Cuts', 'Bruises']
-      };
+    toast({
+      title: `${disasterName} response activated`,
+      description: "Loading disaster-specific protocols and resources...",
     });
-  });
+  };
 
-  const handleDisasterModeToggle = () => {
-    setDisasterModeEnabled(!disasterModeEnabled);
+  const handleNERProtocolClick = (protocol: Protocol) => {
+    setProtocolsVisible(true);
     
     toast({
-      title: !disasterModeEnabled ? "Disaster Mode Activated" : "Disaster Mode Deactivated",
-      description: !disasterModeEnabled 
-        ? "System is now operating in mass casualty triage mode." 
-        : "Returned to normal operations.",
-      variant: !disasterModeEnabled ? "destructive" : "default",
+      title: `${protocol.title} activated`,
+      description: "Loading protocol details and guidelines...",
     });
   };
-
-  const handleDisasterSelection = (disaster: DisasterLocation) => {
-    setSelectedDisaster(disaster);
-    
-    // Update patient locations when disaster changes
-    setTriagePatients(prev => 
-      prev.map(patient => ({
-        ...patient,
-        location: disaster.affectedArea
-      }))
-    );
+  
+  const handleTrainingClick = (trainingModule: any) => {
+    setTrainingVisible(true);
     
     toast({
-      title: "Disaster Scenario Changed",
-      description: `Now showing data for ${disaster.name} in ${disaster.region}`,
+      title: `${trainingModule.title} materials loaded`,
+      description: "Access training resources and simulations...",
     });
   };
-
-  const handleResourceRequest = () => {
-    toast({
-      title: "Resource Request Sent",
-      description: `Additional resources requested for ${selectedDisaster.name}`,
-    });
-  };
-
-  const handleStatusUpdate = () => {
-    toast({
-      title: "Status Updated",
-      description: "Disaster status information has been updated and shared with authorities",
-    });
-  };
-
-  const handleTrainingClick = () => {
-    toast({
-      title: "Training Module",
-      description: "Mass casualty training module will be available soon",
-    });
-  };
-
-  const handleProtocolsClick = () => {
-    toast({
-      title: "Disaster Protocols",
-      description: "Northeast India specific disaster protocols loaded",
-    });
-  };
-
-  const getDisasterIcon = (type: string) => {
-    switch(type) {
-      case 'landslide':
-        return <Mountain className="h-4 w-4" />;
-      case 'flood':
-        return <Cloud className="h-4 w-4" />;
-      case 'earthquake':
-        return <Wind className="h-4 w-4" />;
-      default:
-        return <AlertTriangle className="h-4 w-4" />;
+  
+  const protocolStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-500 text-white';
+      case 'standby': return 'bg-yellow-500 text-white';
+      case 'completed': return 'bg-gray-500 text-white';
+      default: return 'bg-gray-200';
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1>Disaster Management</h1>
-          <p className="text-muted-foreground">Mass casualty triage and resource management</p>
-        </div>
-        <div className="flex gap-3 items-center">
-          <Label htmlFor="disaster-mode">Disaster Mode</Label>
-          <Switch 
-            id="disaster-mode" 
-            checked={disasterModeEnabled}
-            onCheckedChange={handleDisasterModeToggle}
-            className={disasterModeEnabled ? "bg-destructive" : ""}
-          />
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Disaster Management Mode</h1>
+        <p className="text-muted-foreground">Coordinate emergency response for disaster scenarios</p>
       </div>
-
-      {disasterModeEnabled ? (
-        <>
-          <Alert variant="destructive" className="border-destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="text-destructive font-bold">DISASTER MODE ACTIVE</AlertTitle>
-            <AlertDescription>
-              System is operating in mass casualty triage mode. Emergency protocols are in effect.
-            </AlertDescription>
-          </Alert>
-
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <CardTitle>{selectedDisaster.name}</CardTitle>
-                  <CardDescription>{selectedDisaster.region} - {selectedDisaster.affectedArea}</CardDescription>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex items-center gap-2">
-                      {getDisasterIcon(selectedDisaster.type)}
-                      <span className="uppercase">{selectedDisaster.type}</span>
-                      <span className="sr-only">Change disaster</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {disasterLocations.map((disaster) => (
-                      <DropdownMenuItem 
-                        key={disaster.name}
-                        onClick={() => handleDisasterSelection(disaster)}
-                        className="flex items-center gap-2"
-                      >
-                        {getDisasterIcon(disaster.type)}
-                        <span>{disaster.name}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+      
+      {/* Disaster Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Disaster Type</CardTitle>
+          <CardDescription>Choose the type of disaster to activate specific response protocols</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {disasterTypes.map((disaster) => (
+              <Button
+                key={disaster.id}
+                variant={selectedDisaster === disaster.id ? "default" : "outline"}
+                className={`h-auto py-4 flex-col items-center justify-center gap-2 ${selectedDisaster === disaster.id ? 'border-2' : ''}`}
+                onClick={() => handleDisasterSelect(disaster.id)}
+              >
+                <disaster.icon className={`h-8 w-8 ${selectedDisaster === disaster.id ? 'text-white' : `text-${disaster.color}-500`}`} />
+                <span>{disaster.name}</span>
+                <Badge variant="secondary" className="mt-1">{disaster.activePatients}</Badge>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Tabs for different functional areas */}
+      <Tabs defaultValue="map">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="map">Disaster Map</TabsTrigger>
+          <TabsTrigger value="protocols">Response Protocols</TabsTrigger>
+          <TabsTrigger value="resources">Resources</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="map" className="space-y-4">
+          {/* Map integration */}
+          <Card className="border-warning">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2">
+                <Map className="h-5 w-5 text-warning" />
+                Disaster Zone Map
+              </CardTitle>
+              <CardDescription>Live view of disaster area with responder locations</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-muted p-4 rounded-md">
-                  <h3 className="text-sm font-medium flex items-center gap-2 mb-1">
-                    <Users className="h-4 w-4" />
-                    Casualties
-                  </h3>
-                  <p className="text-2xl font-bold text-destructive">{selectedDisaster.casualties}</p>
-                </div>
-                <div className="bg-muted p-4 rounded-md">
-                  <h3 className="text-sm font-medium flex items-center gap-2 mb-1">
-                    <Tent className="h-4 w-4" />
-                    Medical Camps
-                  </h3>
-                  <p className="text-2xl font-bold">{selectedDisaster.medicalCamps.length}</p>
-                </div>
-                <div className="bg-muted p-4 rounded-md">
-                  <h3 className="text-sm font-medium flex items-center gap-2 mb-1">
-                    <Activity className="h-4 w-4" />
-                    Patients in Triage
-                  </h3>
-                  <p className="text-2xl font-bold">{triagePatients.length}</p>
-                </div>
-              </div>
-
-              <div>
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="w-full">
-                    <TabsTrigger value="triage" className="flex-1">Triage</TabsTrigger>
-                    <TabsTrigger value="map" className="flex-1">Map</TabsTrigger>
-                    <TabsTrigger value="resources" className="flex-1">Resources</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="triage">
-                    <DisasterPatientList patients={triagePatients} />
-                  </TabsContent>
-                  
-                  <TabsContent value="map">
-                    <div className="h-[400px] relative">
-                      <DisasterMap 
-                        disasterLocation={selectedDisaster}
-                        medicalCamps={selectedDisaster.medicalCamps} 
-                      />
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="resources">
-                    <div className="space-y-4">
-                      <h3 className="font-medium">Medical Camps</h3>
-                      <div className="space-y-3">
-                        {selectedDisaster.medicalCamps.map((camp, index) => (
-                          <div key={index} className="border rounded-lg p-4">
-                            <div className="flex justify-between">
-                              <h4 className="font-medium">{camp.name}</h4>
-                              <Badge>{camp.organization}</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-2">Capacity: {camp.capacity} patients</p>
-                            <div className="mt-2">
-                              <p className="text-sm font-medium mb-1">Available Resources:</p>
-                              <div className="flex flex-wrap gap-1">
-                                {camp.availableResources.map((resource, i) => (
-                                  <Badge key={i} variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                    {resource}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+            <CardContent className="p-0">
+              <div className="relative h-[400px] w-full">
+                <DisasterMap />
+                {selectedDisaster && <HazardOverlay type={selectedDisaster} />}
               </div>
             </CardContent>
-            <CardFooter className="justify-end">
-              <Button 
-                variant="outline" 
-                className="mr-2" 
-                onClick={handleResourceRequest}
-              >
-                Request Additional Resources
-              </Button>
-              <Button onClick={handleStatusUpdate}>
-                Update Status
-              </Button>
-            </CardFooter>
           </Card>
           
-          {activeTab === 'map' && (
-            <HazardOverlay type={selectedDisaster.type} region={selectedDisaster.region} />
+          {/* Patient list */}
+          <DisasterPatientList disasterType={selectedDisaster} />
+        </TabsContent>
+        
+        <TabsContent value="protocols" className="space-y-4">
+          {/* NER Protocols */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-medical" />
+                North East Region Protocols
+              </CardTitle>
+              <CardDescription>Emergency response guidelines specific to NER</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {nerProtocols.map((protocol) => (
+                <div 
+                  key={protocol.id}
+                  className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleNERProtocolClick(protocol)}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-medium">{protocol.title}</h3>
+                    <Badge className={protocolStatusColor(protocol.status)}>{protocol.status}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{protocol.description}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          
+          {protocolsVisible && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Protocol Guidelines</CardTitle>
+                <CardDescription>Detailed instructions for selected protocol</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                    <h3 className="font-medium mb-2">Initial Response</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Establish command post at safe location</li>
+                      <li>Deploy rapid assessment teams</li>
+                      <li>Set up communications network</li>
+                      <li>Coordinate with local authorities</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                    <h3 className="font-medium mb-2">Medical Response</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Implement modified START triage system</li>
+                      <li>Establish casualty collection points</li>
+                      <li>Deploy mobile medical teams</li>
+                      <li>Activate helicopter evacuation plan if needed</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Disaster Management Module</CardTitle>
-            <CardDescription>
-              Activate disaster mode to enable mass casualty triage system
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-md text-amber-800 dark:text-amber-300 flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">Disaster Mode is Currently Disabled</p>
-                <p className="text-sm">
-                  Enable Disaster Mode during mass casualty incidents to:
-                </p>
-                <ul className="list-disc pl-5 mt-1 space-y-1 text-sm">
-                  <li>Process large patient groups simultaneously</li>
-                  <li>Coordinate with emergency response teams</li>
-                  <li>View hazard overlays on maps</li>
-                  <li>Locate medical camps and NGO relief centers</li>
-                </ul>
+        </TabsContent>
+        
+        <TabsContent value="resources" className="space-y-4">
+          {/* Training Modules */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-blue-500" />
+                Mass Casualty Training
+              </CardTitle>
+              <CardDescription>Specialized training modules for disaster response</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {trainingModules.map((module) => (
+                <div 
+                  key={module.id}
+                  className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleTrainingClick(module)}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-medium">{module.title}</h3>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                      {module.completion}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{module.description}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          
+          {trainingVisible && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Training Resources</CardTitle>
+                <CardDescription>Access training materials and simulations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                    <h3 className="font-medium mb-2">Available Resources</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Video tutorials and procedural guides</li>
+                      <li>Interactive triage simulation</li>
+                      <li>Field exercise documentation</li>
+                      <li>Equipment checklists and guides</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="flex justify-center py-4">
+                    <Button variant="default">Access Training Portal</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Resource Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Resources</CardTitle>
+              <CardDescription>Equipment and personnel available for deployment</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium mb-2">Medical Equipment</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <Badge variant="outline" className="justify-between">
+                      Field Kits <span className="font-bold">24</span>
+                    </Badge>
+                    <Badge variant="outline" className="justify-between">
+                      Stretchers <span className="font-bold">18</span>
+                    </Badge>
+                    <Badge variant="outline" className="justify-between">
+                      Oxygen Units <span className="font-bold">12</span>
+                    </Badge>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="font-medium mb-2">Vehicles</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <Badge variant="outline" className="justify-between">
+                      Ambulances <span className="font-bold">8</span>
+                    </Badge>
+                    <Badge variant="outline" className="justify-between">
+                      4x4 Vehicles <span className="font-bold">6</span>
+                    </Badge>
+                    <Badge variant="outline" className="justify-between">
+                      Mobile Clinics <span className="font-bold">2</span>
+                    </Badge>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button 
-                variant="outline" 
-                className="w-full justify-between hover:bg-gray-50 dark:hover:bg-gray-800 py-6 text-left"
-                onClick={handleProtocolsClick}
-              >
-                <div className="flex gap-3 items-center">
-                  <div className="h-9 w-9 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                    <Tent className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">NE India Disaster Protocols</p>
-                    <p className="text-xs text-muted-foreground">
-                      Protocols for landslides, floods & earthquakes
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground" />
-              </Button>
-
-              <Button 
-                variant="outline" 
-                className="w-full justify-between hover:bg-gray-50 dark:hover:bg-gray-800 py-6 text-left"
-                onClick={handleTrainingClick}
-              >
-                <div className="flex gap-3 items-center">
-                  <div className="h-9 w-9 rounded-md bg-medical/10 flex items-center justify-center">
-                    <Heart className="h-5 w-5 text-medical" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Mass Casualty Training</p>
-                    <p className="text-xs text-muted-foreground">
-                      Training modules for disaster response
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground" />
-              </Button>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              className="w-full" 
-              variant="destructive"
-              onClick={handleDisasterModeToggle}
-            >
-              Activate Disaster Mode
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

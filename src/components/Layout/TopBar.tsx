@@ -25,14 +25,14 @@ const TopBar = () => {
   const displayName = user?.user_metadata?.full_name || user?.email || 'User';
   
   const languages = [
-    { code: 'en', name: t('language.en') },
-    { code: 'hi', name: t('language.hi') },
-    { code: 'as', name: t('language.as') },
-    { code: 'mz', name: t('language.mz') },
-    { code: 'kh', name: t('language.kh') },
-    { code: 'nm', name: t('language.nm') },
-    { code: 'bo', name: t('language.bo') },
-    { code: 'bn', name: t('language.bn') },
+    { code: 'en', name: 'English' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'as', name: 'Assamese' },
+    { code: 'mz', name: 'Mizo' },
+    { code: 'kh', name: 'Khasi' },
+    { code: 'nm', name: 'Nagamese' },
+    { code: 'bo', name: 'Bodo' },
+    { code: 'bn', name: 'Bengali' },
   ];
 
   return (
@@ -66,11 +66,9 @@ const TopBar = () => {
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Globe className="h-5 w-5 text-muted-foreground" />
-              <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-[10px] flex items-center justify-center text-white font-bold">
-                {language.toUpperCase()}
-              </span>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Globe className="h-4 w-4" />
+              <span>Languages</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[200px] bg-popover">
