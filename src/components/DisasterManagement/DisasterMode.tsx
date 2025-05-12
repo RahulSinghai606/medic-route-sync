@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -297,6 +298,12 @@ const DisasterMode = () => {
     return [];
   };
 
+  // Get region name for the selected disaster
+  const getDisasterRegion = () => {
+    const currentDisaster = getCurrentDisasterLocation();
+    return currentDisaster ? currentDisaster.region : "NER States";
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -354,7 +361,8 @@ const DisasterMode = () => {
                 />
                 {selectedDisaster && 
                   <HazardOverlay 
-                    type={selectedDisaster as "flood" | "landslide" | "earthquake"} 
+                    type={selectedDisaster as "flood" | "landslide" | "earthquake"}
+                    region={getDisasterRegion()}
                   />
                 }
               </div>
