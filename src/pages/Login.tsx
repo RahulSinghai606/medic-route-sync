@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -237,6 +236,7 @@ const Login = () => {
                 <span className="bg-background px-2 text-muted-foreground">Or</span>
               </div>
             </div>
+            
             <Button
               onClick={handleEmergencyAccess}
               className="mt-4 w-full emergency-btn flex items-center gap-2"

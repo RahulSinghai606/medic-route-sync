@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -28,9 +29,9 @@ import { calculateHospitalMatch, Location } from "@/utils/hospitalUtils";
 import { jaipurHospitals, calculateDistanceAndETA } from "@/data/hospitals";
 import MapView from "@/components/MapView";
 import HebbalHospitalList from "@/components/HebbalHospitalList";
-import HospitalPlatformLink from "@/components/HospitalPlatform/HospitalPlatformLink";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getHebbalHospitals, getMatchIndicator } from "@/data/hebbalHospitals";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Function to match hospitals to patient needs based on location
 const matchHospitalsToPatient = (hospitals, specialties = [], isCritical = false, userLocation = null) => {
@@ -51,6 +52,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { profile } = useAuth();
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
@@ -351,8 +353,7 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Hospital Platform Link */}
-      <HospitalPlatformLink />
+      {/* HospitalPlatformLink component removed for paramedic users */}
 
       {/* Hebbal Hospital List */}
       <HebbalHospitalList />
