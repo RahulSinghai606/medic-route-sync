@@ -50,6 +50,7 @@ const AppSidebar = () => {
             />
           </div>
           <h1 className="text-xl font-bold">TERO</h1>
+          <span className="text-xs bg-emergency text-white px-2 py-0.5 rounded">Paramedic</span>
         </div>
         <div className="flex mt-3">
           <Button 

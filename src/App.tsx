@@ -88,11 +88,16 @@ const AppRoutes = () => {
         <Route path="/disaster" element={<DisasterMode />} />
       </Route>
       
-      {/* Hospital platform route */}
+      {/* Hospital platform route - completely separate from paramedic routes */}
       <Route path="/hospital-platform" element={
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />
         </ProtectedRoute>
+      } />
+      
+      {/* Redirect root path to login if not authenticated */}
+      <Route path="/" element={
+        !user ? <Navigate to="/login" /> : null
       } />
       
       <Route path="*" element={<NotFound />} />
