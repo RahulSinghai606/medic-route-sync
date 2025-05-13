@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -13,6 +13,7 @@ import { Ambulance, Lock, AlertCircle, Mail, Loader2, Hospital } from 'lucide-re
 import { useAuth } from '@/contexts/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -27,15 +28,21 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, user, updateProfile } = useAuth();
+  const { signIn, user, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const { toast } = useToast();
   
-  React.useEffect(() => {
-    if (user) {
-      navigate('/');
+  useEffect(() => {
+    // Redirect based on role if user is already logged in
+    if (user && profile) {
+      if (profile.role === 'hospital') {
+        navigate('/hospital-platform');
+      } else {
+        navigate('/');
+      }
     }
-  }, [user, navigate]);
+  }, [user, profile, navigate]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -58,6 +65,10 @@ const Login = () => {
         setLoginError(error.message || "Failed to sign in. Please check your credentials.");
       } else {
         console.log("Login successful, redirecting based on role:", data.userRole);
+        toast({
+          title: "Login successful",
+          description: `Welcome back! You are logged in as ${data.userRole}`,
+        });
         
         if (data.userRole === 'hospital') {
           navigate('/hospital-platform');

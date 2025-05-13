@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -12,6 +11,7 @@ import { Ambulance, User, Mail, Lock, Hospital, AlertCircle, Building2, Loader2 
 import { useAuth } from '@/contexts/AuthContext';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useToast } from '@/hooks/use-toast';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name must be at least 3 characters long' }),
@@ -38,15 +38,21 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { signUp, user } = useAuth();
+  const { signUp, user, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
+  const { toast } = useToast();
   
-  React.useEffect(() => {
-    if (user) {
-      navigate('/');
+  useEffect(() => {
+    // Redirect based on role if user is already logged in
+    if (user && profile) {
+      if (profile.role === 'hospital') {
+        navigate('/hospital-platform');
+      } else {
+        navigate('/');
+      }
     }
-  }, [user, navigate]);
+  }, [user, profile, navigate]);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),

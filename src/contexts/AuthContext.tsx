@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
+          // Add a small delay to prevent potential race conditions
           setTimeout(() => {
             fetchProfile(currentSession.user.id);
           }, 0);
@@ -133,8 +134,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
       } else if (role) {
-        // If role is provided during login, update the user's role
+        // If role is provided during login, ensure the user profile has this role
         await updateProfile({ role });
+        
+        // Force fetch the updated profile
+        const { data: user } = await supabase.auth.getUser();
+        if (user) {
+          await fetchProfile(user.user.id);
+        }
       }
       
       return { error };
