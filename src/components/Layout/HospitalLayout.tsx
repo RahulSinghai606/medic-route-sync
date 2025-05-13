@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Building2, Users, ClipboardList, LogOut, Settings, Bell, Home, BedDouble, ListChecks, Activity, ChevronDown, Search, MapPin } from 'lucide-react';
+import { Building2, Users, ClipboardList, LogOut, Settings, Bell, Home, BedDouble, ListChecks, Activity, ChevronDown, Search, MapPin, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';

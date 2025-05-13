@@ -4,7 +4,7 @@ import { Route, Routes, useNavigate } from 'react-router-dom';
 import HospitalLayout from '@/components/Layout/HospitalLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Ambulance, Bell, ClipboardList, Clock, UserCheck, AlertTriangle, BedDouble, Activity, CheckCircle, XCircle, User, BarChart4, Building2, Users } from 'lucide-react';
+import { Ambulance, Bell, ClipboardList, Clock, UserCheck, AlertTriangle, BedDouble, Activity, CheckCircle, XCircle, User, BarChart4, Building2, Users, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';

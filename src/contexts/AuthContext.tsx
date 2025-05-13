@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Enhanced signUp function that properly sets the user role
   const signUp = async (email: string, password: string, fullName: string, role: string = 'paramedic') => {
     try {
       console.log(`Signing up with role: ${role}`);
