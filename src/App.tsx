@@ -58,7 +58,12 @@ const ProtectedRoute = ({
 };
 
 const AppRoutes = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isLoading } = useAuth();
+  
+  // Show loading screen while determining user role
+  if (isLoading) {
+    return <div className="h-screen w-full flex items-center justify-center">Loading...</div>;
+  }
   
   return (
     <Routes>
@@ -88,8 +93,8 @@ const AppRoutes = () => {
         <Route path="/disaster" element={<DisasterMode />} />
       </Route>
       
-      {/* Hospital platform route - completely separate from paramedic routes */}
-      <Route path="/hospital-platform" element={
+      {/* Hospital platform routes - completely separate from paramedic routes */}
+      <Route path="/hospital-platform/*" element={
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />
         </ProtectedRoute>

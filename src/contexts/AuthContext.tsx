@@ -10,7 +10,7 @@ type AuthContextType = {
   profile: any | null;
   isLoading: boolean;
   signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string, role?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (data: any) => Promise<{ error: any }>;
 };
@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log('Auth state change:', event, currentSession?.user?.id);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log('Initial session check:', currentSession?.user?.id);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -69,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Error fetching profile:', error);
       } else {
+        console.log('Profile data retrieved:', data);
         setProfile(data);
       }
     } catch (error) {
@@ -78,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string, role: string = 'paramedic') => {
     try {
+      console.log(`Signing up with role: ${role}`);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -113,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, role?: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -126,6 +131,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           description: error.message,
           variant: "destructive",
         });
+      } else if (role) {
+        // If role is provided during login, update the user's role
+        await updateProfile({ role });
       }
       
       return { error };
@@ -149,18 +157,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (data: any) => {
     try {
+      console.log('Updating profile with data:', data);
+      
+      if (!user?.id) {
+        console.error('Cannot update profile: No user ID available');
+        return { error: new Error('No user ID available') };
+      }
+      
       const { error } = await supabase
         .from('profiles')
         .update(data)
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (!error) {
+        console.log('Profile updated successfully');
         setProfile(prevProfile => ({ ...prevProfile, ...data }));
         toast({
           title: "Profile updated",
           description: "Your profile has been updated successfully",
         });
       } else {
+        console.error('Error updating profile:', error);
         toast({
           title: "Update failed",
           description: error.message,
@@ -170,6 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error };
     } catch (error: any) {
+      console.error('Exception updating profile:', error);
       toast({
         title: "Update failed",
         description: error.message,

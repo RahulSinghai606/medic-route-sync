@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ambulance, User, Mail, Lock, Hospital, AlertCircle } from 'lucide-react';
+import { Ambulance, User, Mail, Lock, Hospital, AlertCircle, Building2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name must be at least 3 characters long' }),
@@ -19,17 +20,27 @@ const signupSchema = z.object({
   confirmPassword: z.string(),
   role: z.enum(['paramedic', 'hospital'], { 
     required_error: 'Please select your role' 
-  })
+  }),
+  hospitalName: z.string().optional(),
+  department: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
-});
+}).refine(
+  data => data.role !== 'hospital' || (data.hospitalName && data.hospitalName.length > 0), 
+  {
+    message: 'Hospital name is required for hospital staff',
+    path: ['hospitalName'],
+  }
+);
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 const Signup = () => {
   const navigate = useNavigate();
   const { signUp, user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
   
   React.useEffect(() => {
     if (user) {
@@ -44,29 +55,59 @@ const Signup = () => {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'paramedic'
+      role: 'paramedic',
+      hospitalName: '',
+      department: '',
     },
   });
 
+  const selectedRole = form.watch('role');
+
   const onSubmit = async (data: SignupFormValues) => {
-    const { error } = await signUp(data.email, data.password, data.fullName, data.role);
-    if (!error) {
-      navigate('/login');
+    setIsLoading(true);
+    setSignupError(null);
+    
+    try {
+      let fullName = data.fullName;
+      
+      // For hospital users, combine hospital name with department
+      if (data.role === 'hospital' && data.hospitalName) {
+        fullName = data.hospitalName;
+        if (data.department) {
+          fullName += ` - ${data.department}`;
+        }
+      }
+      
+      const { error } = await signUp(data.email, data.password, fullName, data.role);
+      if (!error) {
+        navigate('/login');
+      } else {
+        setSignupError(error.message || "Registration failed. Please try again.");
+      }
+    } catch (err: any) {
+      setSignupError(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background p-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emergency mb-4">
             <Ambulance className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold">EmergConnect</h1>
-          <p className="text-gray-500">Ambulance-Side Web Platform</p>
+          <h1 className="text-2xl font-bold">TERO</h1>
+          <p className="text-muted-foreground">Triage and Emergency Routing Optimization</p>
+          <p className="text-xs text-muted-foreground mt-1">Medical Services Platform</p>
         </div>
 
-        <Card>
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle>Create Account</CardTitle>
             <CardDescription>
@@ -74,76 +115,18 @@ const Signup = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {signupError && (
+              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md text-red-800 dark:text-red-300 mb-4 flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Registration Error</p>
+                  <p className="text-sm">{signupError}</p>
+                </div>
+              </div>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                          <Input className="pl-10" placeholder="John Doe" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                          <Input className="pl-10" type="email" placeholder="name@example.com" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                          <Input className="pl-10" type="password" placeholder="******" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                          <Input className="pl-10" type="password" placeholder="******" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
                 <FormField
                   control={form.control}
                   name="role"
@@ -182,16 +165,141 @@ const Signup = () => {
                   )}
                 />
                 
-                <Button type="submit" className="w-full medical-btn">
-                  Sign Up
+                {selectedRole === 'hospital' && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="hospitalName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hospital Name</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                className="pl-10" 
+                                placeholder="e.g., General Hospital, City Medical Center"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="department"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Department (Optional)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Hospital className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                className="pl-10" 
+                                placeholder="e.g., Emergency Department, ICU"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+                
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{selectedRole === 'hospital' ? 'Admin Full Name' : 'Full Name'}</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            className="pl-10" 
+                            placeholder={selectedRole === 'hospital' ? "Hospital administrator name" : "Your full name"} 
+                            {...field} 
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input className="pl-10" type="email" placeholder="name@example.com" {...field} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input className="pl-10" type="password" placeholder="******" {...field} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input className="pl-10" type="password" placeholder="******" {...field} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button type="submit" className="w-full medical-btn" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/login" className="text-blue-600 hover:underline">
+              <Link to="/login" className="text-medical hover:underline">
                 Sign In
               </Link>
             </p>

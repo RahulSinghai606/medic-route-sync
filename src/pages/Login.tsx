@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -51,15 +52,13 @@ const Login = () => {
     setLoginError(null);
     
     try {
-      const { error } = await signIn(data.email, data.password);
+      const { error } = await signIn(data.email, data.password, data.userRole);
       if (error) {
         console.error("Login error:", error);
         setLoginError(error.message || "Failed to sign in. Please check your credentials.");
       } else {
-        // Update user role in profile
-        await updateProfile({ role: data.userRole });
+        console.log("Login successful, redirecting based on role:", data.userRole);
         
-        // Redirect based on role
         if (data.userRole === 'hospital') {
           navigate('/hospital-platform');
         } else {
