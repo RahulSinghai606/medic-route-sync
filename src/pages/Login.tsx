@@ -36,13 +36,17 @@ const Login = () => {
   useEffect(() => {
     // Redirect based on role if user is already logged in
     if (user && profile) {
-      if (profile.role === 'hospital') {
-        navigate('/hospital-platform');
-      } else {
-        navigate('/');
-      }
+      redirectBasedOnRole(profile.role);
     }
   }, [user, profile, navigate]);
+
+  const redirectBasedOnRole = (role: string) => {
+    if (role === 'hospital') {
+      navigate('/hospital-platform');
+    } else {
+      navigate('/');
+    }
+  };
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -70,11 +74,7 @@ const Login = () => {
           description: `Welcome back! You are logged in as ${data.userRole}`,
         });
         
-        if (data.userRole === 'hospital') {
-          navigate('/hospital-platform');
-        } else {
-          navigate('/');
-        }
+        redirectBasedOnRole(data.userRole);
       }
     } catch (err) {
       console.error("Unexpected error during login:", err);

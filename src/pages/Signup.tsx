@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -46,13 +47,17 @@ const Signup = () => {
   useEffect(() => {
     // Redirect based on role if user is already logged in
     if (user && profile) {
-      if (profile.role === 'hospital') {
-        navigate('/hospital-platform');
-      } else {
-        navigate('/');
-      }
+      redirectBasedOnRole(profile.role);
     }
   }, [user, profile, navigate]);
+
+  const redirectBasedOnRole = (role: string) => {
+    if (role === 'hospital') {
+      navigate('/hospital-platform');
+    } else {
+      navigate('/');
+    }
+  };
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -86,6 +91,10 @@ const Signup = () => {
       
       const { error } = await signUp(data.email, data.password, fullName, data.role);
       if (!error) {
+        toast({
+          title: "Registration successful",
+          description: "Please login with your new credentials",
+        });
         navigate('/login');
       } else {
         setSignupError(error.message || "Registration failed. Please try again.");

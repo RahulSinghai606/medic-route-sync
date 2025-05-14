@@ -79,7 +79,7 @@ const AppRoutes = () => {
           <Navigate to="/" />
       ) : <Signup />} />
       
-      {/* Paramedic routes */}
+      {/* Paramedic routes - Explicitly set role check */}
       <Route element={
         <ProtectedRoute allowedRole="paramedic">
           <AppLayout />
@@ -93,7 +93,7 @@ const AppRoutes = () => {
         <Route path="/disaster" element={<DisasterMode />} />
       </Route>
       
-      {/* Hospital platform routes - completely separate from paramedic routes */}
+      {/* Hospital platform routes - completely separate from paramedic routes with explicit role check */}
       <Route path="/hospital-platform" element={
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />
@@ -105,7 +105,7 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
-      {/* Redirect root path if not authenticated */}
+      {/* Redirect root path if not authenticated or based on role */}
       <Route path="/" element={
         !user ? <Navigate to="/login" /> : 
         profile?.role === 'hospital' ? <Navigate to="/hospital-platform" /> : null

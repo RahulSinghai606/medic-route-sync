@@ -103,6 +103,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
       } else {
+        // Create a profile record with the specified role immediately after signup
+        // This ensures the role is stored in the database
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: userData.user.id,
+              full_name: fullName,
+              role: role,
+            });
+            
+          if (profileError) {
+            console.error("Error creating profile:", profileError);
+            toast({
+              title: "Profile creation failed",
+              description: "Your account was created but profile setup failed.",
+              variant: "destructive",
+            });
+          }
+        }
+        
         toast({
           title: "Registration successful",
           description: "Please check your email to confirm your account",
@@ -156,7 +178,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clean up auth state from localStorage for a more reliable logout
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Perform the actual signout
     await supabase.auth.signOut();
+    
+    // Clear state
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    
     toast({
       title: "Logged out",
       description: "You have been successfully logged out",
