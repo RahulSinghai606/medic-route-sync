@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Route, Routes } from 'react-router-dom';
 import HospitalLayout from '@/components/Layout/HospitalLayout';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Ambulance, Bell, ClipboardList, Clock, UserCheck, AlertTriangle, BedDou
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
 
 // Sample data for demonstration
 const incomingCases = [
