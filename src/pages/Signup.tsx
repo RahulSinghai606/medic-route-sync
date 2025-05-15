@@ -52,6 +52,7 @@ const Signup = () => {
   }, [user, profile, navigate]);
 
   const redirectBasedOnRole = (role: string) => {
+    console.log(`Redirecting based on role: ${role}`);
     if (role === 'hospital') {
       navigate('/hospital-platform');
     } else {
@@ -79,6 +80,7 @@ const Signup = () => {
     setSignupError(null);
     
     try {
+      console.log(`Signing up with role: ${data.role}`);
       let fullName = data.fullName;
       
       // For hospital users, combine hospital name with department

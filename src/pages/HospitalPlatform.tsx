@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 // Sample data for demonstration
 const incomingCases = [
@@ -751,7 +751,10 @@ const HospitalPlatform = () => {
   // Check if the user is logged in as a hospital
   useEffect(() => {
     if (profile && profile.role !== 'hospital') {
+      console.log("User is not a hospital staff, redirecting to home");
       navigate('/');
+    } else {
+      console.log("User confirmed as hospital staff");
     }
   }, [profile, navigate]);
 

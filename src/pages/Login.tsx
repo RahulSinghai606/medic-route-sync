@@ -43,8 +43,10 @@ const Login = () => {
   const redirectBasedOnRole = (role: string) => {
     if (role === 'hospital') {
       navigate('/hospital-platform');
+      console.log("Redirecting to hospital platform");
     } else {
       navigate('/');
+      console.log("Redirecting to paramedic dashboard");
     }
   };
 
@@ -63,17 +65,19 @@ const Login = () => {
     setLoginError(null);
     
     try {
+      console.log(`Logging in with role: ${data.userRole}`);
       const { error } = await signIn(data.email, data.password, data.userRole);
+      
       if (error) {
         console.error("Login error:", error);
         setLoginError(error.message || "Failed to sign in. Please check your credentials.");
       } else {
-        console.log("Login successful, redirecting based on role:", data.userRole);
         toast({
           title: "Login successful",
-          description: `Welcome back! You are logged in as ${data.userRole}`,
+          description: `Welcome back! You are logged in as ${data.userRole === 'hospital' ? 'Hospital Staff' : 'Paramedic'}`,
         });
         
+        // Redirect based on selected role
         redirectBasedOnRole(data.userRole);
       }
     } catch (err) {

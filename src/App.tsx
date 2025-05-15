@@ -67,17 +67,22 @@ const AppRoutes = () => {
   
   return (
     <Routes>
-      <Route path="/login" element={user ? (
-        profile?.role === 'hospital' ? 
-          <Navigate to="/hospital-platform" /> : 
-          <Navigate to="/" />
-      ) : <Login />} />
+      {/* Auth routes */}
+      <Route path="/login" element={
+        user ? (
+          profile?.role === 'hospital' ? 
+            <Navigate to="/hospital-platform" /> : 
+            <Navigate to="/" />
+        ) : <Login />
+      } />
       
-      <Route path="/signup" element={user ? (
-        profile?.role === 'hospital' ? 
-          <Navigate to="/hospital-platform" /> : 
-          <Navigate to="/" />
-      ) : <Signup />} />
+      <Route path="/signup" element={
+        user ? (
+          profile?.role === 'hospital' ? 
+            <Navigate to="/hospital-platform" /> : 
+            <Navigate to="/" />
+        ) : <Signup />
+      } />
       
       {/* Paramedic routes - Explicitly set role check */}
       <Route element={
@@ -99,16 +104,18 @@ const AppRoutes = () => {
           <HospitalPlatform />
         </ProtectedRoute>
       } />
+      
       <Route path="/hospital-platform/*" element={
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />
         </ProtectedRoute>
       } />
       
-      {/* Redirect root path if not authenticated or based on role */}
+      {/* Root redirect based on user role */}
       <Route path="/" element={
         !user ? <Navigate to="/login" /> : 
-        profile?.role === 'hospital' ? <Navigate to="/hospital-platform" /> : null
+        profile?.role === 'hospital' ? <Navigate to="/hospital-platform" /> : 
+        <Navigate to="/" />
       } />
       
       <Route path="*" element={<NotFound />} />

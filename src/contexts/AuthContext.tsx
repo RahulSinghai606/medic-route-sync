@@ -84,6 +84,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Enhanced signUp function that properly sets the user role
   const signUp = async (email: string, password: string, fullName: string, role: string = 'paramedic') => {
     try {
+      // Clean up auth state to prevent any lingering tokens
+      cleanupAuthState();
+      
+      // Try to sign out any existing session globally
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+      
       console.log(`Signing up with role: ${role}`);
       const { error } = await supabase.auth.signUp({
         email,
@@ -144,6 +154,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string, role?: string) => {
     try {
+      // Clean up auth state to prevent any lingering tokens
+      cleanupAuthState();
+      
+      // Try to sign out any existing session globally
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -177,16 +197,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signOut = async () => {
-    // Clean up auth state from localStorage for a more reliable logout
+  const cleanupAuthState = () => {
+    // Remove all Supabase auth keys from localStorage
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
         localStorage.removeItem(key);
       }
     });
     
+    // Remove from sessionStorage if in use
+    Object.keys(sessionStorage || {}).forEach(key => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
+  const signOut = async () => {
+    // Clean up auth state from localStorage for a more reliable logout
+    cleanupAuthState();
+    
     // Perform the actual signout
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'global' });
     
     // Clear state
     setUser(null);
@@ -197,6 +229,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       title: "Logged out",
       description: "You have been successfully logged out",
     });
+    
+    // Force page reload for a clean state
+    window.location.href = '/login';
   };
 
   const updateProfile = async (data: any) => {
