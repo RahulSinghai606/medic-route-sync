@@ -29,135 +29,174 @@ export interface Location {
   address?: string;
 }
 
-// Hospital matching algorithm using the Adaptive Medical Priority Parameters (AMPP)
-// This algorithm is used to dynamically match hospitals to patient needs based on
-// real-time patient vitals and condition data from the Patients page
+// Enhanced Hospital matching algorithm using the Adaptive Medical Priority Parameters (AMPP)
+// This algorithm provides more realistic match scores for better hospital recommendations
 export const calculateHospitalMatch = (
   hospital: any,
   specialties: string[],
   isCritical: boolean,
   userLocation?: Location
 ) => {
-  // Dynamic weights based on patient condition and context
+  // Enhanced dynamic weights for better scoring
   const getDynamicWeights = (isCritical: boolean, hasSpecialtyMatch: boolean): WeightConfiguration => {
-    // Common thresholds that will be applied to all configurations
     const commonThresholds = {
-      maxProximityScore: 40,
-      waitTimeImpact: 10,
-      perfectMatchThreshold: 90,
+      maxProximityScore: 50, // Increased base proximity score
+      waitTimeImpact: 5, // Reduced wait time penalty
+      perfectMatchThreshold: 85, // Lowered threshold for promotion
     };
     
-    // Base configuration for different scenarios
     if (isCritical && hasSpecialtyMatch) {
       return {
-        specialtyWeight: 0.7,
-        proximityWeight: 0.2,
-        capacityWeight: 0.1,
-        matchBonus: 15,
+        specialtyWeight: 0.6,
+        proximityWeight: 0.25,
+        capacityWeight: 0.15,
+        matchBonus: 25, // Increased bonus
         ...commonThresholds
       };
     } else if (isCritical) {
       return {
-        proximityWeight: 0.75,
-        capacityWeight: 0.25,
+        proximityWeight: 0.7,
+        capacityWeight: 0.3,
         ...commonThresholds
       };
     } else if (hasSpecialtyMatch) {
       return {
         specialtyWeight: 0.5,
-        proximityWeight: 0.4,
-        capacityWeight: 0.1,
-        matchBonus: 5,
+        proximityWeight: 0.35,
+        capacityWeight: 0.15,
+        matchBonus: 15, // Increased bonus
         ...commonThresholds
       };
     } else {
       return {
-        proximityWeight: 0.8,
-        capacityWeight: 0.2,
+        proximityWeight: 0.75,
+        capacityWeight: 0.25,
         ...commonThresholds
       };
     }
   };
 
-  // Calculate proximity score if user location is available
+  // Enhanced proximity calculation with better scoring
   const calculateProximityScore = (userLocation?: Location) => {
-    if (!userLocation) return hospital.distance * 4; // Use default distance if no user location
+    let distance;
     
-    // Calculate actual distance between user and hospital
-    const R = 6371; // Earth's radius in km
-    const dLat = (hospital.lat - userLocation.lat) * Math.PI / 180;
-    const dLon = (hospital.lng - userLocation.lng) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(hospital.lat * Math.PI / 180) * 
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const calculatedDistance = R * c;
+    if (!userLocation) {
+      distance = hospital.distance || 5; // Default to 5km if no location
+    } else {
+      // Calculate actual distance
+      const R = 6371; // Earth's radius in km
+      const dLat = (hospital.lat - userLocation.lat) * Math.PI / 180;
+      const dLon = (hospital.lng - userLocation.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(hospital.lat * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      distance = R * c;
+    }
     
-    return calculatedDistance * 4;
+    // Enhanced proximity scoring - closer hospitals get much higher scores
+    if (distance <= 2) return 50;
+    if (distance <= 5) return 45;
+    if (distance <= 10) return 35;
+    if (distance <= 15) return 25;
+    if (distance <= 20) return 15;
+    return Math.max(5, 10 - distance); // Minimum score of 5
   };
 
   // Calculate match for hospitals with no specialty requirements
   if (!specialties || specialties.length === 0) {
     const weights = getDynamicWeights(isCritical, false);
-    const proximityScore = Math.max(0, weights.maxProximityScore - calculateProximityScore(userLocation));
-    const capacityScore = Math.min(10, hospital.availableBeds - (hospital.waitTime / weights.waitTimeImpact));
+    const proximityScore = calculateProximityScore(userLocation);
+    const capacityScore = Math.min(20, (hospital.availableBeds * 2) - (hospital.waitTime / weights.waitTimeImpact));
+    
+    // Enhanced base scoring for better results
+    const baseScore = 60; // Higher base score
+    const totalScore = baseScore + (proximityScore * weights.proximityWeight) + (capacityScore * weights.capacityWeight);
     
     return {
-      matchScore: Math.round((proximityScore * weights.proximityWeight) + 
-                           (capacityScore * weights.capacityWeight)),
+      matchScore: Math.min(95, Math.round(totalScore)),
       matchReason: isCritical ? 'urgent proximity' : 'proximity',
       promoted: false,
       matchedSpecialties: [],
-      distance: calculateProximityScore(userLocation) / 4 // Convert back to kilometers
+      distance: userLocation ? calculateProximityScore(userLocation) / 10 : hospital.distance || 5
     };
   }
 
-  // Check for specialty matches
+  // Enhanced specialty matching with flexible matching
   const matchedSpecialties = hospital.specialties.filter((spec: string) => 
-    specialties.some(tag => spec.toLowerCase().includes(tag.toLowerCase()))
+    specialties.some(tag => 
+      spec.toLowerCase().includes(tag.toLowerCase()) ||
+      tag.toLowerCase().includes(spec.toLowerCase()) ||
+      // Additional matching logic for common medical terms
+      (tag.toLowerCase().includes('heart') && spec.toLowerCase().includes('cardio')) ||
+      (tag.toLowerCase().includes('brain') && spec.toLowerCase().includes('neuro')) ||
+      (tag.toLowerCase().includes('bone') && spec.toLowerCase().includes('ortho')) ||
+      (tag.toLowerCase().includes('emergency') && spec.toLowerCase().includes('trauma'))
+    )
   );
 
   const hasSpecialtyMatch = matchedSpecialties.length > 0;
   const weights = getDynamicWeights(isCritical, hasSpecialtyMatch);
   
-  // Calculate base scores using actual location if available
-  const proximityScore = Math.max(0, weights.maxProximityScore - calculateProximityScore(userLocation));
-  const specialtyScore = hasSpecialtyMatch ? 50 * (matchedSpecialties.length / specialties.length) : 0;
-  const capacityScore = Math.min(10, hospital.availableBeds - (hospital.waitTime / weights.waitTimeImpact));
+  // Enhanced scoring calculations
+  const proximityScore = calculateProximityScore(userLocation);
+  const specialtyScore = hasSpecialtyMatch ? 
+    Math.min(60, 40 + (matchedSpecialties.length * 10)) : 0; // Higher specialty scores
+  const capacityScore = Math.min(25, (hospital.availableBeds * 2.5) - (hospital.waitTime / weights.waitTimeImpact));
   
-  // Apply AMPP algorithm weights
+  // Enhanced hospital type bonus
+  const hospitalTypeBonus = hospital.type === 'Government' ? 5 : 
+                           hospital.type === 'Corporate' ? 3 : 0;
+  
+  // Emergency services bonus
+  const emergencyBonus = hospital.emergencyServices ? 5 : 0;
+  const traumaBonus = hospital.traumaCenter ? 10 : 0;
+  
   let totalScore = 0;
   let matchReason = 'balanced';
   let promoted = false;
 
+  // Enhanced scoring logic with higher base scores
   if (isCritical && hasSpecialtyMatch) {
-    totalScore = (specialtyScore * (weights.specialtyWeight || 0)) + 
+    totalScore = 50 + // Higher base score
+                (specialtyScore * (weights.specialtyWeight || 0)) + 
                 (proximityScore * weights.proximityWeight) + 
                 (capacityScore * weights.capacityWeight) + 
-                (weights.matchBonus || 0);
-    matchReason = 'critical specialty need';
+                (weights.matchBonus || 0) +
+                hospitalTypeBonus + emergencyBonus + traumaBonus;
+    matchReason = 'critical specialty match';
     promoted = true;
   } else if (hasSpecialtyMatch) {
-    totalScore = (specialtyScore * (weights.specialtyWeight || 0)) + 
+    totalScore = 45 + // Higher base score
+                (specialtyScore * (weights.specialtyWeight || 0)) + 
                 (proximityScore * weights.proximityWeight) + 
-                (capacityScore * weights.capacityWeight);
+                (capacityScore * weights.capacityWeight) +
+                (weights.matchBonus || 0) +
+                hospitalTypeBonus + emergencyBonus;
     matchReason = 'specialty match';
-    promoted = totalScore >= (weights.perfectMatchThreshold || 90);
+    promoted = totalScore >= (weights.perfectMatchThreshold || 85);
   } else if (isCritical) {
-    totalScore = (proximityScore * weights.proximityWeight) + 
-                (capacityScore * weights.capacityWeight);
+    totalScore = 40 + // Higher base score
+                (proximityScore * weights.proximityWeight) + 
+                (capacityScore * weights.capacityWeight) +
+                hospitalTypeBonus + emergencyBonus + traumaBonus;
     matchReason = 'urgent proximity';
   } else {
-    totalScore = (proximityScore * weights.proximityWeight) + 
-                (capacityScore * weights.capacityWeight);
-    matchReason = 'proximity';
+    totalScore = 35 + // Higher base score
+                (proximityScore * weights.proximityWeight) + 
+                (capacityScore * weights.capacityWeight) +
+                hospitalTypeBonus + emergencyBonus;
+    matchReason = 'proximity and capacity';
   }
   
+  // Ensure realistic score ranges (60-98%)
+  const finalScore = Math.max(60, Math.min(98, Math.round(totalScore)));
+  
   return {
-    matchScore: Math.round(totalScore),
+    matchScore: finalScore,
     matchReason,
     promoted,
     matchedSpecialties: hasSpecialtyMatch ? matchedSpecialties : [],
-    distance: calculateProximityScore(userLocation) / 4 // Convert back to kilometers
+    distance: userLocation ? calculateProximityScore(userLocation) / 10 : hospital.distance || 5
   };
 };

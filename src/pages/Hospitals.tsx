@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,7 +81,7 @@ const Hospitals = () => {
     }
   };
 
-  // Load and rank hospitals when location changes
+  // Enhanced hospital ranking with improved matching algorithm
   useEffect(() => {
     if (!currentLocation) return;
 
@@ -102,7 +101,7 @@ const Hospitals = () => {
       // Filter hospitals within 30km radius
       const nearbyHospitals = hospitalsWithDistance.filter(hospital => (hospital.distance || 0) <= 30);
       
-      // Apply hospital matching algorithm
+      // Apply enhanced hospital matching algorithm
       const matchedHospitals = nearbyHospitals.map(hospital => {
         const matchResult = calculateHospitalMatch(hospital, specialtyTags, criticalCase, currentLocation);
         return {
@@ -111,9 +110,15 @@ const Hospitals = () => {
           matchReason: matchResult.matchReason,
           promoted: matchResult.promoted,
           matchedSpecialties: matchResult.matchedSpecialties || [],
-          promotedDueToSpecialty: matchResult.promoted
+          promotedDueToSpecialty: matchResult.promoted && specialtyTags.length > 0,
+          distance: matchResult.distance
         };
-      }).sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+      }).sort((a, b) => {
+        // Enhanced sorting: promoted hospitals first, then by match score
+        if (a.promoted && !b.promoted) return -1;
+        if (!a.promoted && b.promoted) return 1;
+        return (b.matchScore || 0) - (a.matchScore || 0);
+      });
       
       setRankedHospitals(matchedHospitals);
       setSelectedHospital(matchedHospitals[0] || null);
@@ -123,6 +128,13 @@ const Hospitals = () => {
           title: t('hospitals.none'),
           description: t('hospitals.none'),
           variant: "destructive"
+        });
+      } else {
+        // Show success message with match info
+        const topMatch = matchedHospitals[0];
+        toast({
+          title: "Hospitals Found",
+          description: `Found ${matchedHospitals.length} hospitals. Top match: ${topMatch.name} (${topMatch.matchScore}%)`,
         });
       }
     } catch (error) {
@@ -244,7 +256,7 @@ const Hospitals = () => {
   };
 
   const getMatchScoreColor = (score) => {
-    if (score >= 90) return 'bg-medical text-white';
+    if (score >= 90) return 'bg-green-600 text-white';
     if (score >= 80) return 'bg-green-500 text-white';
     if (score >= 70) return 'bg-blue-500 text-white';
     if (score >= 60) return 'bg-amber-500 text-white';
@@ -254,7 +266,7 @@ const Hospitals = () => {
   const getMatchScoreClass = (score, isPromoted) => {
     const baseClass = getMatchScoreColor(score);
     const sizeClass = 'text-base font-bold px-3 py-1.5';
-    const promotedClass = isPromoted ? 'ring-2 ring-medical ring-offset-1' : '';
+    const promotedClass = isPromoted ? 'ring-2 ring-green-400 ring-offset-1' : '';
     
     return `${baseClass} ${sizeClass} ${promotedClass} flex items-center gap-1.5 rounded-full`;
   };

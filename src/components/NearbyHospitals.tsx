@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -104,18 +103,25 @@ const NearbyHospitals = () => {
     }
   };
   
-  // Function to fetch nearby hospitals using comprehensive hospital data
+  // Enhanced function to fetch nearby hospitals with better matching
   const fetchNearbyHospitals = (location: Location) => {
     const hospitalsWithDistance = calculateDistanceAndETA(comprehensiveHospitals, location);
     
-    // Filter hospitals within 30km and sort by distance
+    // Filter hospitals within 30km and apply enhanced matching
     const nearbyHospitals = hospitalsWithDistance
       .filter(hospital => (hospital.distance || 0) <= 30)
-      .sort((a, b) => (a.distance || 0) - (b.distance || 0))
-      .map(hospital => ({
-        ...hospital,
-        matchScore: Math.max(20, Math.min(95, Math.round(100 - (hospital.distance || 0) * 3 + Math.random() * 20)))
-      }));
+      .map(hospital => {
+        // Use the enhanced matching algorithm
+        const matchResult = calculateHospitalMatch(hospital, [], false, location);
+        return {
+          ...hospital,
+          matchScore: matchResult.matchScore,
+          matchReason: matchResult.matchReason,
+          promoted: matchResult.promoted,
+          distance: matchResult.distance
+        };
+      })
+      .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0)); // Sort by match score
     
     setHospitals(nearbyHospitals);
   };
@@ -242,7 +248,7 @@ const NearbyHospitals = () => {
           </div>
         )}
         
-        {/* Hospitals list */}
+        {/* Enhanced hospitals list with better match scores */}
         {!isLoading && hospitals.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{t('hospitals.nearby')} ({t('within.radius')}):</h3>
@@ -266,12 +272,17 @@ const NearbyHospitals = () => {
                           <BadgePercent className="h-3 w-3" />
                           {hospital.matchScore || 0}% {t('match')}
                         </Badge>
+                        {hospital.promoted && (
+                          <Badge className="bg-green-500 text-white ml-1">
+                            ⭐ {t('promoted')}
+                          </Badge>
+                        )}
                       </h4>
                       
                       <div className="text-sm text-muted-foreground flex items-center flex-wrap gap-x-4 gap-y-1 mt-1">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5" />
-                          {hospital.distance || 0} {t('km')}
+                          {(hospital.distance || 0).toFixed(1)} {t('km')}
                         </div>
                         
                         <div className="flex items-center gap-1">
