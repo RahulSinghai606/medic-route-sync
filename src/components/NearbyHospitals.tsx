@@ -7,22 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MapPin, Navigation, Clock, Bed, BadgePercent, Phone, AlertTriangle, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-interface Hospital {
-  id: number;
-  name: string;
-  address: string;
-  distance: number;
-  lat: number;
-  lng: number;
-  matchScore: number;
-  availableBeds: number;
-  icuBeds: number;
-  waitTime: number;
-  eta: number;
-  phone: string;
-  specialties: string[];
-}
+import { comprehensiveHospitals, calculateDistanceAndETA, ComprehensiveHospital } from '@/data/comprehensiveHospitals';
 
 interface Location {
   lat: number;
@@ -30,139 +15,10 @@ interface Location {
   address?: string;
 }
 
-// Real hospitals with accurate location data for major Indian cities
-const realHospitalsData = [
-  // Mumbai hospitals
-  {
-    id: 1,
-    name: 'King Edward Memorial Hospital',
-    address: 'Acharya Donde Marg, Parel, Mumbai, Maharashtra 400012',
-    phone: '022-2410-7000',
-    lat: 19.0127,
-    lng: 72.8434,
-    specialties: ['Emergency Medicine', 'Trauma Center', 'Cardiology', 'Neurology'],
-    availableBeds: 15,
-    icuBeds: 4,
-    waitTime: 8
-  },
-  {
-    id: 2,
-    name: 'Lilavati Hospital and Research Centre',
-    address: 'A-791, Bandra Reclamation, Bandra West, Mumbai, Maharashtra 400050',
-    phone: '022-2640-0000',
-    lat: 19.0559,
-    lng: 72.8317,
-    specialties: ['Cardiology', 'Neurology', 'Oncology', 'Orthopedics'],
-    availableBeds: 12,
-    icuBeds: 3,
-    waitTime: 15
-  },
-  // Delhi hospitals
-  {
-    id: 3,
-    name: 'All India Institute of Medical Sciences',
-    address: 'Sri Aurobindo Marg, Ansari Nagar, New Delhi, Delhi 110029',
-    phone: '011-2658-8500',
-    lat: 28.5672,
-    lng: 77.2100,
-    specialties: ['Emergency Medicine', 'Trauma Center', 'Cardiology', 'Neurosurgery'],
-    availableBeds: 20,
-    icuBeds: 6,
-    waitTime: 12
-  },
-  {
-    id: 4,
-    name: 'Fortis Escorts Heart Institute',
-    address: 'Okhla Road, New Delhi, Delhi 110025',
-    phone: '011-4713-5000',
-    lat: 28.5355,
-    lng: 77.2503,
-    specialties: ['Cardiology', 'Cardiac Surgery', 'Emergency Medicine'],
-    availableBeds: 8,
-    icuBeds: 2,
-    waitTime: 10
-  },
-  // Bangalore hospitals
-  {
-    id: 5,
-    name: 'Manipal Hospital, Hebbal',
-    address: 'Airport Road, Hebbal, Bengaluru, Karnataka 560024',
-    phone: '080-2502-4444',
-    lat: 13.0477,
-    lng: 77.5936,
-    specialties: ['Cardiology', 'Neurology', 'Trauma Center', 'Orthopedics'],
-    availableBeds: 15,
-    icuBeds: 4,
-    waitTime: 10
-  },
-  {
-    id: 6,
-    name: 'Columbia Asia Hospital, Hebbal',
-    address: 'Kirloskar Business Park, Hebbal, Bengaluru, Karnataka 560024',
-    phone: '080-6165-6262',
-    lat: 13.0495,
-    lng: 77.5880,
-    specialties: ['General Medicine', 'Orthopedics', 'Pediatrics', 'Emergency'],
-    availableBeds: 12,
-    icuBeds: 3,
-    waitTime: 15
-  },
-  // Chennai hospitals
-  {
-    id: 7,
-    name: 'Apollo Hospital, Greams Road',
-    address: '21, Greams Lane, Off Greams Road, Chennai, Tamil Nadu 600006',
-    phone: '044-2829-0200',
-    lat: 13.0594,
-    lng: 80.2484,
-    specialties: ['Cardiology', 'Neurology', 'Oncology', 'Emergency Medicine'],
-    availableBeds: 18,
-    icuBeds: 5,
-    waitTime: 12
-  },
-  {
-    id: 8,
-    name: 'Fortis Malar Hospital',
-    address: '52, 1st Main Road, Gandhi Nagar, Adyar, Chennai, Tamil Nadu 600020',
-    phone: '044-4289-2222',
-    lat: 13.0067,
-    lng: 80.2206,
-    specialties: ['Cardiac Surgery', 'Neurosurgery', 'Emergency Medicine'],
-    availableBeds: 10,
-    icuBeds: 2,
-    waitTime: 8
-  },
-  // Kolkata hospitals
-  {
-    id: 9,
-    name: 'AMRI Hospital, Salt Lake',
-    address: 'JC - 16 & 17, Sector III, Salt Lake City, Kolkata, West Bengal 700098',
-    phone: '033-6606-3800',
-    lat: 22.5958,
-    lng: 88.4497,
-    specialties: ['Emergency Medicine', 'Cardiology', 'Neurology', 'Orthopedics'],
-    availableBeds: 14,
-    icuBeds: 4,
-    waitTime: 10
-  },
-  {
-    id: 10,
-    name: 'Apollo Gleneagles Hospital',
-    address: '58, Canal Circular Road, Kadapara, Phool Bagan, Kolkata, West Bengal 700054',
-    phone: '033-2320-2122',
-    lat: 22.5448,
-    lng: 88.3426,
-    specialties: ['Cardiac Surgery', 'Neurosurgery', 'Oncology', 'Emergency Medicine'],
-    availableBeds: 16,
-    icuBeds: 5,
-    waitTime: 15
-  }
-];
-
 const NearbyHospitals = () => {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [hospitals, setHospitals] = useState<ComprehensiveHospital[]>([]);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,18 +31,6 @@ const NearbyHospitals = () => {
     { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
     { name: 'Kolkata', lat: 22.5726, lng: 88.3639 }
   ];
-  
-  // Function to calculate distance using Haversine formula
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
   
   // Function to get user's current location
   const getUserLocation = () => {
@@ -212,19 +56,19 @@ const NearbyHospitals = () => {
           setIsLoading(false);
           
           toast({
-            title: "Location accessed",
-            description: "Found your current location. Showing nearby hospitals.",
+            title: t('location.updated'),
+            description: t('location.success'),
           });
         },
         (error) => {
           console.error('Geolocation error:', error);
-          setError('Unable to access your location. Please allow location access or select a city manually.');
+          setError(t('location.error'));
           setIsLoading(false);
           
           toast({
             variant: "destructive",
-            title: "Location error",
-            description: "Could not access your location. Please allow location access or select a city."
+            title: t('location.error.title'),
+            description: t('location.error')
           });
         }
       );
@@ -260,25 +104,18 @@ const NearbyHospitals = () => {
     }
   };
   
-  // Function to fetch nearby hospitals using real data
+  // Function to fetch nearby hospitals using comprehensive hospital data
   const fetchNearbyHospitals = (location: Location) => {
-    const hospitalsWithDistance = realHospitalsData.map(hospital => {
-      const distance = calculateDistance(location.lat, location.lng, hospital.lat, hospital.lng);
-      const eta = Math.round(distance * 2 + Math.random() * 5); // Rough ETA calculation
-      const matchScore = Math.max(20, Math.min(95, Math.round(100 - distance * 3 + Math.random() * 20)));
-      
-      return {
-        ...hospital,
-        distance: parseFloat(distance.toFixed(1)),
-        eta: eta,
-        matchScore: matchScore
-      };
-    });
+    const hospitalsWithDistance = calculateDistanceAndETA(comprehensiveHospitals, location);
     
     // Filter hospitals within 30km and sort by distance
     const nearbyHospitals = hospitalsWithDistance
       .filter(hospital => hospital.distance <= 30)
-      .sort((a, b) => a.distance - b.distance);
+      .sort((a, b) => a.distance - b.distance)
+      .map(hospital => ({
+        ...hospital,
+        matchScore: Math.max(20, Math.min(95, Math.round(100 - hospital.distance * 3 + Math.random() * 20)))
+      }));
     
     setHospitals(nearbyHospitals);
   };
@@ -301,7 +138,7 @@ const NearbyHospitals = () => {
       });
       
       toast({
-        title: "Location updated",
+        title: t('location.updated'),
         description: `Showing hospitals near ${locationName}`
       });
     }
@@ -314,23 +151,24 @@ const NearbyHospitals = () => {
     return "bg-red-500 text-white";
   };
   
-  // Function to get directions to hospital
-  const getDirections = (hospital: Hospital) => {
+  // Function to get directions to hospital (FIXED)
+  const getDirections = (hospital: ComprehensiveHospital) => {
     if (!currentLocation) {
       toast({
         variant: "destructive",
-        title: "No location",
-        description: "Your current location is needed to get directions."
+        title: t('error.no.location'),
+        description: t('error.directions')
       });
       return;
     }
     
+    // Create proper Google Maps directions URL
     const url = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.lat},${currentLocation.lng}&destination=${hospital.lat},${hospital.lng}&travelmode=driving`;
     window.open(url, '_blank');
     
     toast({
-      title: "Opening directions",
-      description: `Getting directions to ${hospital.name}`
+      title: t('error.opening.directions'),
+      description: `${t('hospitals.getting.directions')} ${hospital.name}`
     });
   };
   
@@ -347,8 +185,8 @@ const NearbyHospitals = () => {
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>Nearby Hospitals</CardTitle>
-        <CardDescription>Real-time hospital locations based on your GPS coordinates</CardDescription>
+        <CardTitle>{t('hospitals.nearby')}</CardTitle>
+        <CardDescription>{t('hospitals.description')}</CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -359,7 +197,7 @@ const NearbyHospitals = () => {
               <div className="bg-muted/50 p-3 rounded-md flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-primary" />
                 <div className="text-sm">
-                  <div className="font-medium">Your Location</div>
+                  <div className="font-medium">{t('your.location')}</div>
                   <div className="text-muted-foreground text-xs">{currentLocation.address}</div>
                 </div>
               </div>
@@ -381,12 +219,12 @@ const NearbyHospitals = () => {
               disabled={isLoading}
             >
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-              {isLoading ? "Getting location..." : "Use my location"}
+              {isLoading ? t('getting.location') : t('use.location')}
             </Button>
             
             <Select value={selectedLocation || ""} onValueChange={handleLocationSelect}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Select city" />
+                <SelectValue placeholder={t('select.city')} />
               </SelectTrigger>
               <SelectContent>
                 {predefinedLocations.map(location => (
@@ -407,7 +245,7 @@ const NearbyHospitals = () => {
         {/* Hospitals list */}
         {!isLoading && hospitals.length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Hospitals near you (within 30 km):</h3>
+            <h3 className="text-lg font-medium">{t('hospitals.nearby')} ({t('within.radius')}):</h3>
             
             <div className="space-y-3">
               {hospitals.map(hospital => (
@@ -419,28 +257,31 @@ const NearbyHospitals = () => {
                     <div>
                       <h4 className="font-medium text-lg flex items-center gap-2">
                         {hospital.name} 
+                        <Badge className="bg-muted text-muted-foreground text-xs">
+                          {t(`hospitals.type.${hospital.type.toLowerCase()}`)}
+                        </Badge>
                         <Badge 
                           className={`${getMatchScoreColor(hospital.matchScore)} ml-2 flex items-center gap-1`}
                         >
                           <BadgePercent className="h-3 w-3" />
-                          {hospital.matchScore}% match
+                          {hospital.matchScore}% {t('match')}
                         </Badge>
                       </h4>
                       
                       <div className="text-sm text-muted-foreground flex items-center flex-wrap gap-x-4 gap-y-1 mt-1">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5" />
-                          {hospital.distance} km
+                          {hospital.distance} {t('km')}
                         </div>
                         
                         <div className="flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
-                          ETA: {hospital.eta} min
+                          {t('eta.label')}: {hospital.eta} {t('min')}
                         </div>
                         
                         <div className="flex items-center gap-1">
                           <Bed className="h-3.5 w-3.5" />
-                          {hospital.availableBeds} beds available
+                          {hospital.availableBeds} {t('hospitals.beds').toLowerCase()}
                         </div>
                       </div>
                     </div>
@@ -453,7 +294,7 @@ const NearbyHospitals = () => {
                         onClick={() => callHospital(hospital.phone)}
                       >
                         <Phone className="h-3.5 w-3.5 mr-1" />
-                        Call
+                        {t('hospitals.call')}
                       </Button>
                       
                       <Button 
@@ -462,17 +303,22 @@ const NearbyHospitals = () => {
                         onClick={() => getDirections(hospital)}
                       >
                         <Navigation className="h-3.5 w-3.5 mr-1" />
-                        Directions
+                        {t('hospitals.directions')}
                       </Button>
                     </div>
                   </div>
                   
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {hospital.specialties.map((specialty, index) => (
+                    {hospital.specialties.slice(0, 4).map((specialty, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {specialty}
                       </Badge>
                     ))}
+                    {hospital.specialties.length > 4 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{hospital.specialties.length - 4} more
+                      </Badge>
+                    )}
                   </div>
                 </div>
               ))}
@@ -483,9 +329,9 @@ const NearbyHospitals = () => {
         {!isLoading && hospitals.length === 0 && !error && (
           <div className="text-center p-8 border rounded-lg bg-muted/20">
             <AlertTriangle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <h3 className="text-lg font-medium mb-1">No hospitals found</h3>
+            <h3 className="text-lg font-medium mb-1">{t('no.hospitals.found')}</h3>
             <p className="text-sm text-muted-foreground">
-              No hospitals found within 30km radius. Try selecting a different location.
+              {t('no.hospitals.description')}
             </p>
           </div>
         )}
@@ -498,7 +344,7 @@ const NearbyHospitals = () => {
           disabled={isLoading}
         >
           <MapPin className="h-4 w-4 mr-2" />
-          Refresh Hospital List
+          {t('hospitals.refresh')}
         </Button>
       </CardFooter>
     </Card>

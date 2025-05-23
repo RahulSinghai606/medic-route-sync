@@ -24,167 +24,20 @@ import {
   Loader2
 } from 'lucide-react';
 import { calculateHospitalMatch, Location } from '@/utils/hospitalUtils';
-import { calculateDistanceAndETA } from '@/data/hospitals';
+import { comprehensiveHospitals, calculateDistanceAndETA, ComprehensiveHospital } from '@/data/comprehensiveHospitals';
 import MapView from '@/components/MapView';
 import { useToast } from '@/hooks/use-toast';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { fetchPatients } from '@/lib/patientUtils';
-
-// Real hospitals with accurate location data for major Indian cities
-const realHospitals = [
-  // Mumbai hospitals
-  {
-    id: 1,
-    name: 'King Edward Memorial Hospital',
-    specialties: ['Emergency Medicine', 'Trauma Center', 'Cardiology', 'Neurology'],
-    availableBeds: 15,
-    waitTime: 8,
-    address: 'Acharya Donde Marg, Parel, Mumbai, Maharashtra 400012',
-    phone: '022-2410-7000',
-    lat: 19.0127,
-    lng: 72.8434,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  {
-    id: 2,
-    name: 'Lilavati Hospital and Research Centre',
-    specialties: ['Cardiology', 'Neurology', 'Oncology', 'Orthopedics'],
-    availableBeds: 12,
-    waitTime: 15,
-    address: 'A-791, Bandra Reclamation, Bandra West, Mumbai, Maharashtra 400050',
-    phone: '022-2640-0000',
-    lat: 19.0559,
-    lng: 72.8317,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  // Delhi hospitals
-  {
-    id: 3,
-    name: 'All India Institute of Medical Sciences',
-    specialties: ['Emergency Medicine', 'Trauma Center', 'Cardiology', 'Neurosurgery'],
-    availableBeds: 20,
-    waitTime: 12,
-    address: 'Sri Aurobindo Marg, Ansari Nagar, New Delhi, Delhi 110029',
-    phone: '011-2658-8500',
-    lat: 28.5672,
-    lng: 77.2100,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  {
-    id: 4,
-    name: 'Fortis Escorts Heart Institute',
-    specialties: ['Cardiology', 'Cardiac Surgery', 'Emergency Medicine'],
-    availableBeds: 8,
-    waitTime: 10,
-    address: 'Okhla Road, New Delhi, Delhi 110025',
-    phone: '011-4713-5000',
-    lat: 28.5355,
-    lng: 77.2503,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  // Bangalore hospitals
-  {
-    id: 5,
-    name: 'Manipal Hospital, Hebbal',
-    specialties: ['Cardiology', 'Neurology', 'Trauma Center', 'Orthopedics'],
-    availableBeds: 15,
-    waitTime: 10,
-    address: 'Airport Road, Hebbal, Bengaluru, Karnataka 560024',
-    phone: '080-2502-4444',
-    lat: 13.0477,
-    lng: 77.5936,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  {
-    id: 6,
-    name: 'Columbia Asia Hospital, Hebbal',
-    specialties: ['General Medicine', 'Orthopedics', 'Pediatrics', 'Emergency'],
-    availableBeds: 12,
-    waitTime: 15,
-    address: 'Kirloskar Business Park, Hebbal, Bengaluru, Karnataka 560024',
-    phone: '080-6165-6262',
-    lat: 13.0495,
-    lng: 77.5880,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  // Chennai hospitals
-  {
-    id: 7,
-    name: 'Apollo Hospital, Greams Road',
-    specialties: ['Cardiology', 'Neurology', 'Oncology', 'Emergency Medicine'],
-    availableBeds: 18,
-    waitTime: 12,
-    address: '21, Greams Lane, Off Greams Road, Chennai, Tamil Nadu 600006',
-    phone: '044-2829-0200',
-    lat: 13.0594,
-    lng: 80.2484,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  {
-    id: 8,
-    name: 'Fortis Malar Hospital',
-    specialties: ['Cardiac Surgery', 'Neurosurgery', 'Emergency Medicine'],
-    availableBeds: 10,
-    waitTime: 8,
-    address: '52, 1st Main Road, Gandhi Nagar, Adyar, Chennai, Tamil Nadu 600020',
-    phone: '044-4289-2222',
-    lat: 13.0067,
-    lng: 80.2206,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  // Kolkata hospitals
-  {
-    id: 9,
-    name: 'AMRI Hospital, Salt Lake',
-    specialties: ['Emergency Medicine', 'Cardiology', 'Neurology', 'Orthopedics'],
-    availableBeds: 14,
-    waitTime: 10,
-    address: 'JC - 16 & 17, Sector III, Salt Lake City, Kolkata, West Bengal 700098',
-    phone: '033-6606-3800',
-    lat: 22.5958,
-    lng: 88.4497,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  },
-  {
-    id: 10,
-    name: 'Apollo Gleneagles Hospital',
-    specialties: ['Cardiac Surgery', 'Neurosurgery', 'Oncology', 'Emergency Medicine'],
-    availableBeds: 16,
-    waitTime: 15,
-    address: '58, Canal Circular Road, Kadapara, Phool Bagan, Kolkata, West Bengal 700054',
-    phone: '033-2320-2122',
-    lat: 22.5448,
-    lng: 88.3426,
-    matchScore: 0,
-    distance: 0,
-    eta: 0
-  }
-];
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Hospitals = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
-  const [rankedHospitals, setRankedHospitals] = useState([]);
-  const [selectedHospital, setSelectedHospital] = useState(null);
+  const [rankedHospitals, setRankedHospitals] = useState<ComprehensiveHospital[]>([]);
+  const [selectedHospital, setSelectedHospital] = useState<ComprehensiveHospital | null>(null);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
@@ -244,7 +97,7 @@ const Hospitals = () => {
                           ));
       
       // Calculate distances for all hospitals
-      const hospitalsWithDistance = calculateDistanceAndETA(realHospitals, currentLocation);
+      const hospitalsWithDistance = calculateDistanceAndETA(comprehensiveHospitals, currentLocation);
       
       // Filter hospitals within 30km radius
       const nearbyHospitals = hospitalsWithDistance.filter(hospital => hospital.distance <= 30);
@@ -267,8 +120,8 @@ const Hospitals = () => {
       
       if (matchedHospitals.length === 0) {
         toast({
-          title: "No Nearby Hospitals",
-          description: "No hospitals found within 30km radius. Please check your location.",
+          title: t('hospitals.none'),
+          description: t('hospitals.none'),
           variant: "destructive"
         });
       }
@@ -299,8 +152,8 @@ const Hospitals = () => {
           setIsLoadingLocation(false);
           
           toast({
-            title: "Location Updated",
-            description: "Your current location has been successfully retrieved.",
+            title: t('location.updated'),
+            description: t('location.success'),
           });
         },
         (error) => {
@@ -321,7 +174,7 @@ const Hospitals = () => {
   };
 
   const handleLocationError = (error) => {
-    let errorMessage = "Unable to retrieve your location.";
+    let errorMessage = t('location.error');
     
     switch (error.code) {
       case error.PERMISSION_DENIED:
@@ -340,7 +193,7 @@ const Hospitals = () => {
     setLocationError(errorMessage);
     
     toast({
-      title: "Location Error",
+      title: t('location.error.title'),
       description: errorMessage,
       variant: "destructive",
     });
@@ -375,8 +228,8 @@ const Hospitals = () => {
   const handleRouteClick = (hospital) => {
     if (!currentLocation) {
       toast({
-        title: "Location Required",
-        description: "Please enable location services to get directions.",
+        title: t('location.required'),
+        description: t('location.enable'),
         variant: "destructive"
       });
       return;
@@ -406,18 +259,39 @@ const Hospitals = () => {
     return `${baseClass} ${sizeClass} ${promotedClass} flex items-center gap-1.5 rounded-full`;
   };
 
+  // Function to get directions to hospital (FIXED)
+  const getDirections = (hospital: ComprehensiveHospital) => {
+    if (!currentLocation) {
+      toast({
+        variant: "destructive",
+        title: t('error.no.location'),
+        description: t('error.directions')
+      });
+      return;
+    }
+    
+    // Create proper Google Maps directions URL
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.lat},${currentLocation.lng}&destination=${hospital.lat},${hospital.lng}&travelmode=driving`;
+    window.open(url, '_blank');
+    
+    toast({
+      title: t('error.opening.directions'),
+      description: `${t('hospitals.getting.directions')} ${hospital.name}`
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Hospital Matching</h1>
-          <p className="text-muted-foreground">Find the best hospital for your patient</p>
+          <h1 className="text-2xl font-bold">{t('hospitals.matching')}</h1>
+          <p className="text-muted-foreground">{t('hospitals.find')}</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search hospitals..." 
+              placeholder={t('hospitals.search')} 
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -433,7 +307,7 @@ const Hospitals = () => {
             disabled={isLoadingLocation}
           >
             {isLoadingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-            <span className="hidden sm:inline">Update Data</span>
+            <span className="hidden sm:inline">{t('hospitals.update')}</span>
           </Button>
         </div>
       </div>
@@ -443,12 +317,12 @@ const Hospitals = () => {
         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md text-blue-800 dark:text-blue-300 flex items-start gap-2">
           <BadgePercent className="h-5 w-5 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium">Match scores based on patient vital signs</p>
+            <p className="font-medium">{t('vitals.based')}</p>
             <p className="text-sm">
-              Heart Rate: {patientVitals.heart_rate || 'N/A'} • 
-              BP: {patientVitals.bp_systolic || 'N/A'}/{patientVitals.bp_diastolic || 'N/A'} • 
-              SpO2: {patientVitals.spo2 || 'N/A'}% • 
-              GCS: {patientVitals.gcs || 'N/A'}
+              {t('heart.rate')}: {patientVitals.heart_rate || 'N/A'} • 
+              {t('blood.pressure')}: {patientVitals.bp_systolic || 'N/A'}/{patientVitals.bp_diastolic || 'N/A'} • 
+              {t('oxygen.saturation')}: {patientVitals.spo2 || 'N/A'}% • 
+              {t('glasgow.coma')}: {patientVitals.gcs || 'N/A'}
             </p>
           </div>
           <Button 
@@ -457,7 +331,7 @@ const Hospitals = () => {
             onClick={fetchLatestPatientData}
             className="ml-auto"
           >
-            Refresh
+            {t('refresh')}
           </Button>
         </div>
       )}
@@ -466,7 +340,7 @@ const Hospitals = () => {
         <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-start gap-2">
           <MapPin className="h-5 w-5 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium">Location Error</p>
+            <p className="font-medium">{t('location.error.title')}</p>
             <p className="text-sm">{locationError}</p>
           </div>
         </div>
@@ -477,7 +351,7 @@ const Hospitals = () => {
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-medical" />
             <div>
-              <p className="text-sm font-medium">Your Location</p>
+              <p className="text-sm font-medium">{t('your.location')}</p>
               <p className="text-xs text-muted-foreground">{currentLocation.address}</p>
             </div>
           </div>
@@ -487,7 +361,7 @@ const Hospitals = () => {
             onClick={getCurrentLocation}
             disabled={isLoadingLocation}
           >
-            {isLoadingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+            {isLoadingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : t('refresh')}
           </Button>
         </div>
       )}
@@ -498,10 +372,10 @@ const Hospitals = () => {
             <CardHeader className="bg-medical/10 pb-2">
               <CardTitle className="text-medical flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                Recommended Hospitals
+                {t('hospitals.recommended')}
               </CardTitle>
               <CardDescription>
-                Ranked by match to patient needs (within 30km)
+                {t('hospitals.ranked')}
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0 py-0">
@@ -509,7 +383,7 @@ const Hospitals = () => {
                 {isLoadingLocation ? (
                   <div className="p-6 text-center">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-medical" />
-                    <p className="text-muted-foreground">Finding nearby hospitals...</p>
+                    <p className="text-muted-foreground">{t('hospitals.wait')}</p>
                   </div>
                 ) : filteredHospitals.length > 0 ? (
                   filteredHospitals.map(hospital => {
@@ -525,6 +399,9 @@ const Hospitals = () => {
                         <div className="flex-grow">
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium">{hospital.name}</h3>
+                            <Badge className="bg-muted text-muted-foreground text-xs">
+                              {t(`hospitals.type.${hospital.type.toLowerCase()}`)}
+                            </Badge>
                             {isPromoted && (
                               <Badge className="bg-medical/20 text-medical border-medical flex items-center gap-1 p-1">
                                 <ArrowUp className="h-3 w-3" />
@@ -534,15 +411,15 @@ const Hospitals = () => {
                           <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
-                              <span>{hospital.distance} km</span>
+                              <span>{hospital.distance} {t('km')}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              <span>ETA {hospital.eta} min</span>
+                              <span>{t('eta.label')} {hospital.eta} {t('min')}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Bed className="h-3 w-3" />
-                              <span>{hospital.availableBeds} beds</span>
+                              <span>{hospital.availableBeds} {t('hospitals.beds').toLowerCase()}</span>
                             </div>
                           </div>
                           {isPromoted && matchedSpecialties.length > 0 && (
@@ -571,7 +448,7 @@ const Hospitals = () => {
                   })
                 ) : (
                   <div className="p-6 text-center text-muted-foreground">
-                    {currentLocation ? 'No hospitals found within 30km radius' : 'Unable to load hospitals without location access'}
+                    {currentLocation ? t('hospitals.none') : 'Unable to load hospitals without location access'}
                   </div>
                 )}
               </div>
@@ -582,8 +459,8 @@ const Hospitals = () => {
         <div className="lg:col-span-2">
           <Tabs defaultValue="details">
             <TabsList>
-              <TabsTrigger value="details">Hospital Details</TabsTrigger>
-              <TabsTrigger value="map">Map View</TabsTrigger>
+              <TabsTrigger value="details">{t('hospitals.details')}</TabsTrigger>
+              <TabsTrigger value="map">{t('hospitals.map')}</TabsTrigger>
             </TabsList>
             <TabsContent value="details" className="mt-4">
               {selectedHospital ? (
@@ -600,7 +477,7 @@ const Hospitals = () => {
                       <div className="flex flex-col items-end gap-1">
                         <div className={getMatchScoreClass(selectedHospital.matchScore, selectedHospital.promotedDueToSpecialty)}>
                           <BadgePercent className="h-4 w-4" />
-                          {selectedHospital.matchScore}% Match
+                          {selectedHospital.matchScore}% {t('match')}
                         </div>
                         
                         {selectedHospital.promotedDueToSpecialty && (
@@ -617,35 +494,35 @@ const Hospitals = () => {
                       <div className="bg-muted/50 p-3 rounded-md">
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
-                          Distance
+                          {t('distance')}
                         </div>
-                        <div className="font-medium mt-1">{selectedHospital.distance} km</div>
+                        <div className="font-medium mt-1">{selectedHospital.distance} {t('km')}</div>
                       </div>
                       <div className="bg-muted/50 p-3 rounded-md">
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <Clock className="h-4 w-4" />
-                          ETA
+                          {t('eta.label')}
                         </div>
-                        <div className="font-medium mt-1">{selectedHospital.eta} min</div>
+                        <div className="font-medium mt-1">{selectedHospital.eta} {t('min')}</div>
                       </div>
                       <div className="bg-muted/50 p-3 rounded-md">
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <Bed className="h-4 w-4" />
-                          Available Beds
+                          {t('available.beds')}
                         </div>
                         <div className="font-medium mt-1">{selectedHospital.availableBeds}</div>
                       </div>
                       <div className="bg-muted/50 p-3 rounded-md">
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <Clock className="h-4 w-4" />
-                          Wait Time
+                          {t('wait.time')}
                         </div>
-                        <div className="font-medium mt-1">{selectedHospital.waitTime} min</div>
+                        <div className="font-medium mt-1">{selectedHospital.waitTime} {t('min')}</div>
                       </div>
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-semibold mb-3">Hospital Specialties</h3>
+                      <h3 className="text-lg font-semibold mb-3">{t('hospitals.specialties')}</h3>
                       <div className="flex flex-wrap gap-2">
                         {selectedHospital.specialties.map((specialty, index) => {
                           let icon;
@@ -675,7 +552,7 @@ const Hospitals = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">Contact Information</h3>
+                        <h3 className="text-lg font-semibold">{t('hospitals.contact')}</h3>
                         <Button 
                           variant="outline" 
                           className="flex items-center gap-2 w-full justify-start"
@@ -686,30 +563,30 @@ const Hospitals = () => {
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">Emergency Department</h3>
+                        <h3 className="text-lg font-semibold">{t('hospitals.emergency')}</h3>
                         <p className="text-sm">
-                          {selectedHospital.specialties.includes('Trauma Center') 
-                            ? 'Trauma Center with 24/7 emergency services'
-                            : '24/7 emergency services available'}
+                          {selectedHospital.traumaCenter 
+                            ? t('hospitals.trauma')
+                            : t('hospitals.services')}
                         </p>
                       </div>
                     </div>
 
                     <div className="border-t pt-4">
-                      <h3 className="text-lg font-semibold mb-3">Patient Matching</h3>
+                      <h3 className="text-lg font-semibold mb-3">{t('hospitals.patient.matching')}</h3>
                       <p className="text-sm mb-4">
                         {selectedHospital.promotedDueToSpecialty 
-                          ? `This hospital has been prioritized due to specialty match with the patient's needs: ${selectedHospital.matchedSpecialties?.join(', ')}.`
-                          : `This hospital is recommended based on proximity and available capacity for immediate care.`
+                          ? `${t('hospitals.prioritized')} ${selectedHospital.matchedSpecialties?.join(', ')}.`
+                          : t('hospitals.proximity')
                         }
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <Button 
                           className="medical-btn flex-1 flex items-center gap-2" 
-                          onClick={() => handleRouteClick(selectedHospital)}
+                          onClick={() => getDirections(selectedHospital)}
                         >
                           <Navigation className="h-4 w-4" />
-                          Route to This Hospital
+                          {t('hospitals.route')}
                         </Button>
                         <Button 
                           variant="outline" 
@@ -727,11 +604,11 @@ const Hospitals = () => {
                 <Card>
                   <CardContent className="p-8 text-center">
                     <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No Hospital Selected</h3>
+                    <h3 className="text-lg font-medium mb-2">{t('hospitals.no.selection')}</h3>
                     <p className="text-muted-foreground">
                       {isLoadingLocation 
-                        ? "Please wait while we find nearby hospitals..."
-                        : "Select a hospital from the list to view details"
+                        ? t('hospitals.wait')
+                        : t('hospitals.select.from.list')
                       }
                     </p>
                   </CardContent>
@@ -743,10 +620,10 @@ const Hospitals = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapIcon className="h-5 w-5" />
-                    Hospital Locations
+                    {t('hospitals.locations')}
                   </CardTitle>
                   <CardDescription>
-                    View and navigate to recommended hospitals
+                    {t('hospitals.navigate')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="h-[400px] relative rounded-md">
@@ -759,11 +636,11 @@ const Hospitals = () => {
                 <CardFooter>
                   <Button 
                     className="w-full medical-btn flex items-center gap-2"
-                    onClick={() => handleRouteClick(selectedHospital)}
+                    onClick={() => selectedHospital && getDirections(selectedHospital)}
                     disabled={!selectedHospital}
                   >
                     <Navigation className="h-4 w-4" />
-                    Get Directions to {selectedHospital?.name || 'Hospital'}
+                    {t('hospitals.get.directions')} {selectedHospital?.name || t('hospitals.nearby')}
                   </Button>
                 </CardFooter>
               </Card>
@@ -796,7 +673,7 @@ const Hospitals = () => {
                 window.open(url, '_blank');
               }}
             >
-              Open in Google Maps
+              {t('hospitals.open.google')}
             </Button>
             <DrawerClose asChild>
               <Button variant="outline">Close</Button>
