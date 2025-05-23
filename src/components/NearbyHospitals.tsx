@@ -7,6 +7,7 @@ import { MapPin, Navigation, Clock, Bed, BadgePercent, Phone, AlertTriangle, Loa
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { comprehensiveHospitals, calculateDistanceAndETA, ComprehensiveHospital } from '@/data/comprehensiveHospitals';
+import { calculateHospitalMatch } from '@/utils/hospitalUtils';
 
 interface Location {
   lat: number;
