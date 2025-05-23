@@ -26,8 +26,8 @@ const TopBar = () => {
   
   const languages = [
     { code: 'en', name: 'English' },
-    { code: 'hi', name: 'Hindi' },
-    { code: 'kn', name: 'Kannada' }
+    { code: 'hi', name: 'हिंदी' },
+    { code: 'kn', name: 'ಕನ್ನಡ' }
   ];
 
   return (
