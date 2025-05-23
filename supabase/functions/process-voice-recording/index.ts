@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -26,7 +25,6 @@ type VitalsData = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -47,43 +45,39 @@ serve(async (req) => {
       throw new Error('No API keys configured. Please add either OpenAI or HuggingFace API key.')
     }
 
-    console.log("Starting transcription process...")
+    console.log("Starting enhanced medical transcription process...")
     let transcription = '';
     let transcriptionError = null;
 
-    // First try OpenAI if key is available
+    // First try OpenAI with enhanced medical context
     if (openaiApiKey) {
       try {
-        // Pass medical context to include in prompt if available
         transcription = await processAudioWithWhisper(audioBase64, openaiApiKey, medicalContext)
         console.log("OpenAI transcription successful:", transcription.substring(0, 50) + "...")
       } catch (openaiError) {
         console.error('OpenAI API error:', openaiError)
         transcriptionError = openaiError.message;
-        // We'll try HuggingFace as fallback
       }
     }
 
-    // If OpenAI failed or wasn't available, try HuggingFace
+    // Fallback to HuggingFace if OpenAI failed
     if (!transcription && huggingFaceApiKey) {
       try {
         transcription = await processAudioWithHuggingFace(audioBase64, huggingFaceApiKey, medicalContext)
         console.log("HuggingFace transcription successful:", transcription.substring(0, 50) + "...")
-        transcriptionError = null; // Clear error if HuggingFace succeeded
+        transcriptionError = null;
       } catch (hfError) {
         console.error('HuggingFace API error:', hfError)
-        // If we already had an OpenAI error, keep that as primary
         if (!transcriptionError) {
           transcriptionError = hfError.message;
         }
       }
     }
 
-    // If both APIs failed, return a useful error message
+    // If both APIs failed, return basic vitals with error
     if (!transcription) {
       const errorMessage = transcriptionError || 'Failed to transcribe audio with all available services';
       
-      // Return basic extraction without transcription
       const basicVitals: VitalsData = {
         notes: `Transcription unavailable - API service error: ${errorMessage}. Please try again later.`,
         ai_assessment: {
@@ -100,36 +94,30 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 // Return 200 even with error to avoid Edge Function error in frontend
+          status: 200
         }
       )
     }
     
-    // Enhanced vital sign extraction with improved regex patterns
-    const extractedVitals = extractVitalsFromText(transcription)
-    
-    // Add transcription to the vitals data
+    // Enhanced vital signs extraction with multi-language support
+    const extractedVitals = extractVitalsFromText(transcription, medicalContext)
     extractedVitals.transcription = transcription
     
-    console.log("Vitals extracted:", JSON.stringify(extractedVitals))
+    console.log("Enhanced vitals extracted:", JSON.stringify(extractedVitals))
 
-    // Generate AI clinical assessment
+    // Generate enhanced AI clinical assessment
     try {
       let aiAssessment;
       if (openaiApiKey) {
-        aiAssessment = await generateClinicalAssessment(transcription, extractedVitals, openaiApiKey)
+        aiAssessment = await generateEnhancedClinicalAssessment(transcription, extractedVitals, openaiApiKey, medicalContext)
       } else {
-        // Fallback assessment if OpenAI is not available
         aiAssessment = await generateBasicAssessment(transcription, extractedVitals, huggingFaceApiKey as string);
       }
       
-      console.log("AI assessment generated:", JSON.stringify(aiAssessment))
-      
-      // Add AI assessment to vitals data
+      console.log("Enhanced AI assessment generated:", JSON.stringify(aiAssessment))
       extractedVitals.ai_assessment = aiAssessment
     } catch (aiError) {
       console.error('Error generating AI assessment:', aiError)
-      // Continue with basic vitals even if AI assessment fails
       extractedVitals.ai_assessment = {
         clinical_probability: "Assessment unavailable - API error",
         care_recommendations: "Please consult with a medical professional",
@@ -149,7 +137,6 @@ serve(async (req) => {
     )
   } catch (error) {
     console.error('Error processing audio:', error)
-    // Always return 200 with error in the body to avoid Edge Function error in frontend
     return new Response(
       JSON.stringify({ 
         error: error.message,
@@ -164,37 +151,36 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 // Return 200 even with error to avoid Edge Function error in frontend
+        status: 200
       }
     )
   }
 })
 
-// Process audio with OpenAI Whisper API with medical context enhancement
+// Enhanced OpenAI Whisper processing with specialized medical prompts
 async function processAudioWithWhisper(audioBase64: string, apiKey: string, medicalContext?: any): Promise<string> {
   try {
-    // Convert base64 to binary
     const binaryAudio = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))
     
-    // Create form data with audio file
     const formData = new FormData()
     const audioBlob = new Blob([binaryAudio], { type: 'audio/webm' })
     formData.append('file', audioBlob, 'audio.webm')
+    formData.append('model', 'whisper-1')
     
-    // Use different models depending on if we're doing medical transcription
-    if (medicalContext && medicalContext.domain === "medical") {
-      // Use whisper-1 which has better recognition for medical terms
-      formData.append('model', 'whisper-1')
-      
-      // Add prompt to help with medical terminology recognition
-      formData.append('prompt', 'This is a medical dictation with vital signs including heart rate, blood pressure, temperature, SpO2, respiratory rate, GCS, and pain level. Numbers are important. Blood pressure is expressed as systolic over diastolic.')
-    } else {
-      formData.append('model', 'whisper-1')
+    // Enhanced medical prompts based on language
+    let medicalPrompt = 'This is a medical emergency report with vital signs including heart rate, blood pressure, temperature, SpO2, respiratory rate, GCS, and pain level. Numbers and medical terminology are critical.';
+    
+    if (medicalContext && medicalContext.language === 'hi-IN') {
+      medicalPrompt = 'यह एक आपातकालीन चिकित्सा रिपोर्ट है जिसमें हृदय गति, रक्तचाप, तापमान, SpO2, श्वसन दर, GCS और दर्द का स्तर शामिल है। संख्याएं और चिकित्सा शब्दावली महत्वपूर्ण हैं।';
+    } else if (medicalContext && medicalContext.language === 'kn-IN') {
+      medicalPrompt = 'ಇದು ಹೃದಯ ಬಡಿತ, ರಕ್ತದೊತ್ತಡ, ಉಷ್ಣಾಂಶ, SpO2, ಉಸಿರಾಟದ ದರ, GCS ಮತ್ತು ನೋವಿನ ಮಟ್ಟವನ್ನು ಒಳಗೊಂಡ ತುರ್ತು ವೈದ್ಯಕೀಯ ವರದಿಯಾಗಿದೆ। ಸಂಖ್ಯೆಗಳು ಮತ್ತು ವೈದ್ಯಕೀಯ ಪರಿಭಾಷೆ ನಿರ್ಣಾಯಕವಾಗಿದೆ।';
     }
     
-    console.log("Sending audio to OpenAI (size: " + binaryAudio.length + " bytes)")
+    formData.append('prompt', medicalPrompt)
+    formData.append('language', medicalContext?.language?.split('-')[0] || 'en')
     
-    // Send to OpenAI
+    console.log("Sending enhanced medical audio to OpenAI (size: " + binaryAudio.length + " bytes)")
+    
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
@@ -207,7 +193,6 @@ async function processAudioWithWhisper(audioBase64: string, apiKey: string, medi
       const errorData = await response.text()
       console.error("OpenAI API error response:", errorData)
       
-      // Check for quota exceeded error
       if (errorData.includes('insufficient_quota')) {
         throw new Error(`OpenAI API quota exceeded. Please check your billing details.`)
       }
@@ -218,7 +203,7 @@ async function processAudioWithWhisper(audioBase64: string, apiKey: string, medi
     const data = await response.json()
     return data.text
   } catch (error) {
-    console.error("Error in processAudioWithWhisper:", error)
+    console.error("Error in enhanced processAudioWithWhisper:", error)
     throw error
   }
 }
@@ -276,6 +261,123 @@ async function processAudioWithHuggingFace(audioBase64: string, apiKey: string, 
   } catch (error) {
     console.error("Error in processAudioWithHuggingFace:", error)
     throw error
+  }
+}
+
+// Enhanced AI clinical assessment with multi-language support
+async function generateEnhancedClinicalAssessment(
+  transcription: string, 
+  vitals: VitalsData, 
+  apiKey: string,
+  medicalContext?: any
+): Promise<{ clinical_probability: string; care_recommendations: string; specialty_tags: string[] }> {
+  try {
+    const vitalSigns = [
+      vitals.heart_rate ? `Heart Rate: ${vitals.heart_rate} bpm` : null,
+      (vitals.bp_systolic && vitals.bp_diastolic) ? `Blood Pressure: ${vitals.bp_systolic}/${vitals.bp_diastolic} mmHg` : null,
+      vitals.spo2 ? `SpO2: ${vitals.spo2}%` : null,
+      vitals.temperature ? `Temperature: ${vitals.temperature}°C` : null,
+      vitals.respiratory_rate ? `Respiratory Rate: ${vitals.respiratory_rate} breaths/min` : null,
+      vitals.gcs ? `GCS: ${vitals.gcs}` : null,
+      vitals.pain_level ? `Pain Level: ${vitals.pain_level}/10` : null
+    ].filter(Boolean).join(', ');
+
+    // Enhanced prompt with emergency medicine specialization
+    const prompt = `
+    You are an experienced emergency medicine physician AI with specialization in critical care and emergency triage. 
+    Based on the following patient information, provide a comprehensive clinical assessment:
+    
+    PATIENT TRANSCRIPTION: "${transcription}"
+    VITAL SIGNS: ${vitalSigns}
+    LANGUAGE CONTEXT: ${medicalContext?.language || 'en-US'}
+    
+    CRITICAL ASSESSMENT GUIDELINES:
+    - Prioritize life-threatening conditions (ABCDE approach)
+    - Consider cultural and linguistic context for symptom interpretation
+    - Account for language barriers that might affect symptom description
+    - If vital signs show critical values, recommend immediate emergency care
+    - Consider common emergency conditions in Indian healthcare context
+    
+    CRITICAL THRESHOLDS TO CONSIDER:
+    * Heart rate < 50 or > 120 bpm (consider arrhythmias, shock)
+    * Systolic BP < 90 or > 180 mmHg (hypotension/hypertensive crisis)  
+    * SpO2 < 92% (respiratory compromise, immediate oxygen needed)
+    * Temperature < 36°C or > 38.5°C (hypothermia/hyperthermia)
+    * Respiratory rate < 8 or > 30/min (respiratory failure risk)
+    * GCS < 13 (altered mental status, neurological emergency)
+    * Pain level > 7 (severe pain requiring immediate attention)
+    
+    EMERGENCY CONDITIONS TO ASSESS:
+    - Chest pain (MI, PE, pneumothorax)
+    - Breathing difficulties (asthma, COPD exacerbation, pneumonia)
+    - Altered consciousness (stroke, hypoglycemia, toxicity)
+    - Severe pain (appendicitis, renal colic, trauma)
+    - Fever with systemic symptoms (sepsis, meningitis)
+    - Snake bites and envenomation (common in rural India)
+    
+    Format your response exactly as follows:
+    Clinical Probability: [Detailed assessment with urgency level and differential diagnosis]
+    Care Recommendations: [Specific, actionable recommendations with time-sensitive priorities]
+    Specialty Tags: #Emergency #Cardiology #Respiratory #Neurology [relevant specialties]
+    `;
+
+    console.log("Sending enhanced AI assessment request to OpenAI...")
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            "role": "system",
+            "content": "You are an expert emergency medicine physician AI assistant with extensive experience in Indian healthcare settings. You provide accurate, culturally-sensitive clinical assessments with emergency medicine expertise."
+          },
+          {
+            "role": "user",
+            "content": prompt
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 400
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("OpenAI API error response:", errorData);
+      throw new Error(`OpenAI API error: ${errorData}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content;
+    console.log("Enhanced AI response:", aiResponse);
+    
+    // Parse the AI response
+    const clinicalProbabilityMatch = aiResponse.match(/Clinical Probability:\s*(.*?)(?:\n|Care Recommendations:)/s);
+    const careRecommendationsMatch = aiResponse.match(/Care Recommendations:\s*(.*?)(?:\n|Specialty Tags:)/s);
+    const specialtyTagsMatch = aiResponse.match(/Specialty Tags:\s*(.*?)(?:\n|$)/s);
+    
+    const specialtyTagsString = specialtyTagsMatch?.[1] || "";
+    const specialtyTags = specialtyTagsString
+      .match(/#[a-zA-Z0-9]+/g)
+      ?.map(tag => tag.substring(1)) || [];
+    
+    return {
+      clinical_probability: clinicalProbabilityMatch?.[1]?.trim() || "Assessment requires more information",
+      care_recommendations: careRecommendationsMatch?.[1]?.trim() || "Consult with emergency medicine specialist immediately",
+      specialty_tags: specialtyTags.length > 0 ? specialtyTags : ["Emergency", "General"]
+    };
+  } catch (error) {
+    console.error('Error generating enhanced clinical assessment:', error);
+    return {
+      clinical_probability: "Unable to generate clinical assessment - please consult emergency physician immediately",
+      care_recommendations: "Seek immediate medical attention at nearest emergency department",
+      specialty_tags: ["Emergency", "General"]
+    };
   }
 }
 
@@ -389,21 +491,30 @@ async function generateBasicAssessment(
   }
 }
 
-// Extract vitals from transcription text - improved for medical terminology
-function extractVitalsFromText(text: string): VitalsData {
+// Enhanced vital signs extraction with multi-language support
+function extractVitalsFromText(text: string, medicalContext?: any): VitalsData {
   const vitals: VitalsData = {
-    notes: text // Save full transcription as notes
+    notes: text
   }
   
-  // Improved blood pressure patterns with more medical variations
+  // Language-specific patterns
+  const isHindi = medicalContext?.language === 'hi-IN';
+  const isKannada = medicalContext?.language === 'kn-IN';
+  
+  // Enhanced blood pressure patterns with multi-language support
   const bpPatterns = [
+    // English patterns
     /(?:BP|blood pressure)[:\s]+(\d+)[\s/]+over[\s/]+(\d+)/i,
     /(?:BP|blood pressure)[:\s]+(\d+)[/](\d+)/i,
-    /(?:BP|blood pressure)(?:[:\s]+|[\s]+is[\s]+)(\d+)[\s/](\d+)/i,
     /(?:systolic|systole)[\s:]+(\d+)[\s,]+(?:diastolic|diastole)[\s:]+(\d+)/i,
-    /(?:BP|blood pressure)[\s:]*(\d+)[\s/](\d+)[\s]*(?:mm ?Hg|millimeters of mercury)/i,
-    /pressure[\s:]*(?:of|is|at)[\s:]*(\d+)[\s/](\d+)/i,
-    /(?:systolic|blood[\s:]*pressure[\s:]*top[\s:]*number)[\s:]*(?:of|is|at)[\s:]*(\d+)[\s,]+(?:diastolic|bottom[\s:]*number)[\s:]*(?:of|is|at)[\s:]*(\d+)/i
+    
+    // Hindi patterns
+    /(?:रक्तचाप|BP)[:\s]+(\d+)[/](\d+)/i,
+    /(?:सिस्टोलिक|ऊपरी)[:\s]+(\d+)[\s,]+(?:डायस्टोलिक|निचला)[:\s]+(\d+)/i,
+    
+    // Kannada patterns
+    /(?:ರಕ್ತದೊತ್ತಡ|BP)[:\s]+(\d+)[/](\d+)/i,
+    /(?:ಸಿಸ್ಟೋಲಿಕ್|ಮೇಲಿನ)[:\s]+(\d+)[\s,]+(?:ಡಯಾಸ್ಟೋಲಿಕ್|ಕೆಳಗಿನ)[:\s]+(\d+)/i
   ];
   
   for (const pattern of bpPatterns) {
@@ -415,14 +526,16 @@ function extractVitalsFromText(text: string): VitalsData {
     }
   }
   
-  // Improved heart rate patterns with medical terminology
+  // Enhanced heart rate patterns with multi-language support
   const hrPatterns = [
+    // English patterns
     /(?:HR|heart rate|pulse|heart)\b[:\s]+(\d+)(?:\s+bpm|\s+beats per minute)?/i,
-    /(?:HR|heart rate|pulse|heart)\b(?:[:\s]+|[\s]+is[\s]+|[\s]+at[\s]+)(\d+)(?:\s+bpm|\s+beats per minute)?/i,
-    /(?:HR|heart rate|pulse|heart)\b(?:[:\s]+|[\s]+of[\s]+)(\d+)(?:\s+bpm|\s+beats per minute)?/i,
-    /(?:HR|heart rate|pulse|heart)\b[\s:]*(\d+)(?:\s+bpm|\s+beats per minute)?/i,
-    /(?:pulse|heart|beats)[:\s]*(?:rate|rhythm)?[:\s]*(?:is|of|at)[:\s]*(\d+)/i,
-    /(?:cardiac monitor|monitor|rhythm strip) shows[:\s]*(\d+)/i
+    
+    // Hindi patterns
+    /(?:हृदय गति|HR|नब्ज|दिल की धड़कन)[:\s]+(\d+)(?:\s+प्रति मिनट)?/i,
+    
+    // Kannada patterns
+    /(?:ಹೃದಯ ಬಡಿತ|HR|ನಾಡಿ)[:\s]+(\d+)(?:\s+ಪ್ರತಿ ನಿಮಿಷ)?/i
   ];
   
   for (const pattern of hrPatterns) {
@@ -433,22 +546,22 @@ function extractVitalsFromText(text: string): VitalsData {
     }
   }
   
-  // Improved SpO2 patterns with variations
+  // Enhanced SpO2 patterns with multi-language support
   const spo2Patterns = [
-    /(?:SpO2|oxygen saturation|o2 sat|oxygen sat|pulse ox|oxygen level|oxygen|sat)[:\s]+(\d+)(?:\s*%|\s+percent)?/i,
-    /(?:SpO2|oxygen saturation|o2 sat|oxygen sat|pulse ox|oxygen level|oxygen|sat)(?:[:\s]+|[\s]+is[\s]+|[\s]+of[\s]+|[\s]+at[\s]+)(\d+)(?:\s*%|\s+percent)?/i,
-    /(?:SpO2|oxygen saturation|o2 sat|oxygen sat|pulse ox|oxygen level|oxygen|sat)[\s:]*(\d+)(?:\s*%|\s+percent)?/i,
-    /(?:oxygen|o2|saturation|pulse ox)[:\s]*(?:level|reading|sat)? is[:\s]*(\d+)(?:\s*%|\s+percent)?/i,
-    /(?:oxygen|o2|ox)[\s:]+(?:percentage|level|saturation)[:\s]+(\d+)/i,
-    /(?:sats)[:\s]*(?:are|is)[:\s]*(\d+)/i,
-    /(?:S|s)[- ]?(?:P|p)[- ]?(?:O|o)[- ]?(?:2|two)[:\s]*(\d+)/i  // Handle S-P-O-2 as spoken
+    // English patterns
+    /(?:SpO2|oxygen saturation|o2 sat|oxygen)[:\s]+(\d+)(?:\s*%|\s+percent)?/i,
+    
+    // Hindi patterns
+    /(?:ऑक्सीजन|SpO2|ऑक्सीजन संतृप्ति)[:\s]+(\d+)(?:\s*%|\s+प्रतिशत)?/i,
+    
+    // Kannada patterns
+    /(?:ಆಮ್ಲಜನಕ|SpO2|ಆಮ್ಲಜನಕ ಸ್ಯಾಚುರೇಶನ್)[:\s]+(\d+)(?:\s*%|\s+ಶೇಕಡಾ)?/i
   ];
   
   for (const pattern of spo2Patterns) {
     const match = text.match(pattern);
     if (match) {
       const value = parseInt(match[1]);
-      // Validate SpO2 range (typically 70-100%)
       if (value >= 0 && value <= 100) {
         vitals.spo2 = value;
         break;
@@ -456,57 +569,51 @@ function extractVitalsFromText(text: string): VitalsData {
     }
   }
   
-  // Improved temperature patterns for both C and F with spoken variations
+  // Enhanced temperature patterns with multi-language support
   const tempPatterns = [
-    /(?:temp|temperature)[:\s]+(\d+\.?\d*)(?:\s*C|\s+celsius)?/i,
-    /(?:temp|temperature)[:\s]+(\d+\.?\d*)(?:\s*F|\s+fahrenheit)?/i,
-    /(?:temp|temperature)(?:[:\s]+|[\s]+is[\s]+|[\s]+of[\s]+|[\s]+at[\s]+)(\d+\.?\d*)(?:\s*C|\s+celsius)?/i,
-    /(?:temp|temperature)(?:[:\s]+|[\s]+is[\s]+|[\s]+of[\s]+|[\s]+at[\s]+)(\d+\.?\d*)(?:\s*F|\s+fahrenheit)?/i,
-    /(?:temp|temperature)[:\s]*(\d+\.?\d*)(?:\s*degrees?)?(?:\s*C|\s+celsius)?/i,
-    /(?:temp|temperature)[:\s]*(\d+\.?\d*)(?:\s*degrees?)?(?:\s*F|\s+fahrenheit)?/i,
-    /(?:patient|oral|rectal|axillary|tympanic)[:\s]*(?:temperature|temp)[:\s]*(\d+\.?\d*)(?:\s*degrees?)?(?:\s*C|\s+celsius)?/i,
-    /(?:patient|oral|rectal|axillary|tympanic)[:\s]*(?:temperature|temp)[:\s]*(\d+\.?\d*)(?:\s*degrees?)?(?:\s*F|\s+fahrenheit)?/i,
-    /(\d+\.?\d*)(?:\s*degrees?)?(?:\s*C|\s+celsius)/i,
-    /(\d+\.?\d*)(?:\s*degrees?)?(?:\s*F|\s+fahrenheit)/i
+    // English patterns
+    /(?:temp|temperature)[:\s]+(\d+\.?\d*)(?:\s*degrees?)?(?:\s*C|\s+celsius)?/i,
+    /(?:temp|temperature)[:\s]+(\d+\.?\d*)(?:\s*degrees?)?(?:\s*F|\s+fahrenheit)?/i,
+    
+    // Hindi patterns
+    /(?:तापमान|बुखार)[:\s]+(\d+\.?\d*)(?:\s*डिग्री)?(?:\s*सेल्सियस)?/i,
+    /(?:तापमान|बुखार)[:\s]+(\d+\.?\d*)(?:\s*डिग्री)?(?:\s*फारेनहाइट)?/i,
+    
+    // Kannada patterns
+    /(?:ಉಷ್ಣಾಂಶ|ಜ್ವರ)[:\s]+(\d+\.?\d*)(?:\s*ಡಿಗ್ರಿ)?(?:\s*ಸೆಲ್ಸಿಯಸ್)?/i,
+    /(?:ಉಷ್ಣಾಂಶ|ಜ್ವರ)[:\s]+(\d+\.?\d*)(?:\s*ಡಿಗ್ರಿ)?(?:\s*ಫ್ಯಾರನ್‌ಹೀಟ್)?/i
   ];
   
   for (let i = 0; i < tempPatterns.length; i++) {
     const match = text.match(tempPatterns[i]);
     if (match) {
       const tempValue = parseFloat(match[1]);
-      // Even-indexed patterns are for Celsius, odd-indexed for Fahrenheit
-      if (i % 2 === 0) {
-        // Validate Celsius range (typically 35-42°C for humans)
-        if (tempValue >= 30 && tempValue <= 45) {
-          vitals.temperature = tempValue;
-        }
-      } else {
-        // Validate Fahrenheit range (typically 95-108°F for humans)
-        if (tempValue >= 90 && tempValue <= 110) {
-          // Convert Fahrenheit to Celsius
-          vitals.temperature = parseFloat(((tempValue - 32) * 5/9).toFixed(1));
-        }
+      // Check if it's Fahrenheit (odd indices) and convert to Celsius
+      if (i % 2 === 1 && tempValue >= 90 && tempValue <= 110) {
+        vitals.temperature = parseFloat(((tempValue - 32) * 5/9).toFixed(1));
+      } else if (i % 2 === 0 && tempValue >= 30 && tempValue <= 45) {
+        vitals.temperature = tempValue;
       }
       if (vitals.temperature) break;
     }
   }
   
-  // Improved respiratory rate patterns with medical variations
+  // Enhanced respiratory rate patterns with multi-language support
   const rrPatterns = [
-    /(?:RR|resp rate|respiratory rate|respirations)[:\s]+(\d+)(?:\s+(?:breaths per minute|BPM))?/i,
-    /(?:RR|resp rate|respiratory rate|respirations)(?:[:\s]+|[\s]+is[\s]+|[\s]+of[\s]+|[\s]+at[\s]+)(\d+)(?:\s+(?:breaths per minute|BPM))?/i,
-    /(?:breathing|respirations)[:\s]+(\d+)(?:\s+(?:breaths per minute|BPM))?/i,
-    /(?:respiratory rate|respirations|breathing)[:\s]*(?:is|of|at)[:\s]*(\d+)/i,
-    /respirations[\s:]*(\d+)[\s:]*(?:per minute)?/i,
-    /(?:breathing|respiratory) rate[\s:]*(?:of|is|at)[\s:]*(\d+)/i,
-    /(?:breaths per minute|breathing rate)[\s:]*(\d+)/i
+    // English patterns
+    /(?:RR|resp rate|respiratory rate|respirations)[:\s]+(\d+)/i,
+    
+    // Hindi patterns  
+    /(?:श्वसन दर|सांस की दर)[:\s]+(\d+)(?:\s+प्रति मिनट)?/i,
+    
+    // Kannada patterns
+    /(?:ಉಸಿರಾಟದ ದರ|ಶ್ವಾಸಕೋಶದ ದರ)[:\s]+(\d+)(?:\s+ಪ್ರತಿ ನಿಮಿಷ)?/i
   ];
   
   for (const pattern of rrPatterns) {
     const match = text.match(pattern);
     if (match) {
       const value = parseInt(match[1]);
-      // Validate RR range (typically 8-40 breaths/min)
       if (value >= 4 && value <= 60) {
         vitals.respiratory_rate = value;
         break;
@@ -514,20 +621,22 @@ function extractVitalsFromText(text: string): VitalsData {
     }
   }
   
-  // Improved GCS patterns with medical variations
+  // Enhanced GCS patterns with multi-language support
   const gcsPatterns = [
-    /(?:GCS|glasgow coma scale|glasgow|glasgow scale)[:\s]+(\d+)(?:\/15)?/i,
-    /(?:GCS|glasgow coma scale|glasgow|glasgow scale)(?:[:\s]+|[\s]+is[\s]+|[\s]+of[\s]+)(\d+)(?:\/15)?/i,
-    /(?:GCS|glasgow coma scale|glasgow|glasgow scale)[:\s]*(?:score|level|value)?[:\s]*(\d+)(?:\/15)?/i,
-    /(?:glasgow score|glasgow value|GCS score)[:\s]*(?:is|of|at)[:\s]*(\d+)(?:\/15)?/i,
-    /(?:G|g)[- ]?(?:C|c)[- ]?(?:S|s)[:\s]*(\d+)(?:\/15)?/i  // Handle G-C-S as spoken
+    // English patterns
+    /(?:GCS|glasgow coma scale|glasgow)[:\s]+(\d+)(?:\/15)?/i,
+    
+    // Hindi patterns
+    /(?:GCS|ग्लासगो कोमा स्केल)[:\s]+(\d+)(?:\/15)?/i,
+    
+    // Kannada patterns
+    /(?:GCS|ಗ್ಲಾಸ್ಗೋ ಕೋಮಾ ಸ್ಕೇಲ್)[:\s]+(\d+)(?:\/15)?/i
   ];
   
   for (const pattern of gcsPatterns) {
     const match = text.match(pattern);
     if (match) {
       const value = parseInt(match[1]);
-      // Validate GCS range (3-15)
       if (value >= 3 && value <= 15) {
         vitals.gcs = value;
         break;
@@ -535,21 +644,22 @@ function extractVitalsFromText(text: string): VitalsData {
     }
   }
   
-  // Improved pain level patterns with medical variations
+  // Enhanced pain level patterns with multi-language support
   const painPatterns = [
-    /(?:pain scale|pain level|pain)[:\s]+(\d+)(?:\/10)?/i,
-    /(?:pain scale|pain level|pain)(?:[:\s]+|[\s]+is[\s]+|[\s]+of[\s]+|[\s]+at[\s]+)(\d+)(?:\/10)?/i,
-    /(?:pain)[:\s]*(?:score|level|intensity|scale)?[:\s]*(\d+)(?:\/10| out of 10)?/i,
-    /(?:reports|rates|scores|describes)[\s:]*(?:pain|discomfort)[\s:]*(?:as|of|at)[\s:]*(\d+)(?:\/10| out of 10)?/i,
-    /(?:pain)[\s:]+(?:rating|intensity|level)[\s:]+(\d+)/i,
-    /(?:rates|scores)[\s:]+(?:pain|discomfort)[\s:]+(?:as|at)[\s:]+(\d+)/i
+    // English patterns
+    /(?:pain scale|pain level|pain)[:\s]+(\d+)(?:\/10| out of 10)?/i,
+    
+    // Hindi patterns
+    /(?:दर्द का स्तर|दर्द)[:\s]+(\d+)(?:\/10| में से 10)?/i,
+    
+    // Kannada patterns
+    /(?:ನೋವಿನ ಮಟ್ಟ|ದರ್ದ)[:\s]+(\d+)(?:\/10| ರಲ್ಲಿ 10)?/i
   ];
   
   for (const pattern of painPatterns) {
     const match = text.match(pattern);
     if (match) {
       const value = parseInt(match[1]);
-      // Validate pain range (0-10)
       if (value >= 0 && value <= 10) {
         vitals.pain_level = value;
         break;
@@ -558,114 +668,4 @@ function extractVitalsFromText(text: string): VitalsData {
   }
   
   return vitals;
-}
-
-// Generate AI clinical assessment using OpenAI
-async function generateClinicalAssessment(
-  transcription: string, 
-  vitals: VitalsData, 
-  apiKey: string
-): Promise<{ clinical_probability: string; care_recommendations: string; specialty_tags: string[] }> {
-  try {
-    // Prepare the prompt with all available vital information
-    const vitalSigns = [
-      vitals.heart_rate ? `Heart Rate: ${vitals.heart_rate} bpm` : null,
-      (vitals.bp_systolic && vitals.bp_diastolic) ? `Blood Pressure: ${vitals.bp_systolic}/${vitals.bp_diastolic} mmHg` : null,
-      vitals.spo2 ? `SpO2: ${vitals.spo2}%` : null,
-      vitals.temperature ? `Temperature: ${vitals.temperature}°C` : null,
-      vitals.respiratory_rate ? `Respiratory Rate: ${vitals.respiratory_rate} breaths/min` : null,
-      vitals.gcs ? `GCS: ${vitals.gcs}` : null,
-      vitals.pain_level ? `Pain Level: ${vitals.pain_level}/10` : null
-    ].filter(Boolean).join(', ');
-
-    // Create a more specific prompt to generate accurate clinical assessment
-    const prompt = `
-    You are an experienced emergency medicine physician assistant. Based on the following patient information, provide:
-    
-    1. A clinical probability assessment (one clear, concise sentence)
-    2. 2-3 specific care recommendations (concise and actionable)
-    3. 2-4 appropriate medical specialty tags (format as hashtags)
-    
-    PATIENT TRANSCRIPTION: "${transcription}"
-    
-    VITAL SIGNS: ${vitalSigns}
-    
-    ASSESSMENT GUIDELINES:
-    - If vital signs are incomplete, note this in your assessment
-    - If vitals show any critical values, prioritize urgent care recommendations
-    - Consider the following critical thresholds:
-      * Heart rate < 50 or > 120 bpm
-      * Systolic BP < 90 or > 180 mmHg
-      * SpO2 < 92%
-      * Respiratory rate < 8 or > 30/min
-      * Temperature < 36°C or > 38.5°C
-      * GCS < 13
-      * Pain level > 7
-    
-    Format your response exactly as follows, with each section on a new line:
-    Clinical Probability: [your assessment]
-    Care Recommendations: [your recommendations]
-    Specialty Tags: #Tag1 #Tag2 #Tag3
-    `;
-
-    console.log("Sending AI assessment request to OpenAI...")
-
-    // Call OpenAI API for clinical assessment
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            "role": "system",
-            "content": "You are an experienced emergency medicine AI assistant. Provide concise, accurate clinical assessments based on patient information."
-          },
-          {
-            "role": "user",
-            "content": prompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 300
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("OpenAI API error response:", errorData);
-      throw new Error(`OpenAI API error: ${errorData}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
-    console.log("AI response:", aiResponse);
-    
-    // Parse the AI response to extract the requested information
-    const clinicalProbabilityMatch = aiResponse.match(/Clinical Probability:\s*(.*?)(?:\n|$)/);
-    const careRecommendationsMatch = aiResponse.match(/Care Recommendations:\s*(.*?)(?:\n|$)/);
-    const specialtyTagsMatch = aiResponse.match(/Specialty Tags:\s*(.*?)(?:\n|$)/);
-    
-    // Extract tags as an array
-    const specialtyTagsString = specialtyTagsMatch?.[1] || "";
-    const specialtyTags = specialtyTagsString
-      .match(/#[a-zA-Z0-9]+/g)
-      ?.map(tag => tag.substring(1)) || [];
-    
-    return {
-      clinical_probability: clinicalProbabilityMatch?.[1] || "Assessment unavailable",
-      care_recommendations: careRecommendationsMatch?.[1] || "Recommendations unavailable",
-      specialty_tags: specialtyTags.length > 0 ? specialtyTags : ["General"]
-    };
-  } catch (error) {
-    console.error('Error generating clinical assessment:', error);
-    return {
-      clinical_probability: "Unable to generate clinical assessment",
-      care_recommendations: "Please consult with a medical professional",
-      specialty_tags: ["General"]
-    };
-  }
 }

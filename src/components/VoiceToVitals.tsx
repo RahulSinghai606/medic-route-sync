@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +33,9 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
   const [isAssessmentLoading, setIsAssessmentLoading] = useState(false);
-  const [speechLanguage, setSpeechLanguage] = useState<string>(language === 'hi' ? 'hi-IN' : 'en-US');
+  const [speechLanguage, setSpeechLanguage] = useState<string>(
+    language === 'hi' ? 'hi-IN' : language === 'kn' ? 'kn-IN' : 'en-US'
+  );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -45,7 +46,9 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   useEffect(() => {
     if (language === 'hi') {
       setSpeechLanguage('hi-IN');
-    } else if (language === 'en') {
+    } else if (language === 'kn') {
+      setSpeechLanguage('kn-IN');
+    } else {
       setSpeechLanguage('en-US');
     }
   }, [language]);
@@ -74,9 +77,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   const startTimer = () => {
     if (timerIntervalRef.current) return;
     
-    // Reset recording time when starting a new recording
     setRecordingTime(0);
-    
     const startTime = Date.now();
     
     timerIntervalRef.current = window.setInterval(() => {
@@ -189,7 +190,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       
       console.log("Processing audio blob, size:", audioBlob.size);
 
-      // Add medical context to improve recognition
+      // Enhanced medical context with multi-language support
       const enhancedMedicalContext = addMedicalContextToAudio();
       console.log("Enhanced with medical context:", enhancedMedicalContext ? "Yes" : "No");
       
@@ -198,7 +199,6 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       if (error) {
         console.warn("Processing warning:", error);
         
-        // Show warning toast but don't block the process if we have fallback data
         if (data) {
           toast({
             title: "Processing Warning",
@@ -206,23 +206,19 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
             variant: "default",
           });
         } else {
-          // If we have no data at all, it's a true error
           throw new Error(error);
         }
       }
 
       if (data) {
-        // Set transcription if available
         if (data.transcription) {
           setTranscription(data.transcription);
         }
 
-        // Set AI assessment if available
         if (data.ai_assessment) {
           setAiAssessment(data.ai_assessment);
         }
 
-        // Pass data to parent component
         onVitalsExtracted(data);
 
         toast({
@@ -239,7 +235,6 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       
       setProcessingError(errorMessage);
       
-      // Try local fallback processing if API fails completely
       const fallbackData = fallbackExtractVitals();
       if (fallbackData) {
         onVitalsExtracted(fallbackData);
@@ -257,70 +252,63 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     }
   };
 
-  // Add medical context to improve the accuracy of transcription
+  // Enhanced medical context with multi-language support
   const addMedicalContextToAudio = () => {
     const commonHindiMedicalTerms = [
-      "छाती में दर्द", // chest pain
-      "दिल का दौरा", // heart attack
-      "बुखार", // fever
-      "साँस लेने में तकलीफ", // difficulty breathing
-      "सिरदर्द", // headache
-      "चक्कर आना", // dizziness
-      "सांप ने काटा", // snake bite
-      "बोल नहीं पा रहा है", // can't speak
-      "खून बह रहा है", // bleeding
-      "दस्त", // diarrhea
-      "उल्टी", // vomiting
-      "पेट दर्द", // stomach pain
-      "जलना", // burning
-      "फ्रैक्चर", // fracture
-      "बेहोश", // unconscious
-      "मधुमेह", // diabetes
-      "रक्तचाप", // blood pressure
-      "हृदय गति", // heart rate
+      "छाती में दर्द", "दिल का दौरा", "बुखार", "साँस लेने में तकलीफ", "सिरदर्द", 
+      "चक्कर आना", "सांप ने काटा", "बोल नहीं पा रहा है", "खून बह रहा है", "दस्त", 
+      "उल्टी", "पेट दर्द", "जलना", "फ्रैक्चर", "बेहोश", "मधुमेह", "रक्तचाप", "हृदय गति",
+      "नब्ज", "ऑक्सीजन", "तापमान", "श्वास दर", "जीसीएस", "दर्द स्तर", "रक्त शर्करा",
+      "एलर्जी", "अस्थमा", "उच्च रक्तचाप", "निम्न रक्तचाप", "तेज़ हृदय गति", "धीमी हृदय गति"
     ];
 
-    // Setup context based on selected language
+    const commonKannadaMedicalTerms = [
+      "ಎದೆ ನೋವು", "ಹೃದಯಾಘಾತ", "ಜ್ವರ", "ಉಸಿರಾಟದ ತೊಂದರೆ", "ತಲೆನೋವು", 
+      "ತಲೆ ಸುತ್ತುವಿಕೆ", "ಹಾವು ಕಚ್ಚಿದೆ", "ಮಾತನಾಡಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ", "ರಕ್ತಸ್ರಾವ", 
+      "ಅತಿಸಾರ", "ವಾಂತಿ", "ಹೊಟ್ಟೆ ನೋವು", "ಸುಟ್ಟ", "ಮುರಿತ", "ಪ್ರಜ್ಞೆ ಕಳೆದುಕೊಂಡಿದೆ", 
+      "ಮಧುಮೇಹ", "ರಕ್ತದೊತ್ತಡ", "ಹೃದಯ ಬಡಿತ", "ನಾಡಿ", "ಆಮ್ಲಜನಕ", "ಉಷ್ಣಾಂಶ", 
+      "ಉಸಿರಾಟದ ದರ", "ದರ್ದದ ಮಟ್ಟ", "ರಕ್ತ ಸಕ್ಕರೆ", "ಅಲರ್ಜಿ", "ಆಸ್ತಮಾ"
+    ];
+
     const medicalContext = {
-      domain: "medical",
+      domain: "medical_emergency",
       language: speechLanguage,
+      specialization: "emergency_healthcare",
       expectedTerms: speechLanguage === 'hi-IN' ? [
         ...commonHindiMedicalTerms,
-        "नब्ज", // pulse
-        "ऑक्सीजन", // oxygen
-        "ह्रदय गति", // heart rate
-        "रक्तचाप", // blood pressure
-        "तापमान", // temperature
-        "श्वास दर", // respiratory rate
-        "जीसीएस", // GCS
-        "दर्द स्तर", // pain level
+        "प्रति मिनट", "एमएमएचजी", "डिग्री सेल्सियस", "प्रतिशत", "स्कोर", "स्तर"
+      ] : speechLanguage === 'kn-IN' ? [
+        ...commonKannadaMedicalTerms,
+        "ಪ್ರತಿ ನಿಮಿಷ", "ಎಂಎಂಎಚ್ಜಿ", "ಡಿಗ್ರಿ ಸೆಲ್ಸಿಯಸ", "ಶೇಕಡಾ", "ಸ್ಕೋರ್", "ಮಟ್ಟ"
       ] : [
-        "blood pressure", "BP", "heart rate", "pulse", "temperature",
-        "respiration", "respiratory rate", "oxygen saturation", "SpO2",
-        "Glasgow Coma Scale", "GCS", "pain level", "systolic", "diastolic",
-        "mmHg", "bpm", "celsius", "fahrenheit", "breaths per minute"
+        "blood pressure", "BP", "heart rate", "pulse", "temperature", "respiration", 
+        "respiratory rate", "oxygen saturation", "SpO2", "Glasgow Coma Scale", "GCS", 
+        "pain level", "systolic", "diastolic", "mmHg", "bpm", "celsius", "fahrenheit", 
+        "breaths per minute", "emergency", "critical", "severe", "unconscious", "bleeding",
+        "chest pain", "difficulty breathing", "fever", "headache", "dizziness", "nausea",
+        "vomiting", "abdominal pain", "burn", "fracture", "allergy", "asthma", "diabetes"
       ],
       prioritizeNumbers: true,
+      contextPrompt: speechLanguage === 'hi-IN' ? 
+        "यह एक आपातकालीन चिकित्सा रिपोर्ट है। संख्याओं और चिकित्सा शब्दावली को सटीक रूप से पहचानें।" :
+        speechLanguage === 'kn-IN' ?
+        "ಇದು ತುರ್ತು ವೈದ್ಯಕೀಯ ವರದಿಯಾಗಿದೆ. ಸಂಖ್ಯೆಗಳು ಮತ್ತು ವೈದ್ಯಕೀಯ ಪರಿಭಾಷೆಯನ್ನು ನಿಖರವಾಗಿ ಗುರುತಿಸಿ." :
+        "This is an emergency medical report. Accurately recognize numbers and medical terminology.",
       vitalsFormat: {
-        heartRate: speechLanguage === 'hi-IN' ? "NUMBER प्रति मिनट" : "NUMBER bpm",
-        bloodPressure: speechLanguage === 'hi-IN' ? "NUMBER/NUMBER mmHg" : "NUMBER/NUMBER mmHg",
-        temperature: speechLanguage === 'hi-IN' ? "NUMBER डिग्री" : "NUMBER celsius|fahrenheit",
-        respiratoryRate: speechLanguage === 'hi-IN' ? "NUMBER सांस प्रति मिनट" : "NUMBER breaths per minute",
-        oxygenSaturation: speechLanguage === 'hi-IN' ? "NUMBER प्रतिशत" : "NUMBER percent",
-        painLevel: speechLanguage === 'hi-IN' ? "NUMBER में से" : "NUMBER out of 10",
-        gcs: speechLanguage === 'hi-IN' ? "NUMBER में से" : "NUMBER out of 15"
-      },
-      commonPhrases: speechLanguage === 'hi-IN' ? [
-        "मरीज की हालत गंभीर है",
-        "मरीज को तुरंत अस्पताल ले जाना चाहिए",
-        "मरीज बेहोश है",
-        "मरीज को सांस लेने में तकलीफ है"
-      ] : [
-        "patient is in critical condition",
-        "patient needs immediate hospitalization",
-        "patient is unconscious",
-        "patient has difficulty breathing"
-      ]
+        heartRate: speechLanguage === 'hi-IN' ? "NUMBER प्रति मिनट" : 
+                  speechLanguage === 'kn-IN' ? "NUMBER ಪ್ರತಿ ನಿಮಿಷ" : "NUMBER bpm",
+        bloodPressure: "NUMBER/NUMBER mmHg",
+        temperature: speechLanguage === 'hi-IN' ? "NUMBER डिग्री" : 
+                    speechLanguage === 'kn-IN' ? "NUMBER ಡಿಗ್ರಿ" : "NUMBER celsius|fahrenheit",
+        respiratoryRate: speechLanguage === 'hi-IN' ? "NUMBER सांस प्रति मिनट" : 
+                        speechLanguage === 'kn-IN' ? "NUMBER ಉಸಿರಾಟ ಪ್ರತಿ ನಿಮಿಷ" : "NUMBER breaths per minute",
+        oxygenSaturation: speechLanguage === 'hi-IN' ? "NUMBER प्रतिशत" : 
+                         speechLanguage === 'kn-IN' ? "NUMBER ಶೇಕಡಾ" : "NUMBER percent",
+        painLevel: speechLanguage === 'hi-IN' ? "NUMBER में से दस" : 
+                  speechLanguage === 'kn-IN' ? "NUMBER ರಲ್ಲಿ ಹತ್ತು" : "NUMBER out of 10",
+        gcs: speechLanguage === 'hi-IN' ? "NUMBER में से पंद्रह" : 
+             speechLanguage === 'kn-IN' ? "NUMBER ರಲ್ಲಿ ಹದಿನೈದು" : "NUMBER out of 15"
+      }
     };
     
     return medicalContext;
@@ -356,30 +344,45 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       .padStart(2, "0")}`;
   };
 
-  // Language options for speech recognition
+  // Enhanced language options with Kannada
   const languageOptions = [
     { value: 'en-US', label: 'English (US)' },
-    { value: 'hi-IN', label: 'Hindi (भारत)' },
+    { value: 'hi-IN', label: 'हिंदी (भारत)' },
+    { value: 'kn-IN', label: 'ಕನ್ನಡ (ಭಾರತ)' },
     { value: 'en-IN', label: 'English (India)' }
   ];
 
-  // Examples based on the selected language
+  // Enhanced examples based on the selected language
   const getExamples = () => {
     if (speechLanguage === 'hi-IN') {
       return [
-        "छाती में दर्द (chest pain)",
-        "साँस लेने में तकलीफ (difficulty breathing)",
-        "सांप ने काटा (snake bite)",
-        "बोल नहीं पा रहा है (can't speak)",
-        "ह्रदय गति 80 प्रति मिनट (heart rate 80 bpm)"
+        "छाती में दर्द और साँस लेने में तकलीफ है",
+        "हृदय गति 120 प्रति मिनट है",
+        "रक्तचाप 140/90 एमएमएचजी है",
+        "बुखार 102 डिग्री फारेनहाइट है",
+        "ऑक्सीजन 88 प्रतिशत है",
+        "दर्द का स्तर 8 में से 10 है",
+        "मरीज बेहोश है, जीसीएस 12 है"
+      ];
+    } else if (speechLanguage === 'kn-IN') {
+      return [
+        "ಎದೆ ನೋವು ಮತ್ತು ಉಸಿರಾಟದ ತೊಂದರೆ ಇದೆ",
+        "ಹೃದಯ ಬಡಿತ 120 ಪ್ರತಿ ನಿಮಿಷ ಇದೆ",
+        "ರಕ್ತದೊತ್ತಡ 140/90 ಎಂಎಂಎಚ್ಜಿ ಇದೆ",
+        "ಜ್ವರ 102 ಡಿಗ್ರಿ ಫಾರೆನ್‌ಹೀಟ್ ಇದೆ",
+        "ಆಮ್ಲಜನಕ 88 ಶೇಕಡಾ ಇದೆ",
+        "ನೋವಿನ ಮಟ್ಟ 10 ರಲ್ಲಿ 8 ಇದೆ",
+        "ರೋಗಿ ಪ್ರಜ್ಞೆ ಕಳೆದುಕೊಂಡಿದ್ದಾರೆ, ಜಿಸಿಎಸ್ 12 ಇದೆ"
       ];
     }
     return [
-      "Blood pressure 120 over 80",
+      "Blood pressure 120 over 80 mmHg",
       "Heart rate 85 beats per minute",
       "Oxygen saturation 95 percent",
-      "Temperature 37.5 degrees celsius",
-      "GCS score of 15"
+      "Temperature 98.6 degrees fahrenheit",
+      "Respiratory rate 16 breaths per minute",
+      "Pain level 7 out of 10",
+      "GCS score of 15, patient is alert"
     ];
   };
 
