@@ -1,4 +1,3 @@
-
 export interface ComprehensiveHospital {
   id: number;
   name: string;
@@ -17,6 +16,14 @@ export interface ComprehensiveHospital {
   emergencyServices: boolean;
   traumaCenter: boolean;
   accreditation: string[];
+  // Calculated properties added during runtime
+  distance?: number;
+  eta?: number;
+  matchScore?: number;
+  promotedDueToSpecialty?: boolean;
+  promoted?: boolean;
+  matchedSpecialties?: string[];
+  matchReason?: string;
 }
 
 // Comprehensive hospital database covering major Indian cities
@@ -413,7 +420,7 @@ export const comprehensiveHospitals: ComprehensiveHospital[] = [
   }
 ];
 
-export const calculateDistanceAndETA = (hospitals: ComprehensiveHospital[], userLocation: { lat: number; lng: number }) => {
+export const calculateDistanceAndETA = (hospitals: ComprehensiveHospital[], userLocation: { lat: number; lng: number }): ComprehensiveHospital[] => {
   if (!userLocation || !userLocation.lat || !userLocation.lng) {
     return hospitals;
   }

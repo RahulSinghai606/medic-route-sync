@@ -110,11 +110,11 @@ const NearbyHospitals = () => {
     
     // Filter hospitals within 30km and sort by distance
     const nearbyHospitals = hospitalsWithDistance
-      .filter(hospital => hospital.distance <= 30)
-      .sort((a, b) => a.distance - b.distance)
+      .filter(hospital => (hospital.distance || 0) <= 30)
+      .sort((a, b) => (a.distance || 0) - (b.distance || 0))
       .map(hospital => ({
         ...hospital,
-        matchScore: Math.max(20, Math.min(95, Math.round(100 - hospital.distance * 3 + Math.random() * 20)))
+        matchScore: Math.max(20, Math.min(95, Math.round(100 - (hospital.distance || 0) * 3 + Math.random() * 20)))
       }));
     
     setHospitals(nearbyHospitals);
@@ -261,22 +261,22 @@ const NearbyHospitals = () => {
                           {t(`hospitals.type.${hospital.type.toLowerCase()}`)}
                         </Badge>
                         <Badge 
-                          className={`${getMatchScoreColor(hospital.matchScore)} ml-2 flex items-center gap-1`}
+                          className={`${getMatchScoreColor(hospital.matchScore || 0)} ml-2 flex items-center gap-1`}
                         >
                           <BadgePercent className="h-3 w-3" />
-                          {hospital.matchScore}% {t('match')}
+                          {hospital.matchScore || 0}% {t('match')}
                         </Badge>
                       </h4>
                       
                       <div className="text-sm text-muted-foreground flex items-center flex-wrap gap-x-4 gap-y-1 mt-1">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5" />
-                          {hospital.distance} {t('km')}
+                          {hospital.distance || 0} {t('km')}
                         </div>
                         
                         <div className="flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
-                          {t('eta.label')}: {hospital.eta} {t('min')}
+                          {t('eta.label')}: {hospital.eta || 0} {t('min')}
                         </div>
                         
                         <div className="flex items-center gap-1">

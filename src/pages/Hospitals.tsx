@@ -100,7 +100,7 @@ const Hospitals = () => {
       const hospitalsWithDistance = calculateDistanceAndETA(comprehensiveHospitals, currentLocation);
       
       // Filter hospitals within 30km radius
-      const nearbyHospitals = hospitalsWithDistance.filter(hospital => hospital.distance <= 30);
+      const nearbyHospitals = hospitalsWithDistance.filter(hospital => (hospital.distance || 0) <= 30);
       
       // Apply hospital matching algorithm
       const matchedHospitals = nearbyHospitals.map(hospital => {
@@ -113,7 +113,7 @@ const Hospitals = () => {
           matchedSpecialties: matchResult.matchedSpecialties || [],
           promotedDueToSpecialty: matchResult.promoted
         };
-      }).sort((a, b) => b.matchScore - a.matchScore);
+      }).sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
       
       setRankedHospitals(matchedHospitals);
       setSelectedHospital(matchedHospitals[0] || null);
@@ -387,7 +387,7 @@ const Hospitals = () => {
                   </div>
                 ) : filteredHospitals.length > 0 ? (
                   filteredHospitals.map(hospital => {
-                    const isPromoted = hospital.promotedDueToSpecialty;
+                    const isPromoted = hospital.promotedDueToSpecialty || false;
                     const matchedSpecialties = hospital.matchedSpecialties || [];
                     
                     return (
@@ -411,11 +411,11 @@ const Hospitals = () => {
                           <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
-                              <span>{hospital.distance} {t('km')}</span>
+                              <span>{hospital.distance || 0} {t('km')}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              <span>{t('eta.label')} {hospital.eta} {t('min')}</span>
+                              <span>{t('eta.label')} {hospital.eta || 0} {t('min')}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Bed className="h-3 w-3" />
@@ -438,9 +438,9 @@ const Hospitals = () => {
                           )}
                         </div>
                         <div className="ml-3 flex-shrink-0">
-                          <div className={getMatchScoreClass(hospital.matchScore, isPromoted)}>
+                          <div className={getMatchScoreClass(hospital.matchScore || 0, isPromoted)}>
                             <BadgePercent className="h-4 w-4" />
-                            {hospital.matchScore}%
+                            {hospital.matchScore || 0}%
                           </div>
                         </div>
                       </div>
@@ -475,9 +475,9 @@ const Hospitals = () => {
                         </CardDescription>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <div className={getMatchScoreClass(selectedHospital.matchScore, selectedHospital.promotedDueToSpecialty)}>
+                        <div className={getMatchScoreClass(selectedHospital.matchScore || 0, selectedHospital.promotedDueToSpecialty || false)}>
                           <BadgePercent className="h-4 w-4" />
-                          {selectedHospital.matchScore}% {t('match')}
+                          {selectedHospital.matchScore || 0}% {t('match')}
                         </div>
                         
                         {selectedHospital.promotedDueToSpecialty && (
@@ -496,14 +496,14 @@ const Hospitals = () => {
                           <MapPin className="h-4 w-4" />
                           {t('distance')}
                         </div>
-                        <div className="font-medium mt-1">{selectedHospital.distance} {t('km')}</div>
+                        <div className="font-medium mt-1">{selectedHospital.distance || 0} {t('km')}</div>
                       </div>
                       <div className="bg-muted/50 p-3 rounded-md">
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <Clock className="h-4 w-4" />
                           {t('eta.label')}
                         </div>
-                        <div className="font-medium mt-1">{selectedHospital.eta} {t('min')}</div>
+                        <div className="font-medium mt-1">{selectedHospital.eta || 0} {t('min')}</div>
                       </div>
                       <div className="bg-muted/50 p-3 rounded-md">
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
