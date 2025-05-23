@@ -27,12 +27,7 @@ const TopBar = () => {
   const languages = [
     { code: 'en', name: 'English' },
     { code: 'hi', name: 'Hindi' },
-    { code: 'as', name: 'Assamese' },
-    { code: 'mz', name: 'Mizo' },
-    { code: 'kh', name: 'Khasi' },
-    { code: 'nm', name: 'Nagamese' },
-    { code: 'bo', name: 'Bodo' },
-    { code: 'bn', name: 'Bengali' },
+    { code: 'kn', name: 'Kannada' }
   ];
 
   return (

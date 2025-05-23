@@ -1,4 +1,3 @@
-
 import React from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -76,10 +75,10 @@ const AppSidebar = () => {
               </span>
               <span className="text-muted-foreground">|</span>
               <span 
-                className={`cursor-pointer px-1 ${language === 'bn' ? 'font-bold text-primary' : 'text-muted-foreground'}`}
-                onClick={() => handleLanguageChange('bn')}
+                className={`cursor-pointer px-1 ${language === 'kn' ? 'font-bold text-primary' : 'text-muted-foreground'}`}
+                onClick={() => handleLanguageChange('kn')}
               >
-                BN
+                KN
               </span>
             </div>
           </Button>
