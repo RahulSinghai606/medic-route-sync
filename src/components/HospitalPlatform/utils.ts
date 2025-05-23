@@ -1,4 +1,6 @@
 
+import { CaseItem, Department } from './types';
+
 // Utility functions for hospital platform components
 export const getSeverityColor = (severity: string) => {
   switch (severity.toLowerCase()) {
@@ -16,11 +18,11 @@ export const getAlertColor = (alert: string) => {
   }
 };
 
-// Sample data for demonstration
-export const incomingCases = [
+// Sample data for demonstration - properly typed to match CaseItem interface
+export const incomingCases: CaseItem[] = [
   { 
     id: 1001, 
-    severity: 'Critical', 
+    severity: 'Critical' as const, 
     patient: 'Male, 62y', 
     condition: 'Suspected cardiac event', 
     eta: 5,
@@ -33,7 +35,7 @@ export const incomingCases = [
   },
   { 
     id: 1002, 
-    severity: 'Urgent', 
+    severity: 'Urgent' as const, 
     patient: 'Female, 28y', 
     condition: 'Multiple trauma, MVA', 
     eta: 8,
@@ -46,7 +48,7 @@ export const incomingCases = [
   },
   { 
     id: 1003, 
-    severity: 'Stable', 
+    severity: 'Stable' as const, 
     patient: 'Male, 45y', 
     condition: 'Abdominal pain, suspected appendicitis', 
     eta: 12,
@@ -59,10 +61,10 @@ export const incomingCases = [
   }
 ];
 
-export const departments = [
-  { name: 'Emergency Department', beds: 7, total: 12, alert: 'Medium' },
-  { name: 'ICU', beds: 1, total: 8, alert: 'Critical' },
-  { name: 'Cardiology', beds: 4, total: 10, alert: 'Low' },
-  { name: 'Orthopedics', beds: 6, total: 12, alert: 'Low' },
-  { name: 'Neurology', beds: 3, total: 8, alert: 'Medium' },
+export const departments: Department[] = [
+  { name: 'Emergency Department', beds: 7, total: 12, alert: 'Medium' as const },
+  { name: 'ICU', beds: 1, total: 8, alert: 'Critical' as const },
+  { name: 'Cardiology', beds: 4, total: 10, alert: 'Low' as const },
+  { name: 'Orthopedics', beds: 6, total: 12, alert: 'Low' as const },
+  { name: 'Neurology', beds: 3, total: 8, alert: 'Medium' as const },
 ];
