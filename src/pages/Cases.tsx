@@ -21,61 +21,61 @@ import {
   Check
 } from 'lucide-react';
 
-// Mock case data with Northeast Indian names and locations
+// Mock case data with South Indian names and Mysuru locations
 const caseData = [
   {
     id: 'EC-1001',
-    patient: 'Tenzin Wangchuk',
+    patient: 'Rajesh Kumar',
     date: 'Apr 11, 2025',
     time: '10:30 AM',
     status: 'active',
     type: 'Cardiac',
-    location: 'Gangtok, Sikkim',
-    hospital: 'STNM Hospital',
+    location: 'Kuvempunagar, Mysuru',
+    hospital: 'JSS Medical College Hospital',
     severity: 'critical'
   },
   {
     id: 'EC-1002',
-    patient: 'Lalsangzuali Sailo',
+    patient: 'Lakshmi Devi',
     date: 'Apr 11, 2025',
     time: '11:15 AM',
     status: 'en-route',
     type: 'Trauma',
-    location: 'Aizawl, Mizoram',
-    hospital: 'Mizoram State Hospital',
+    location: 'Jayalakshmipuram, Mysuru',
+    hospital: 'KR Hospital',
     severity: 'moderate'
   },
   {
     id: 'EC-1003',
-    patient: 'Baichung Bhutia',
+    patient: 'Suresh Babu',
     date: 'Apr 11, 2025',
     time: '09:45 AM',
     status: 'completed',
     type: 'Respiratory',
-    location: 'Namchi, Sikkim',
-    hospital: 'District Hospital Namchi',
+    location: 'Vijayanagar, Mysuru',
+    hospital: 'Apollo BGS Hospital',
     severity: 'critical'
   },
   {
     id: 'EC-1004',
-    patient: 'Hima Das',
+    patient: 'Priya Sharma',
     date: 'Apr 10, 2025',
     time: '08:30 AM',
     status: 'completed',
     type: 'Pediatric',
-    location: 'Dhing, Assam',
-    hospital: 'Nagaon Civil Hospital',
+    location: 'Hebbal, Mysuru',
+    hospital: 'Columbia Asia Hospital',
     severity: 'stable'
   },
   {
     id: 'EC-1005',
-    patient: 'Lovlina Borgohain',
+    patient: 'Ravi Gowda',
     date: 'Apr 10, 2025',
     time: '12:10 PM',
     status: 'completed',
     type: 'Neurological',
-    location: 'Golaghat, Assam',
-    hospital: 'Kushal Konwar Civil Hospital',
+    location: 'Saraswathipuram, Mysuru',
+    hospital: 'Vikram Hospital',
     severity: 'moderate'
   }
 ];
@@ -127,7 +127,7 @@ const Cases = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1>Case Management</h1>
-          <p className="text-muted-foreground">Track and manage emergency cases</p>
+          <p className="text-muted-foreground">Track and manage emergency cases in Mysuru</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button className="medical-btn flex items-center gap-2">
@@ -140,7 +140,7 @@ const Cases = () => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle>Case List</CardTitle>
+            <CardTitle>Case List - Mysuru Emergency Cases</CardTitle>
             <div className="flex gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -290,8 +290,8 @@ const Cases = () => {
                   <ClipboardCheck className="h-5 w-5 text-success" />
                 </div>
                 <div>
-                  <h3 className="font-medium">Emily Wilson • EC-1004</h3>
-                  <p className="text-sm text-muted-foreground">Transferred to Dr. Sarah Thompson</p>
+                  <h3 className="font-medium">Anita Rao • EC-1004</h3>
+                  <p className="text-sm text-muted-foreground">Transferred to Dr. Srinivas Murthy</p>
                 </div>
               </div>
               <div className="text-right">
@@ -308,8 +308,8 @@ const Cases = () => {
                   <ClipboardCheck className="h-5 w-5 text-success" />
                 </div>
                 <div>
-                  <h3 className="font-medium">Michael Garcia • EC-1005</h3>
-                  <p className="text-sm text-muted-foreground">Transferred to Dr. James Wilson</p>
+                  <h3 className="font-medium">Venkatesh Gowda • EC-1005</h3>
+                  <p className="text-sm text-muted-foreground">Transferred to Dr. Malini Shetty</p>
                 </div>
               </div>
               <div className="text-right">

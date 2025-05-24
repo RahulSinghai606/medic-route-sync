@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,8 @@ import {
   Clock,
   ChevronRight,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  FileX
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -41,6 +43,7 @@ const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [clearingRecords, setClearingRecords] = useState(false);
+  const [clearingLogs, setClearingLogs] = useState(false);
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -192,6 +195,51 @@ const Patients = () => {
     }
   };
 
+  const clearPatientLogs = async () => {
+    setClearingLogs(true);
+    try {
+      // Clear all patient records and related data
+      const { error: vitalsError } = await supabase
+        .from('vitals')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      const { error: incidentsError } = await supabase
+        .from('incidents')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      const { error: medicalHistoryError } = await supabase
+        .from('medical_history')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (vitalsError || incidentsError || medicalHistoryError) {
+        throw new Error('Failed to clear some logs');
+      }
+
+      // Reload patients to update display
+      const { data } = await fetchPatients();
+      if (data) {
+        setPatients(data);
+      }
+
+      toast({
+        title: "Patient Logs Cleared",
+        description: "All patient logs (vitals, incidents, medical history) have been cleared.",
+      });
+    } catch (error: any) {
+      console.error('Error clearing logs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear patient logs. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setClearingLogs(false);
+    }
+  };
+
   const getPatientVitals = (patient: any) => {
     if (!patient || !patient.vitals || patient.vitals.length === 0) return null;
     
@@ -268,6 +316,36 @@ const Patients = () => {
           <p className="text-muted-foreground">Manage current patients and cases in Mysuru</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2" disabled={clearingLogs}>
+                <FileX className="h-4 w-4" />
+                <span>Clear Logs</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <FileX className="h-5 w-5 text-warning" />
+                  Clear Patient Logs
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action will permanently delete all patient logs (vitals, incidents, and medical history) but keep patient records. 
+                  This cannot be undone. Are you sure you want to continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={clearPatientLogs}
+                  className="bg-warning hover:bg-warning/90"
+                  disabled={clearingLogs}
+                >
+                  {clearingLogs ? 'Clearing...' : 'Clear Logs'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2" disabled={clearingRecords}>
