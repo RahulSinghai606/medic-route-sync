@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -108,80 +109,105 @@ const NearbyHospitals = () => {
   // Enhanced function to fetch nearby hospitals with better matching
   const fetchNearbyHospitals = (location: Location) => {
     // Create a more comprehensive hospital list that includes Mysuru hospitals
-    const allHospitals = [
-      ...comprehensiveHospitals,
-      // Add specific hospitals for Mysuru
+    const mysuruHospitals: ComprehensiveHospital[] = [
       {
-        id: 'mys001',
+        id: 1001,
         name: 'JSS Hospital Mysuru',
         lat: 12.3037,
         lng: 76.6421,
-        type: 'multispecialty',
+        type: 'Trust',
         specialties: ['Cardiology', 'Neurology', 'Oncology', 'Emergency Medicine', 'Orthopedics'],
         availableBeds: 45,
+        icuBeds: 12,
         waitTime: 15,
         address: 'JSS Medical College, SS Nagara, Mysuru, Karnataka 570015',
         phone: '0821-2548000',
+        city: 'Mysuru',
+        state: 'Karnataka',
+        pincode: '570015',
+        emergencyServices: true,
         traumaCenter: true,
-        icuCapacity: { total: 20, available: 8 }
+        accreditation: ['NABH']
       },
       {
-        id: 'mys002',
+        id: 1002,
         name: 'Apollo BGS Hospitals Mysuru',
         lat: 12.2677,
         lng: 76.6476,
-        type: 'private',
+        type: 'Private',
         specialties: ['Cardiac Care', 'Neurosurgery', 'Gastroenterology', 'Emergency Medicine'],
         availableBeds: 32,
+        icuBeds: 8,
         waitTime: 12,
         address: 'Adichunchanagiri Road, Kuvempunagar, Mysuru, Karnataka 570023',
         phone: '0821-2566000',
+        city: 'Mysuru',
+        state: 'Karnataka',
+        pincode: '570023',
+        emergencyServices: true,
         traumaCenter: true,
-        icuCapacity: { total: 15, available: 6 }
+        accreditation: ['NABH', 'JCI']
       },
       {
-        id: 'mys003',
+        id: 1003,
         name: 'Columbia Asia Hospital Mysuru',
         lat: 12.2847,
         lng: 76.6519,
-        type: 'private',
+        type: 'Private',
         specialties: ['General Medicine', 'Pediatrics', 'Orthopedics', 'Emergency Medicine'],
         availableBeds: 28,
+        icuBeds: 6,
         waitTime: 18,
         address: 'Kims Hospital Road, V V Mohalla, Mysuru, Karnataka 570002',
         phone: '0821-3989999',
+        city: 'Mysuru',
+        state: 'Karnataka',
+        pincode: '570002',
+        emergencyServices: true,
         traumaCenter: false,
-        icuCapacity: { total: 10, available: 4 }
+        accreditation: ['NABH']
       },
       {
-        id: 'mys004',
+        id: 1004,
         name: 'Vikram Hospital Mysuru',
         lat: 12.3156,
         lng: 76.6554,
-        type: 'private',
+        type: 'Private',
         specialties: ['Emergency Medicine', 'General Surgery', 'Gynecology', 'Pediatrics'],
         availableBeds: 18,
+        icuBeds: 4,
         waitTime: 20,
         address: 'No. 2847/1, Kantharaj Urs Road, Lakshmipuram, Mysuru, Karnataka 570004',
         phone: '0821-4006666',
+        city: 'Mysuru',
+        state: 'Karnataka',
+        pincode: '570004',
+        emergencyServices: true,
         traumaCenter: false,
-        icuCapacity: { total: 8, available: 3 }
+        accreditation: ['NABH']
       },
       {
-        id: 'mys005',
+        id: 1005,
         name: 'Basappa Memorial Hospital',
         lat: 12.2958, 
         lng: 76.6242,
-        type: 'government',
+        type: 'Government',
         specialties: ['General Medicine', 'Emergency Medicine', 'Trauma Care', 'Orthopedics'],
         availableBeds: 25,
+        icuBeds: 5,
         waitTime: 25,
         address: 'Vinoba Road, Jayalakshmipuram, Mysuru, Karnataka 570012',
         phone: '0821-2423800',
+        city: 'Mysuru',
+        state: 'Karnataka',
+        pincode: '570012',
+        emergencyServices: true,
         traumaCenter: true,
-        icuCapacity: { total: 12, available: 5 }
+        accreditation: ['NABH']
       }
     ];
+
+    const allHospitals = [...comprehensiveHospitals, ...mysuruHospitals];
 
     const hospitalsWithDistance = calculateDistanceAndETA(allHospitals, location);
     
