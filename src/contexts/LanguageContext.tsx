@@ -4,8 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export type Language = 'en' | 'hi' | 'kn';
 
 interface LanguageContextType {
-  language: string;
-  setLanguage: (lang: string) => void;
+  language: Language;
+  setLanguage: (lang: Language) => void;
   t: (key: string) => string;
 }
 
@@ -214,9 +214,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return translations[language]?.[key] || key;
   };
 
+  const handleSetLanguage = (lang: Language) => {
+    setLanguage(lang);
+  };
+
   const value = {
     language,
-    setLanguage,
+    setLanguage: handleSetLanguage,
     t,
   };
 

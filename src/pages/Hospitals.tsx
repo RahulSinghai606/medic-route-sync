@@ -29,6 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { fetchPatients } from '@/lib/patientUtils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 const Hospitals = () => {
   const [searchParams] = useSearchParams();
@@ -43,6 +44,34 @@ const Hospitals = () => {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [patientVitals, setPatientVitals] = useState(null);
   const [isLoadingPatient, setIsLoadingPatient] = useState(true);
+
+  // Add predefined locations including Mysuru
+  const predefinedLocations = [
+    { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
+    { name: 'Delhi', lat: 28.7041, lng: 77.1025 },
+    { name: 'Bengaluru', lat: 12.9716, lng: 77.5946 },
+    { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
+    { name: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+    { name: 'Mysuru', lat: 12.2958, lng: 76.6394 }
+  ];
+
+  // Handle manual location selection
+  const handleLocationSelect = (locationName: string) => {
+    const selectedLoc = predefinedLocations.find(loc => loc.name === locationName);
+    
+    if (selectedLoc) {
+      setCurrentLocation({
+        lat: selectedLoc.lat,
+        lng: selectedLoc.lng,
+        address: `${locationName}, India`
+      });
+      
+      toast({
+        title: t('location.updated'),
+        description: `Showing hospitals near ${locationName}`
+      });
+    }
+  };
 
   // Get user's location on component mount
   useEffect(() => {
@@ -321,6 +350,18 @@ const Hospitals = () => {
             {isLoadingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
             <span className="hidden sm:inline">{t('hospitals.update')}</span>
           </Button>
+          
+          {/* Add city selector */}
+          <Select onValueChange={handleLocationSelect}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder={t('select.city')} />
+            </SelectTrigger>
+            <SelectContent>
+              {predefinedLocations.map(location => (
+                <SelectItem key={location.name} value={location.name}>{location.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -493,7 +534,7 @@ const Hospitals = () => {
                         </div>
                         
                         {selectedHospital.promotedDueToSpecialty && (
-                          <Badge variant="outline" className="flex items-center gap-1 bg-medical/10 text-medical border-medical/20">
+                          <Badge variant="outline" className="flex items-center gap-1 bg-medical/10 text-medical border-medical">
                             <Tag className="h-3 w-3" />
                             <span>Specialty Promoted</span>
                           </Badge>
