@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+export type Language = 'en' | 'hi' | 'kn';
+
 interface LanguageContextType {
   language: string;
   setLanguage: (lang: string) => void;
@@ -12,6 +14,12 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 // Enhanced translations with proper medical terminology
 const translations = {
   en: {
+    // App general
+    'app.title': 'TeleMedic Pro',
+    'app.subtitle': 'Advanced Emergency Response System',
+    'language.select': 'Select Language',
+    'paramedic': 'Paramedic',
+    
     // Vitals section
     'vitals.title': 'Voice to Vitals',
     'vitals.description': 'Record your voice to extract vital signs',
@@ -70,6 +78,12 @@ const translations = {
     'error.opening.directions': 'Opening Directions'
   },
   hi: {
+    // App general
+    'app.title': 'टेलीमेडिक प्रो',
+    'app.subtitle': 'उन्नत आपातकालीन प्रतिक्रिया प्रणाली',
+    'language.select': 'भाषा चुनें',
+    'paramedic': 'पैरामेडिक',
+    
     // Vitals section
     'vitals.title': 'आवाज से जीवन संकेत',
     'vitals.description': 'जीवन संकेत निकालने के लिए अपनी आवाज रिकॉर्ड करें',
@@ -128,6 +142,12 @@ const translations = {
     'error.opening.directions': 'दिशा-निर्देश खोल रहे हैं'
   },
   kn: {
+    // App general
+    'app.title': 'ಟೆಲಿಮೆಡಿಕ್ ಪ್ರೊ',
+    'app.subtitle': 'ಮುಂದುವರಿದ ತುರ್ತು ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ',
+    'language.select': 'ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ',
+    'paramedic': 'ಪ್ಯಾರಾಮೆಡಿಕ್',
+    
     // Vitals section
     'vitals.title': 'ಧ್ವನಿಯಿಂದ ಜೀವನ ಚಿಹ್ನೆಗಳು',
     'vitals.description': 'ಜೀವನ ಚಿಹ್ನೆಗಳನ್ನು ಹೊರತೆಗೆಯಲು ನಿಮ್ಮ ಧ್ವನಿಯನ್ನು ರೆಕಾರ್ಡ್ ಮಾಡಿ',
@@ -188,10 +208,10 @@ const translations = {
 };
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguage] = useState<Language>('en');
 
   const t = (key: string): string => {
-    return translations[language as keyof typeof translations]?.[key] || key;
+    return translations[language]?.[key] || key;
   };
 
   const value = {
