@@ -6,6 +6,7 @@ export interface CaseItem {
   patient: string;
   condition: string;
   eta: number;
+  location: string;
   vitals: {
     hr: number;
     bp: string;

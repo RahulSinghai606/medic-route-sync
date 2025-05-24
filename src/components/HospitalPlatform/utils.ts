@@ -1,5 +1,5 @@
 
-import { CaseItem } from './types';
+import { CaseItem, Department } from './types';
 
 export const getSeverityColor = (severity: string) => {
   switch (severity) {
@@ -13,6 +13,30 @@ export const getSeverityColor = (severity: string) => {
       return 'bg-gray-500 text-white';
   }
 };
+
+export const getAlertColor = (alert: string) => {
+  switch (alert) {
+    case 'Critical':
+      return 'bg-red-500';
+    case 'Medium':
+      return 'bg-amber-500';
+    case 'Low':
+      return 'bg-green-500';
+    default:
+      return 'bg-gray-500';
+  }
+};
+
+export const departments: Department[] = [
+  { name: 'Emergency', beds: 8, total: 12, alert: 'Critical' },
+  { name: 'ICU', beds: 2, total: 8, alert: 'Critical' },
+  { name: 'General Ward', beds: 15, total: 25, alert: 'Medium' },
+  { name: 'Pediatrics', beds: 6, total: 10, alert: 'Low' },
+  { name: 'Cardiology', beds: 4, total: 6, alert: 'Medium' },
+  { name: 'Orthopedics', beds: 8, total: 12, alert: 'Low' },
+  { name: 'Neurology', beds: 3, total: 5, alert: 'Critical' },
+  { name: 'Surgery', beds: 5, total: 8, alert: 'Medium' }
+];
 
 export const incomingCases: CaseItem[] = [
   {
