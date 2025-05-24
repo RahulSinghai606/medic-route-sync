@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { fetchPatients } from '@/lib/patientUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   Search,
   PlusCircle,
@@ -16,15 +17,30 @@ import {
   Stethoscope,
   Calendar,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Patients = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [tab, setTab] = useState('all');
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearingRecords, setClearingRecords] = useState(false);
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -38,6 +54,143 @@ const Patients = () => {
 
     loadPatients();
   }, []);
+
+  // Sample South Indian patients data for Mysuru
+  const samplePatients = [
+    {
+      id: 'sample-1',
+      name: 'Rajesh Kumar',
+      age: 45,
+      gender: 'Male',
+      patient_id: 'EC-1001',
+      created_at: new Date().toISOString(),
+      vitals: [{
+        heart_rate: 78,
+        bp_systolic: 120,
+        bp_diastolic: 80,
+        spo2: 98,
+        gcs: 15,
+        chief_complaint: 'Cardiac chest pain',
+        created_at: new Date().toISOString()
+      }]
+    },
+    {
+      id: 'sample-2',
+      name: 'Lakshmi Devi',
+      age: 32,
+      gender: 'Female',
+      patient_id: 'EC-1002',
+      created_at: new Date(Date.now() - 3600000).toISOString(),
+      vitals: [{
+        heart_rate: 95,
+        bp_systolic: 140,
+        bp_diastolic: 90,
+        spo2: 94,
+        gcs: 14,
+        chief_complaint: 'Trauma from accident',
+        created_at: new Date(Date.now() - 3600000).toISOString()
+      }]
+    },
+    {
+      id: 'sample-3',
+      name: 'Suresh Babu',
+      age: 28,
+      gender: 'Male',
+      patient_id: 'EC-1003',
+      created_at: new Date(Date.now() - 7200000).toISOString(),
+      vitals: [{
+        heart_rate: 72,
+        bp_systolic: 110,
+        bp_diastolic: 70,
+        spo2: 99,
+        gcs: 15,
+        chief_complaint: 'Respiratory issues',
+        created_at: new Date(Date.now() - 7200000).toISOString()
+      }]
+    },
+    {
+      id: 'sample-4',
+      name: 'Priya Sharma',
+      age: 35,
+      gender: 'Female',
+      patient_id: 'EC-1004',
+      created_at: new Date(Date.now() - 10800000).toISOString(),
+      vitals: [{
+        heart_rate: 68,
+        bp_systolic: 115,
+        bp_diastolic: 75,
+        spo2: 97,
+        gcs: 15,
+        chief_complaint: 'Pediatric emergency',
+        created_at: new Date(Date.now() - 10800000).toISOString()
+      }]
+    },
+    {
+      id: 'sample-5',
+      name: 'Ravi Gowda',
+      age: 52,
+      gender: 'Male',
+      patient_id: 'EC-1005',
+      created_at: new Date(Date.now() - 14400000).toISOString(),
+      vitals: [{
+        heart_rate: 85,
+        bp_systolic: 135,
+        bp_diastolic: 85,
+        spo2: 96,
+        gcs: 13,
+        chief_complaint: 'Neurological symptoms',
+        created_at: new Date(Date.now() - 14400000).toISOString()
+      }]
+    }
+  ];
+
+  // Combine real patients with sample data if no real patients exist
+  const displayPatients = patients.length > 0 ? patients : samplePatients;
+
+  const clearAllRecords = async () => {
+    setClearingRecords(true);
+    try {
+      // Clear all patient records and related data
+      const { error: vitalsError } = await supabase
+        .from('vitals')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      const { error: incidentsError } = await supabase
+        .from('incidents')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      const { error: medicalHistoryError } = await supabase
+        .from('medical_history')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      const { error: patientsError } = await supabase
+        .from('patients')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (vitalsError || incidentsError || medicalHistoryError || patientsError) {
+        throw new Error('Failed to clear some records');
+      }
+
+      setPatients([]);
+      toast({
+        title: "Records Cleared",
+        description: "All patient records have been successfully cleared.",
+      });
+    } catch (error: any) {
+      console.error('Error clearing records:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear records. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setClearingRecords(false);
+    }
+  };
 
   const getPatientVitals = (patient: any) => {
     if (!patient || !patient.vitals || patient.vitals.length === 0) return null;
@@ -64,7 +217,7 @@ const Patients = () => {
     }
   };
 
-  const filteredPatients = patients.filter(patient => {
+  const filteredPatients = displayPatients.filter(patient => {
     const matchesSearch = 
       (patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) || 
       (patient.patient_id?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
@@ -112,9 +265,39 @@ const Patients = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1>Patients</h1>
-          <p className="text-muted-foreground">Manage current patients and cases</p>
+          <p className="text-muted-foreground">Manage current patients and cases in Mysuru</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2" disabled={clearingRecords}>
+                <Trash2 className="h-4 w-4" />
+                <span>Clear Records</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  Clear All Patient Records
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action will permanently delete all patient records, vitals, incidents, and medical history. 
+                  This cannot be undone. Are you sure you want to continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={clearAllRecords}
+                  className="bg-destructive hover:bg-destructive/90"
+                  disabled={clearingRecords}
+                >
+                  {clearingRecords ? 'Clearing...' : 'Clear All Records'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button className="medical-btn flex items-center gap-2" onClick={handleNewPatient}>
             <UserPlus className="h-4 w-4" />
             <span>New Patient</span>
@@ -125,7 +308,7 @@ const Patients = () => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle>Patient List</CardTitle>
+            <CardTitle>Patient List - Mysuru Emergency Cases</CardTitle>
             <div className="flex gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -191,7 +374,7 @@ const Patients = () => {
                                     {patient.age ? `${patient.age} years` : ''}{patient.gender ? `, ${patient.gender}` : ''} • {patient.patient_id || 'No ID'}
                                   </div>
                                   <div className="text-sm text-gray-500">
-                                    {getPatientVitals(patient)?.chief_complaint || 'No complaint recorded'}
+                                    📍 Mysuru, Karnataka • {getPatientVitals(patient)?.chief_complaint || 'No complaint recorded'}
                                   </div>
                                 </div>
                               </div>
@@ -264,7 +447,7 @@ const Patients = () => {
                   <Calendar className="h-5 w-5 text-gray-600" />
                 </div>
                 <div>
-                  <h3 className="font-medium">North Zone Patrol</h3>
+                  <h3 className="font-medium">Mysuru Zone Patrol</h3>
                   <p className="text-sm text-muted-foreground">Regular shift coverage</p>
                 </div>
               </div>

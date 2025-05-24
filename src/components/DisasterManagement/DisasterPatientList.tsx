@@ -26,10 +26,102 @@ interface Patient {
 }
 
 interface DisasterPatientListProps {
-  patients: Patient[];
+  patients?: Patient[];
 }
 
-const DisasterPatientList: React.FC<DisasterPatientListProps> = ({ patients = [] }) => {
+// Default South Indian patients data for Mysuru disaster scenario
+const defaultMysuruPatients: Patient[] = [
+  {
+    id: 1001,
+    name: 'Rajesh Kumar',
+    age: 45,
+    gender: 'Male',
+    location: 'Kuvempunagar, Mysuru',
+    condition: 'Critical',
+    needsVentilator: true,
+    severity: 1,
+    injuries: ['Head trauma', 'Multiple fractures']
+  },
+  {
+    id: 1002,
+    name: 'Lakshmi Devi',
+    age: 32,
+    gender: 'Female',
+    location: 'Jayalakshmipuram, Mysuru',
+    condition: 'Moderate',
+    needsVentilator: false,
+    severity: 3,
+    injuries: ['Lacerations', 'Chest contusion']
+  },
+  {
+    id: 1003,
+    name: 'Suresh Babu',
+    age: 28,
+    gender: 'Male',
+    location: 'Vijayanagar, Mysuru',
+    condition: 'Critical',
+    needsVentilator: true,
+    severity: 2,
+    injuries: ['Spinal injury', 'Internal bleeding']
+  },
+  {
+    id: 1004,
+    name: 'Priya Sharma',
+    age: 35,
+    gender: 'Female',
+    location: 'Hebbal, Mysuru',
+    condition: 'Stable',
+    needsVentilator: false,
+    severity: 4,
+    injuries: ['Minor cuts', 'Bruising']
+  },
+  {
+    id: 1005,
+    name: 'Ravi Gowda',
+    age: 52,
+    gender: 'Male',
+    location: 'Saraswathipuram, Mysuru',
+    condition: 'Critical',
+    needsVentilator: true,
+    severity: 1,
+    injuries: ['Severe burns', 'Smoke inhalation']
+  },
+  {
+    id: 1006,
+    name: 'Anita Rao',
+    age: 29,
+    gender: 'Female',
+    location: 'Nazarbad, Mysuru',
+    condition: 'Moderate',
+    needsVentilator: false,
+    severity: 3,
+    injuries: ['Fractured arm', 'Abrasions']
+  },
+  {
+    id: 1007,
+    name: 'Krishnamurthy',
+    age: 67,
+    gender: 'Male',
+    location: 'Chamundipuram, Mysuru',
+    condition: 'Stable',
+    needsVentilator: false,
+    severity: 5,
+    injuries: ['Minor injuries']
+  },
+  {
+    id: 1008,
+    name: 'Deepa Nair',
+    age: 24,
+    gender: 'Female',
+    location: 'Gokulam, Mysuru',
+    condition: 'Critical',
+    needsVentilator: true,
+    severity: 2,
+    injuries: ['Pneumothorax', 'Leg fracture']
+  }
+];
+
+const DisasterPatientList: React.FC<DisasterPatientListProps> = ({ patients = defaultMysuruPatients }) => {
   const [sortByField, setSortByField] = useState<keyof Patient>('severity');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedPatients, setSelectedPatients] = useState<number[]>([]);
@@ -96,7 +188,7 @@ const DisasterPatientList: React.FC<DisasterPatientListProps> = ({ patients = []
             onCheckedChange={(checked) => handleSelectAll(!!checked)}
           />
           <label htmlFor="select-all" className="text-sm font-medium">
-            Select All
+            Select All ({patients.length} Mysuru patients)
           </label>
         </div>
 
@@ -146,7 +238,7 @@ const DisasterPatientList: React.FC<DisasterPatientListProps> = ({ patients = []
               <TableCell>
                 <div>
                   <p className="font-medium">{patient.name}</p>
-                  <p className="text-xs text-muted-foreground">{patient.location}</p>
+                  <p className="text-xs text-muted-foreground">📍 {patient.location}</p>
                 </div>
               </TableCell>
               <TableCell>{patient.age} / {patient.gender}</TableCell>
