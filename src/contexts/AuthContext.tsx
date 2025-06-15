@@ -189,33 +189,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         console.log('Login successful, user:', data.user?.id);
         
-        // If role is provided during login, update the profile
-        if (role && data.user) {
-          await updateProfile({ role });
-        }
-        
-        // Force redirect based on role after successful login
+        // Fetch the profile to determine the actual role
         if (data.user) {
-          await fetchProfile(data.user.id);
-          
-          // Get the updated profile to determine redirect
           const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single();
             
-          const userRole = profileData?.role || data.user.user_metadata?.role || role;
-          console.log('User role for redirect:', userRole);
+          let userRole = profileData?.role || data.user.user_metadata?.role || role;
           
-          // Immediate redirect based on role
-          if (userRole === 'hospital') {
-            console.log('Redirecting to hospital platform');
-            window.location.href = '/hospital-platform';
-          } else {
-            console.log('Redirecting to paramedic dashboard');
-            window.location.href = '/';
+          // If role is provided during login and different from stored role, update it
+          if (role && role !== userRole) {
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .upsert({ 
+                id: data.user.id, 
+                role: role,
+                full_name: profileData?.full_name || data.user.user_metadata?.full_name || data.user.email
+              });
+              
+            if (!updateError) {
+              userRole = role;
+            }
           }
+          
+          console.log('Final user role for redirect:', userRole);
+          
+          // Force immediate redirect based on role
+          setTimeout(() => {
+            if (userRole === 'hospital') {
+              console.log('Redirecting to hospital platform');
+              window.location.href = '/hospital-platform';
+            } else {
+              console.log('Redirecting to paramedic dashboard');
+              window.location.href = '/';
+            }
+          }, 500); // Small delay to ensure state is updated
         }
         
         toast({
