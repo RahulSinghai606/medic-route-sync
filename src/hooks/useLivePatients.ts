@@ -8,7 +8,7 @@ type Patient = {
   name: string | null;
   age: number | null;
   gender?: string | null;
-  room?: string | null;
+  // "room" property REMOVED since it's not in the DB.
   created_at: string;
   // Add vital stats fields as needed
 };
@@ -32,7 +32,6 @@ export const useLivePatients = () => {
       setPatients(
         (data || []).map((p) => ({
           ...p,
-          room: p.room ?? "—",
         }))
       );
       setError(null);

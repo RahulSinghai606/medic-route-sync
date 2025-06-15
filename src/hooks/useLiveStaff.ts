@@ -24,13 +24,17 @@ export const useLiveStaff = () => {
       .from("profiles")
       .select("*")
       .in("role", ["doctor", "nurse"]);
+
     if (error) {
       setError("Error loading staff");
       setStaff([]);
     } else {
       setStaff(
         (data || []).map((s) => ({
-          ...s,
+          id: s.id,
+          name: s.full_name ?? null,
+          role: s.role ?? null,
+          department: s.department ?? null,
           status: "Available",
         }))
       );
