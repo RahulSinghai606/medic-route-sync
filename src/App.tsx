@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -75,7 +76,7 @@ const ProtectedRoute = ({
   return <>{children}</>;
 };
 
-const AppRoutes = () => {
+const AppContent = () => {
   const { user, profile, isLoading } = useAuth();
   
   // Show enhanced loading screen while determining user role
@@ -148,17 +149,17 @@ function App() {
     <LanguageProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AuthProvider>
-            <ThemeProvider>
+          <ThemeProvider>
+            <AuthProvider>
               <Toaster />
               <Sonner />
               <BrowserRouter>
                 <SidebarProvider>
-                  <AppRoutes />
+                  <AppContent />
                 </SidebarProvider>
               </BrowserRouter>
-            </ThemeProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </ThemeProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </LanguageProvider>

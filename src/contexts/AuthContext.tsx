@@ -25,13 +25,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('Setting up auth state listener...');
+    
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Auth state change:', event, currentSession?.user?.id);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        if (currentSession?.user && event === 'SIGNED_IN') {
+        if (currentSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          // Use setTimeout to prevent potential deadlocks
           setTimeout(async () => {
             await fetchProfile(currentSession.user.id);
             setIsLoading(false);
@@ -43,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // Check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       console.log('Initial session check:', currentSession?.user?.id);
       setSession(currentSession);
@@ -71,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        // Try to get role from user metadata as fallback
         const { data: user } = await supabase.auth.getUser();
         if (user?.user?.user_metadata?.role) {
           const profileData = {
@@ -224,26 +230,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             profileData = updatedProfile;
           }
           
-          const userRole = profileData?.role || role || 'paramedic';
-          console.log('Final user role for redirect:', userRole);
-          
           setProfile(profileData);
           
-          setTimeout(() => {
-            if (userRole === 'hospital') {
-              console.log('Redirecting to hospital platform');
-              window.location.href = '/hospital-platform';
-            } else {
-              console.log('Redirecting to paramedic dashboard');
-              window.location.href = '/';
-            }
-          }, 500);
+          // Don't redirect immediately, let the auth state change handle it
+          toast({
+            title: "Login successful",
+            description: "Welcome back to TERO!",
+          });
         }
-        
-        toast({
-          title: "Login successful",
-          description: "Welcome back to TERO!",
-        });
       }
       
       return { error };
