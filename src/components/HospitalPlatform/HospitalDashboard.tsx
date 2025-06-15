@@ -70,13 +70,12 @@ const HospitalDashboard: React.FC = () => {
       <div className="absolute inset-0">
         {/* Grid pattern */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
+          <div className="absolute inset-0 animate-grid-move" style={{
             backgroundImage: `
               linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
               linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)
             `,
-            backgroundSize: '30px 30px',
-            animation: 'grid-move 15s linear infinite'
+            backgroundSize: '30px 30px'
           }}></div>
         </div>
         
@@ -238,10 +237,13 @@ const HospitalDashboard: React.FC = () => {
         </Card>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes grid-move {
           0% { transform: translate(0, 0); }
           100% { transform: translate(30px, 30px); }
+        }
+        .animate-grid-move {
+          animation: grid-move 15s linear infinite;
         }
       `}</style>
     </div>

@@ -164,13 +164,12 @@ const Login = () => {
         
         {/* Animated grid lines */}
         <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0" style={{
+          <div className="absolute inset-0 animate-grid-move" style={{
             backgroundImage: `
               linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
               linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)
             `,
-            backgroundSize: '50px 50px',
-            animation: 'grid-move 20s linear infinite'
+            backgroundSize: '50px 50px'
           }}></div>
         </div>
         
@@ -191,8 +190,8 @@ const Login = () => {
         </div>
         
         {/* Large rotating ring */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-blue-400/20 rounded-full animate-spin" style={{ animationDuration: '30s' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 border border-purple-400/20 rounded-full animate-spin" style={{ animationDuration: '25s', animationDirection: 'reverse' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-blue-400/20 rounded-full animate-spin-slow"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 border border-purple-400/20 rounded-full animate-spin-reverse"></div>
       </div>
 
       {/* Theme Toggle */}
@@ -617,10 +616,23 @@ const Login = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes grid-move {
           0% { transform: translate(0, 0); }
           100% { transform: translate(50px, 50px); }
+        }
+        .animate-grid-move {
+          animation: grid-move 20s linear infinite;
+        }
+        .animate-spin-slow {
+          animation: spin 30s linear infinite;
+        }
+        .animate-spin-reverse {
+          animation: spin 25s linear infinite reverse;
+        }
+        @keyframes spin {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
         }
       `}</style>
     </div>
