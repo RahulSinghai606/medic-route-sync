@@ -10,14 +10,18 @@ import { departments, getAlertColor } from './utils';
 import DepartmentStatusDialog from './DepartmentStatusDialog';
 import BedManagementDialog from './BedManagementDialog';
 import { Department } from './types';
+import DepartmentEditDialog from './DepartmentEditDialog';
+import { useDepartments } from '@/hooks/useDepartments';
 
 const Departments: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [departmentList, setDepartmentList] = useState(departments);
+  const { departmentList, addDepartment, updateDepartment, removeDepartment, updateBeds } = useDepartments(departments);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isBedManagementOpen, setIsBedManagementOpen] = useState(false);
+  const [isDeptEditOpen, setIsDeptEditOpen] = useState(false);
+  const [deptToEdit, setDeptToEdit] = useState<Department | null>(null);
 
   const handleUpdateStatus = (departmentName: string, updates: Partial<Department>) => {
     setDepartmentList(prev => 
@@ -100,6 +104,24 @@ const Departments: React.FC = () => {
     });
   };
 
+  const handleAddDepartment = () => {
+    setDeptToEdit(null);
+    setIsDeptEditOpen(true);
+  };
+
+  const handleEditDepartment = (dept: Department) => {
+    setDeptToEdit(dept);
+    setIsDeptEditOpen(true);
+  };
+
+  const handleDeptDialogSubmit = (data: Partial<Department>) => {
+    if (deptToEdit) {
+      updateDepartment(deptToEdit.name, data);
+    } else {
+      addDepartment(data as Department);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -115,6 +137,9 @@ const Departments: React.FC = () => {
           <Button variant="outline" onClick={handleExportReport}>
             <Download className="mr-2 h-4 w-4" />
             Export Report
+          </Button>
+          <Button variant="default" onClick={handleAddDepartment}>
+            + Add Department
           </Button>
         </div>
       </div>
@@ -167,7 +192,7 @@ const Departments: React.FC = () => {
         <CardContent>
           <div className="space-y-6">
             {departmentList.map((dept, index) => (
-              <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
+              <div key={dept.name} className="border-b pb-4 last:border-0 last:pb-0">
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center">
                     <div className={`h-10 w-10 rounded-md ${getAlertColor(dept.alert)} bg-opacity-20 text-${dept.alert === 'Critical' ? 'red' : dept.alert === 'Medium' ? 'amber' : 'green'}-700 flex items-center justify-center mr-3`}>
@@ -191,6 +216,12 @@ const Departments: React.FC = () => {
                     <Button variant="outline" size="sm" onClick={handleBedManagement}>
                       <BedDouble className="h-3 w-3 mr-1" />
                       Bed Mgmt
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleEditDepartment(dept)}>
+                      ✏️
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => removeDepartment(dept.name)}>
+                      🗑️
                     </Button>
                   </div>
                 </div>
@@ -274,6 +305,13 @@ const Departments: React.FC = () => {
       <BedManagementDialog
         isOpen={isBedManagementOpen}
         onClose={() => setIsBedManagementOpen(false)}
+      />
+
+      <DepartmentEditDialog
+        open={isDeptEditOpen}
+        initial={deptToEdit}
+        onClose={() => setIsDeptEditOpen(false)}
+        onSubmit={handleDeptDialogSubmit}
       />
     </div>
   );
