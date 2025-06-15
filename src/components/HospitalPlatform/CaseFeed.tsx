@@ -1,48 +1,121 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import CaseSummary from './CaseSummary';
-import CaseDetails from './CaseDetails';
-import { CaseItem } from './types';
-import { incomingCases } from './utils';
 import { useToast } from '@/hooks/use-toast';
+import { useCases, updateCaseStatus, CaseWithRelations } from '@/hooks/useCases';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle } from 'lucide-react';
 
 const CaseFeed: React.FC = () => {
-  const [selectedCase, setSelectedCase] = React.useState<number | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(false);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { toast } = useToast();
+  const { data: incomingCases, isLoading, error } = useCases('pending_approval');
 
-  const handleAcceptCase = (caseId: number) => {
-    setLoading(true);
-    setTimeout(() => {
-      setSelectedCase(null);
+  const handleAcceptCase = async (caseId: string) => {
+    setIsSubmitting(true);
+    try {
+      await updateCaseStatus(caseId, 'accepted');
       toast({
         title: "Case Accepted",
-        description: `Case #${caseId} has been accepted and departments notified.`,
+        description: `Case #${caseId.substring(0,8)} has been accepted.`,
       });
-      setLoading(false);
-    }, 1000);
+      setSelectedCaseId(null);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to accept case.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
-  const handleDeclineCase = (caseId: number) => {
-    setLoading(true);
-    setTimeout(() => {
-      setSelectedCase(null);
+  const handleDeclineCase = async (caseId: string) => {
+    setIsSubmitting(true);
+    try {
+      await updateCaseStatus(caseId, 'declined');
       toast({
         title: "Case Declined",
-        description: `Case #${caseId} has been declined. Paramedic will be redirected.`,
+        description: `Case #${caseId.substring(0,8)} has been declined.`,
         variant: "destructive"
       });
-      setLoading(false);
-    }, 1000);
+      setSelectedCaseId(null);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to decline case.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleViewCaseDetails = (caseId: number) => {
-    setSelectedCase(caseId);
+  const handleViewCaseDetails = (caseId: string) => {
+    setSelectedCaseId(caseId);
   };
 
-  const getCurrentCase = (): CaseItem | undefined => {
-    return incomingCases.find(c => c.id === selectedCase);
+  const selectedCase = React.useMemo(() => 
+    incomingCases?.find(c => c.id === selectedCaseId),
+    [incomingCases, selectedCaseId]
+  );
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="space-y-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-red-500 flex items-center gap-2 p-4 bg-red-50 dark:bg-red-950/50 rounded-lg">
+          <AlertCircle className="h-4 w-4" />
+          <span>Error loading case feed: {error.message}</span>
+        </div>
+      );
+    }
+
+    if (selectedCase) {
+      return (
+        <div>
+          <Button variant="outline" size="sm" onClick={() => setSelectedCaseId(null)} className="mb-4">
+            &larr; Back to Feed
+          </Button>
+          <div className="space-y-3 rounded-lg border p-4">
+            <h3 className="text-lg font-bold">Case Details for #{selectedCase.id.substring(0,8)}</h3>
+            <p><strong>Patient:</strong> {selectedCase.patients?.name || 'N/A'}</p>
+            <p><strong>Severity:</strong> {selectedCase.severity}</p>
+            <p><strong>ETA:</strong> {selectedCase.eta_minutes || 'N/A'} minutes</p>
+            <p><strong>Paramedic:</strong> {selectedCase.paramedic?.full_name || 'N/A'}</p>
+            <p><strong>Notes:</strong> {selectedCase.paramedic_notes || 'None'}</p>
+            <div className="flex gap-4 pt-4 border-t">
+              <Button onClick={() => handleAcceptCase(selectedCase.id)} disabled={isSubmitting}>
+                {isSubmitting ? 'Accepting...' : 'Accept Case'}
+              </Button>
+              <Button variant="destructive" onClick={() => handleDeclineCase(selectedCase.id)} disabled={isSubmitting}>
+                {isSubmitting ? 'Declining...' : 'Decline Case'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    if (!incomingCases || incomingCases.length === 0) {
+        return <p className="text-muted-foreground text-center py-8">No incoming cases at the moment.</p>;
+    }
+
+    return (
+      <div className="space-y-4">
+        {incomingCases.map((caseItem) => (
+          <CaseSummary 
+            key={caseItem.id} 
+            caseItem={caseItem} 
+            onViewDetails={handleViewCaseDetails} 
+          />
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -52,26 +125,7 @@ const CaseFeed: React.FC = () => {
         <CardDescription>Real-time updates from inbound ambulances</CardDescription>
       </CardHeader>
       <CardContent>
-        {selectedCase ? (
-          <CaseDetails 
-            caseId={selectedCase}
-            onBack={() => setSelectedCase(null)}
-            caseItem={getCurrentCase()!}
-            loading={loading}
-            onAccept={handleAcceptCase}
-            onDecline={handleDeclineCase}
-          />
-        ) : (
-          <div className="space-y-4">
-            {incomingCases.map((caseItem) => (
-              <CaseSummary 
-                key={caseItem.id} 
-                caseItem={caseItem} 
-                onViewDetails={handleViewCaseDetails} 
-              />
-            ))}
-          </div>
-        )}
+        {renderContent()}
       </CardContent>
     </Card>
   );

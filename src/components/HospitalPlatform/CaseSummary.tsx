@@ -3,12 +3,12 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, UserCheck } from 'lucide-react';
-import { CaseItem } from './types';
 import { getSeverityColor } from './utils';
+import { CaseWithRelations } from '@/hooks/useCases';
 
 interface CaseSummaryProps {
-  caseItem: CaseItem;
-  onViewDetails: (id: number) => void;
+  caseItem: CaseWithRelations;
+  onViewDetails: (id: string) => void;
 }
 
 const CaseSummary: React.FC<CaseSummaryProps> = ({ caseItem, onViewDetails }) => {
@@ -20,17 +20,17 @@ const CaseSummary: React.FC<CaseSummaryProps> = ({ caseItem, onViewDetails }) =>
             caseItem.severity === 'Critical' ? 'bg-red-500' : 
             caseItem.severity === 'Urgent' ? 'bg-amber-500' : 'bg-green-500'
           }`}></span>
-          <span className="font-medium">Case #{caseItem.id}</span>
+          <span className="font-medium">Case #{caseItem.id.substring(0, 8)}...</span>
           <Badge className={getSeverityColor(caseItem.severity)}>
             {caseItem.severity}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          {caseItem.patient} - {caseItem.condition}
+          {caseItem.patients?.name || 'Unknown Patient'} - {caseItem.paramedic_notes || 'No condition notes provided'}
         </p>
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          <span>ETA: {caseItem.eta} minutes</span>
+          <span>ETA: {caseItem.eta_minutes || 'N/A'} minutes</span>
         </div>
       </div>
       <Button 

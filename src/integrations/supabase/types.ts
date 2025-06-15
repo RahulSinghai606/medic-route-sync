@@ -9,6 +9,70 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      cases: {
+        Row: {
+          created_at: string
+          eta_minutes: number | null
+          hospital_id: string
+          id: string
+          paramedic_id: string
+          paramedic_notes: string | null
+          patient_id: string
+          severity: Database["public"]["Enums"]["case_severity"]
+          status: Database["public"]["Enums"]["case_status"]
+          updated_at: string
+          vitals: Json | null
+        }
+        Insert: {
+          created_at?: string
+          eta_minutes?: number | null
+          hospital_id: string
+          id?: string
+          paramedic_id: string
+          paramedic_notes?: string | null
+          patient_id: string
+          severity: Database["public"]["Enums"]["case_severity"]
+          status?: Database["public"]["Enums"]["case_status"]
+          updated_at?: string
+          vitals?: Json | null
+        }
+        Update: {
+          created_at?: string
+          eta_minutes?: number | null
+          hospital_id?: string
+          id?: string
+          paramedic_id?: string
+          paramedic_notes?: string | null
+          patient_id?: string
+          severity?: Database["public"]["Enums"]["case_severity"]
+          status?: Database["public"]["Enums"]["case_status"]
+          updated_at?: string
+          vitals?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_paramedic_id_fkey"
+            columns: ["paramedic_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           chief_complaint: string | null
@@ -257,7 +321,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      case_severity: "Critical" | "Urgent" | "Stable"
+      case_status:
+        | "pending_approval"
+        | "accepted"
+        | "declined"
+        | "en_route"
+        | "arrived"
+        | "handoff_complete"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -372,6 +443,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      case_severity: ["Critical", "Urgent", "Stable"],
+      case_status: [
+        "pending_approval",
+        "accepted",
+        "declined",
+        "en_route",
+        "arrived",
+        "handoff_complete",
+      ],
+    },
   },
 } as const
