@@ -40,7 +40,6 @@ import { useLiveStaff } from '@/hooks/useLiveStaff';
 import { useDepartments } from '@/hooks/useDepartments';
 import LiveStatCard from './common/LiveStatCard';
 import { StatusBadge } from './common/StatusBadge';
-import { Bed, Users, Building2, AlertTriangle, Clock, BarChart3, Monitor, Stethoscope } from 'lucide-react';
 
 const PremiumHospitalOperations = () => {
   // Realtime data hooks
