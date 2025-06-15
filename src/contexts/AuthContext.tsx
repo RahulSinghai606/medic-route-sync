@@ -123,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             full_name: fullName,
             role: role,
           },
+          emailRedirectTo: `${window.location.origin}/`,
         },
       });
       
@@ -193,29 +194,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Login successful, user:', data.user?.id);
         
         if (data.user) {
-          const { data: profileData } = await supabase
+          // Fetch or create profile
+          let { data: profileData } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single();
             
-          let userRole = profileData?.role || data.user.user_metadata?.role || role;
-          
-          if (role && role !== userRole) {
-            const { error: updateError } = await supabase
+          if (!profileData) {
+            // Create profile if it doesn't exist
+            const { data: newProfile } = await supabase
               .from('profiles')
-              .upsert({ 
+              .insert({ 
                 id: data.user.id, 
-                role: role,
-                full_name: profileData?.full_name || data.user.user_metadata?.full_name || data.user.email
-              });
-              
-            if (!updateError) {
-              userRole = role;
-            }
+                role: role || 'paramedic',
+                full_name: data.user.user_metadata?.full_name || data.user.email
+              })
+              .select()
+              .single();
+            profileData = newProfile;
+          } else if (role && role !== profileData.role) {
+            // Update role if specified and different
+            const { data: updatedProfile } = await supabase
+              .from('profiles')
+              .update({ role: role })
+              .eq('id', data.user.id)
+              .select()
+              .single();
+            profileData = updatedProfile;
           }
           
+          const userRole = profileData?.role || role || 'paramedic';
           console.log('Final user role for redirect:', userRole);
+          
+          setProfile(profileData);
           
           setTimeout(() => {
             if (userRole === 'hospital') {

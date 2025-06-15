@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,7 +25,7 @@ import HospitalPlatform from "./pages/HospitalPlatform";
 
 const queryClient = new QueryClient();
 
-// Protected route component with role checking
+// Protected route component with enhanced role checking
 const ProtectedRoute = ({ 
   children,
   allowedRole
@@ -38,10 +37,16 @@ const ProtectedRoute = ({
   
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-medical/10">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical mx-auto mb-4"></div>
-          <p className="text-medical font-medium">Loading TERO...</p>
+      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-medical/10 dark:from-slate-950 dark:to-slate-900">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-medical mx-auto"></div>
+          <div>
+            <p className="text-medical font-bold text-xl">TERO</p>
+            <p className="text-muted-foreground">Emergency Response Platform</p>
+          </div>
+          <div className="animate-pulse">
+            <p className="text-sm text-muted-foreground">Initializing secure connection...</p>
+          </div>
         </div>
       </div>
     );
@@ -51,14 +56,20 @@ const ProtectedRoute = ({
     return <Navigate to="/login" />;
   }
 
-  // If a specific role is required and the user doesn't have it
+  // Enhanced role checking with better error handling
   if (allowedRole && profile?.role !== allowedRole) {
+    console.log(`User role: ${profile?.role}, Required role: ${allowedRole}`);
+    
     // Redirect hospital staff to hospital platform
     if (profile?.role === 'hospital') {
       return <Navigate to="/hospital-platform" replace />;
     }
     // Redirect paramedics to main dashboard
-    return <Navigate to="/" replace />;
+    if (profile?.role === 'paramedic') {
+      return <Navigate to="/" replace />;
+    }
+    // If no valid role, redirect to login
+    return <Navigate to="/login" replace />;
   }
   
   return <>{children}</>;
@@ -67,13 +78,14 @@ const ProtectedRoute = ({
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
   
-  // Show loading screen while determining user role
+  // Show enhanced loading screen while determining user role
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-medical/10">
+      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-medical/10 dark:from-slate-950 dark:to-slate-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical mx-auto mb-4"></div>
           <p className="text-medical font-medium">Loading TERO...</p>
+          <p className="text-sm text-muted-foreground mt-2">Authenticating user access</p>
         </div>
       </div>
     );
@@ -81,7 +93,7 @@ const AppRoutes = () => {
   
   return (
     <Routes>
-      {/* Auth routes */}
+      {/* Auth routes with enhanced redirection */}
       <Route path="/login" element={
         user ? (
           profile?.role === 'hospital' ? 
@@ -98,7 +110,7 @@ const AppRoutes = () => {
         ) : <Signup />
       } />
       
-      {/* Paramedic routes */}
+      {/* Paramedic routes with proper role protection */}
       <Route element={
         <ProtectedRoute allowedRole="paramedic">
           <AppLayout />
@@ -112,7 +124,7 @@ const AppRoutes = () => {
         <Route path="/disaster" element={<DisasterMode />} />
       </Route>
       
-      {/* Hospital platform routes */}
+      {/* Hospital platform routes with enhanced protection */}
       <Route path="/hospital-platform" element={
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />
@@ -125,6 +137,7 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
+      {/* Fallback route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
