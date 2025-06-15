@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,11 +35,43 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import useHospitalData from '@/hooks/useHospitalData';
 
+import { useLivePatients } from '@/hooks/useLivePatients';
+import { useLiveStaff } from '@/hooks/useLiveStaff';
+import { useDepartments } from '@/hooks/useDepartments';
+import LiveStatCard from './common/LiveStatCard';
+import { StatusBadge } from './common/StatusBadge';
+import { Bed, Users, Building2, AlertTriangle, Clock, BarChart3, Monitor, Stethoscope } from 'lucide-react';
+
 const PremiumHospitalOperations = () => {
+  // Realtime data hooks
+  const { patients, loading: patientsLoading, error: patientsError, refetch: refetchPatients } = useLivePatients();
+  const { staff, loading: staffLoading, error: staffError, refetch: refetchStaff } = useLiveStaff();
+  const { departmentList, loading: deptsLoading, error: departmentsError, reload: reloadDepartments } = useDepartments();
+
+  // Compute derived stats
+  const availableBeds = departmentList.reduce((sum, d) => sum + (d.beds || 0), 0);
+  const totalBeds = departmentList.reduce((sum, d) => sum + (d.total || 0), 0);
+  const emergencyQueue = patients.length; // Statically use count of patients as hospital queue
+  const onDutyStaff = staff.length;
+  const avgResponseTime = 8.5; // Still static
+
+  // STATUS
+  if (departmentsError || patientsError || staffError) {
+    return (
+      <div className="p-8 flex flex-col gap-4 items-center text-destructive">
+        <div>Error loading data:</div>
+        {departmentsError && <div>{departmentsError}</div>}
+        {patientsError && <div>{patientsError}</div>}
+        {staffError && <div>{staffError}</div>}
+        <button className="btn btn-primary" onClick={() => { reloadDepartments(); refetchPatients(); refetchStaff(); }}>Retry</button>
+      </div>
+    );
+  }
+
   const { 
     metrics, 
-    patients, 
-    staff, 
+    patients: mockPatients, 
+    staff: mockStaff, 
     operatingRooms, 
     updateMetric, 
     updatePatient, 
@@ -253,228 +284,115 @@ const PremiumHospitalOperations = () => {
       </div>
 
       {/* Real-time Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        <LiveStatCard
           title="Available Beds"
-          value={metrics.availableBeds}
+          value={availableBeds}
           unit=""
-          icon={Bed}
-          trend={2.5}
-          editable={true}
-          metricKey="availableBeds"
+          icon={<Bed className="h-8 w-8" />}
+          loading={deptsLoading}
         />
-        <MetricCard
-          title="Emergency Queue"
-          value={metrics.emergencyQueue}
+        <LiveStatCard
+          title="Total Beds"
+          value={totalBeds}
           unit=""
-          icon={AlertTriangle}
-          trend={-1.2}
-          editable={true}
-          metricKey="emergencyQueue"
+          icon={<Building2 className="h-8 w-8" />}
+          loading={deptsLoading}
         />
-        <MetricCard
+        <LiveStatCard
           title="Staff On Duty"
-          value={metrics.onDutyStaff}
-          unit={`/${metrics.totalStaff}`}
-          icon={Users}
-          trend={0.8}
-          editable={true}
-          metricKey="onDutyStaff"
+          value={onDutyStaff}
+          unit=""
+          icon={<Users className="h-8 w-8" />}
+          loading={staffLoading}
         />
-        <MetricCard
-          title="Response Time"
-          value={metrics.avgResponseTime.toFixed(1)}
-          unit="min"
-          icon={Clock}
-          trend={-2.1}
-          editable={true}
-          metricKey="avgResponseTime"
+        <LiveStatCard
+          title="Emergency Queue"
+          value={emergencyQueue}
+          unit=""
+          icon={<AlertTriangle className="h-8 w-8" />}
+          loading={patientsLoading}
         />
       </div>
 
-      {/* Tabbed Content */}
-      <Tabs defaultValue="patients" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-white dark:bg-gray-900 shadow-sm">
-          <TabsTrigger value="patients" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Patients
-          </TabsTrigger>
-          <TabsTrigger value="staff" className="flex items-center gap-2">
-            <UserCheck className="h-4 w-4" />
-            Staff
-          </TabsTrigger>
-          <TabsTrigger value="operations" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Operations
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="patients" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Monitor className="h-5 w-5 text-blue-600" />
-                Live Patient Monitoring
-              </CardTitle>
-              <CardDescription>Real-time patient status and vitals</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      <div className="mt-6">
+        {/* Tabbed Content */}
+        {/* PATIENTS */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-3">Patients</h2>
+          {patientsLoading ? (
+            <div className="text-muted-foreground">Loading patients...</div>
+          ) : patients.length === 0 ? (
+            <div className="text-muted-foreground">No patients found.</div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
               {patients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} />
+                <div key={patient.id} className="rounded-lg bg-white dark:bg-gray-900 shadow px-6 py-5 flex items-center justify-between hover:shadow-lg transition-all group border">
+                  <div>
+                    <div className="text-lg font-semibold">{patient.name || "Unnamed"}</div>
+                    <div className="text-xs text-muted-foreground">Age: {patient.age ?? "?"}</div>
+                  </div>
+                  <StatusBadge status={"Available"} />
+                </div>
               ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="staff" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-green-600" />
-                Staff Management
-              </CardTitle>
-              <CardDescription>Monitor and manage hospital staff</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {staff.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white font-semibold">
-                        {member.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{member.name}</h4>
-                        <p className="text-sm text-muted-foreground">{member.role} • {member.department}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getStatusColor(member.status)}>
-                        {member.status}
-                      </Badge>
-                      <Button variant="outline" size="sm">
-                        <Phone className="h-3 w-3 mr-1" />
-                        Contact
-                      </Button>
-                    </div>
+            </div>
+          )}
+        </div>
+        {/* STAFF */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-3">Staff</h2>
+          {staffLoading ? (
+            <div className="text-muted-foreground">Loading staff...</div>
+          ) : staff.length === 0 ? (
+            <div className="text-muted-foreground">No staff data.</div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-4">
+              {staff.map((member) => (
+                <div key={member.id} className="rounded-lg bg-white dark:bg-gray-900 shadow px-6 py-5 flex items-center justify-between hover:shadow-lg transition-all">
+                  <div>
+                    <div className="text-lg font-semibold">{member.name ?? "No name"}</div>
+                    <div className="text-xs mb-1 text-muted-foreground">{member.role ?? ""}</div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="operations" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-purple-600" />
-                  Operating Rooms
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {operatingRooms.map((room) => (
-                  <div key={room.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{room.name}</h4>
-                      <Badge className={getStatusColor(room.status)}>
-                        {room.status}
-                      </Badge>
-                    </div>
-                    {room.currentProcedure && (
-                      <p className="text-sm text-muted-foreground">{room.currentProcedure}</p>
-                    )}
-                    <div className="flex gap-2 mt-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Settings className="h-3 w-3 mr-1" />
-                        Manage
-                      </Button>
-                    </div>
+                  <StatusBadge status={member.status ?? "Available"} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {/* OPERATING ROOMS */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-3">Departments</h2>
+          {deptsLoading ? (
+            <div className="text-muted-foreground">Loading departments...</div>
+          ) : departmentList.length === 0 ? (
+            <div className="text-muted-foreground">No departments found.</div>
+          ) : (
+            <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
+              {departmentList.map((dept) => (
+                <div key={dept.name} className="rounded-lg bg-gradient-to-br from-blue-50 to-purple-100 dark:from-blue-900 dark:to-purple-900 p-5 shadow flex flex-col gap-2 border relative">
+                  <div className="absolute right-5 top-5">
+                    <StatusBadge status={dept.alert} />
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-600" />
-                  System Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Network Status</span>
-                    <Badge className="bg-green-500/10 text-green-600">Online</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Database</span>
-                    <Badge className="bg-green-500/10 text-green-600">Connected</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Emergency Systems</span>
-                    <Badge className="bg-green-500/10 text-green-600">Active</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Backup Power</span>
-                    <Badge className="bg-yellow-500/10 text-yellow-600">Standby</Badge>
+                  <div className="font-semibold">{dept.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Beds: {dept.beds} / {dept.total}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
+          )}
+        </div>
+        {/* ANALYTICS */}
+        <div>
+          <h2 className="text-xl font-bold mb-3">Analytics</h2>
+          <div className="bg-gradient-to-r from-blue-100 to-pink-100 dark:from-slate-900 dark:to-pink-950 rounded-lg p-10 text-center opacity-80 shadow relative">
+            <BarChart3 className="mx-auto mb-2 h-10 w-10 text-blue-400" />
+            <div className="font-semibold mb-1 text-lg">Coming Soon</div>
+            <div className="text-muted-foreground">Full interactive hospital analytics dashboard is on the way!</div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Revenue</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  ${(metrics.revenue / 1000000).toFixed(1)}M
-                </div>
-                <p className="text-sm text-muted-foreground">Monthly revenue</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Patient Satisfaction</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {metrics.patientSatisfaction.toFixed(1)}%
-                </div>
-                <Progress value={metrics.patientSatisfaction} className="mt-2" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Mortality Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {metrics.mortalityRate}%
-                </div>
-                <p className="text-sm text-muted-foreground">Below national average</p>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 };
-
 export default PremiumHospitalOperations;
