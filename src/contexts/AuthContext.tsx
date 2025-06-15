@@ -100,6 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
           setProfile(profileData);
           console.log('Using metadata profile:', profileData);
+        } else {
+          // Create a default profile if none exists
+          const defaultProfile = {
+            id: userId,
+            role: 'paramedic',
+            full_name: user?.user?.email || 'User',
+          };
+          setProfile(defaultProfile);
+          console.log('Using default profile:', defaultProfile);
         }
       } else {
         console.log('Profile data retrieved:', data);
@@ -107,6 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // Set a fallback profile to prevent app from breaking
+      setProfile({
+        id: userId,
+        role: 'paramedic',
+        full_name: 'User',
+      });
     }
   };
 
@@ -254,6 +269,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
             if (insertError) {
               console.error('Error creating profile:', insertError);
+              // Use fallback profile
+              profileData = {
+                id: data.user.id,
+                role: role || 'paramedic',
+                full_name: data.user.email,
+              };
             } else {
               profileData = newProfile;
             }
@@ -266,7 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .eq('id', data.user.id)
               .select()
               .single();
-            profileData = updatedProfile;
+            profileData = updatedProfile || profileData;
           }
           
           setProfile(profileData);
