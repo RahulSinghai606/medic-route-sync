@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
   UserCheck, 
@@ -17,11 +19,38 @@ import {
   TrendingUp,
   TrendingDown,
   Eye,
-  ChevronRight
+  ChevronRight,
+  Bell,
+  Phone,
+  MessageSquare,
+  Video,
+  FileText,
+  Shield,
+  Zap,
+  Calendar,
+  MapPin,
+  Settings,
+  BarChart3,
+  PlusCircle,
+  Filter,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import HospitalStats from './HospitalStats';
+import DepartmentStatus from './DepartmentStatus';
 
 const HospitalDashboard = () => {
+  const { toast } = useToast();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [emergencyMode, setEmergencyMode] = useState(false);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Mock data for demonstration
   const stats = {
     totalBeds: 450,
@@ -31,7 +60,11 @@ const HospitalDashboard = () => {
     availableIcuBeds: 12,
     emergencyQueue: 8,
     incomingAmbulances: 3,
-    criticalPatients: 15
+    criticalPatients: 15,
+    totalStaff: 245,
+    onDutyStaff: 189,
+    avgResponseTime: 8.5,
+    patientSatisfaction: 94
   };
 
   const recentPatients = [
@@ -42,7 +75,9 @@ const HospitalDashboard = () => {
       condition: 'Cardiac Emergency',
       severity: 'Critical',
       eta: '5 min',
-      vitals: { heartRate: 110, bloodPressure: '140/90', oxygen: 94 }
+      vitals: { heartRate: 110, bloodPressure: '140/90', oxygen: 94 },
+      assignedDoctor: 'Dr. Smith',
+      room: 'ICU-3'
     },
     {
       id: 'P002', 
@@ -51,7 +86,9 @@ const HospitalDashboard = () => {
       condition: 'Stroke Symptoms',
       severity: 'High',
       eta: '12 min',
-      vitals: { heartRate: 95, bloodPressure: '160/100', oxygen: 97 }
+      vitals: { heartRate: 95, bloodPressure: '160/100', oxygen: 97 },
+      assignedDoctor: 'Dr. Williams',
+      room: 'ER-7'
     },
     {
       id: 'P003',
@@ -60,9 +97,94 @@ const HospitalDashboard = () => {
       condition: 'Trauma - MVA',
       severity: 'Critical',
       eta: '8 min',
-      vitals: { heartRate: 125, bloodPressure: '110/70', oxygen: 89 }
+      vitals: { heartRate: 125, bloodPressure: '110/70', oxygen: 89 },
+      assignedDoctor: 'Dr. Johnson',
+      room: 'Trauma-1'
     }
   ];
+
+  const quickActions = [
+    { label: 'Emergency Alert', icon: AlertTriangle, color: 'bg-red-500 hover:bg-red-600', action: () => handleEmergencyAlert() },
+    { label: 'Call Doctor', icon: Phone, color: 'bg-blue-500 hover:bg-blue-600', action: () => handleCallDoctor() },
+    { label: 'Patient Registry', icon: Users, color: 'bg-green-500 hover:bg-green-600', action: () => handlePatientRegistry() },
+    { label: 'Video Conference', icon: Video, color: 'bg-purple-500 hover:bg-purple-600', action: () => handleVideoConference() },
+    { label: 'Medical Records', icon: FileText, color: 'bg-orange-500 hover:bg-orange-600', action: () => handleMedicalRecords() },
+    { label: 'Staff Scheduling', icon: Calendar, color: 'bg-teal-500 hover:bg-teal-600', action: () => handleStaffScheduling() },
+    { label: 'Resource Management', icon: Shield, color: 'bg-indigo-500 hover:bg-indigo-600', action: () => handleResourceManagement() },
+    { label: 'Analytics Dashboard', icon: BarChart3, color: 'bg-pink-500 hover:bg-pink-600', action: () => handleAnalytics() }
+  ];
+
+  const handleEmergencyAlert = () => {
+    setEmergencyMode(!emergencyMode);
+    toast({
+      title: emergencyMode ? "Emergency Mode Deactivated" : "Emergency Mode Activated",
+      description: emergencyMode ? "Hospital returned to normal operations" : "All staff alerted, priority protocols engaged",
+      variant: emergencyMode ? "default" : "destructive"
+    });
+  };
+
+  const handleCallDoctor = () => {
+    toast({
+      title: "Doctor Call Initiated",
+      description: "Connecting to on-call physician...",
+    });
+  };
+
+  const handlePatientRegistry = () => {
+    toast({
+      title: "Patient Registry",
+      description: "Opening patient management system...",
+    });
+  };
+
+  const handleVideoConference = () => {
+    toast({
+      title: "Video Conference",
+      description: "Launching secure medical conference room...",
+    });
+  };
+
+  const handleMedicalRecords = () => {
+    toast({
+      title: "Medical Records",
+      description: "Accessing electronic health records system...",
+    });
+  };
+
+  const handleStaffScheduling = () => {
+    toast({
+      title: "Staff Scheduling",
+      description: "Opening staff management dashboard...",
+    });
+  };
+
+  const handleResourceManagement = () => {
+    toast({
+      title: "Resource Management",
+      description: "Accessing inventory and equipment tracking...",
+    });
+  };
+
+  const handleAnalytics = () => {
+    toast({
+      title: "Analytics Dashboard",
+      description: "Loading hospital performance metrics...",
+    });
+  };
+
+  const handleRefreshData = () => {
+    toast({
+      title: "Data Refreshed",
+      description: "All hospital systems updated with latest information",
+    });
+  };
+
+  const handleExportReport = () => {
+    toast({
+      title: "Report Generated",
+      description: "Hospital operations report has been downloaded",
+    });
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -86,185 +208,191 @@ const HospitalDashboard = () => {
   };
 
   return (
-    <div className="space-y-8 p-6 bg-gradient-to-br from-blue-50/50 via-white to-green-50/50 dark:from-slate-950/50 dark:via-slate-900/50 dark:to-slate-950/50 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-700 to-green-700 bg-clip-text text-transparent">
-          Hospital Command Center
-        </h1>
-        <p className="text-muted-foreground text-lg">
-          Real-time patient monitoring and emergency coordination
-        </p>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50/50 via-white to-green-50/50 dark:from-slate-950/50 dark:via-slate-900/50 dark:to-slate-950/50 min-h-screen">
+      {/* Enhanced Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-gradient-to-br from-blue-600 to-green-600 rounded-xl text-white shadow-lg">
+              <Stethoscope className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-700 to-green-700 bg-clip-text text-transparent">
+                Hospital Command Center
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Real-time operations • {currentTime.toLocaleDateString()} • {currentTime.toLocaleTimeString()}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleRefreshData} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={handleExportReport} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Badge 
+            variant={emergencyMode ? "destructive" : "default"} 
+            className={`flex items-center gap-2 px-4 py-2 ${emergencyMode ? 'animate-pulse' : ''}`}
+          >
+            <div className={`h-2 w-2 rounded-full ${emergencyMode ? 'bg-red-400' : 'bg-green-500 animate-pulse'}`} />
+            <span className="font-medium">{emergencyMode ? 'Emergency Mode' : 'Normal Operations'}</span>
+          </Badge>
+        </div>
       </div>
+
+      {/* Emergency Alert Banner */}
+      {emergencyMode && (
+        <Card className="border-red-200 dark:border-red-800 bg-red-50/80 dark:bg-red-950/30 animate-pulse">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                <div>
+                  <h3 className="font-semibold text-red-800 dark:text-red-200">Emergency Protocol Active</h3>
+                  <p className="text-red-700 dark:text-red-300">All departments on high alert • Priority dispatch enabled</p>
+                </div>
+              </div>
+              <Button variant="outline" onClick={handleEmergencyAlert} className="border-red-300">
+                Deactivate
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Key Stats Grid */}
       <HospitalStats />
 
-      {/* Emergency Alerts */}
-      <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-red-800 dark:text-red-300 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Active Emergencies
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.criticalPatients}</div>
-              <span className="text-sm text-red-700 dark:text-red-300">Critical patients in facility</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.incomingAmbulances}</div>
-              <span className="text-sm text-orange-700 dark:text-orange-300">Incoming ambulances</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Incoming Patients */}
+      {/* Quick Actions Grid */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Ambulance className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                Incoming Patients
-              </CardTitle>
-              <CardDescription>Emergency cases en route to facility</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Eye className="h-4 w-4" />
-              View All
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Quick Actions
+            </CardTitle>
+            <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/20">
+              {quickActions.length} Available
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentPatients.map((patient) => (
-              <div key={patient.id} className="border rounded-lg p-4 space-y-3 hover:bg-accent/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-green-600 flex items-center justify-center text-white font-semibold">
-                      {patient.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{patient.name}</h4>
-                      <p className="text-sm text-muted-foreground">Age: {patient.age} • ID: {patient.id}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getSeverityColor(patient.severity)}>
-                      {patient.severity}
-                    </Badge>
-                    <div className="text-right">
-                      <div className="text-sm font-medium">ETA: {patient.eta}</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">
-                    <span className="font-medium">Condition:</span> {patient.condition}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 pt-2 border-t">
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-red-500" />
-                    <span className="text-sm">HR:</span>
-                    <span className={`text-sm font-medium ${getVitalStatus(patient.vitals.heartRate, 'heartRate')}`}>
-                      {patient.vitals.heartRate}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm">BP:</span>
-                    <span className="text-sm font-medium">{patient.vitals.bloodPressure}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Stethoscope className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">O2:</span>
-                    <span className={`text-sm font-medium ${getVitalStatus(patient.vitals.oxygen, 'oxygen')}`}>
-                      {patient.vitals.oxygen}%
-                    </span>
-                  </div>
-                </div>
-              </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+            {quickActions.map((action, index) => (
+              <Button
+                key={index}
+                onClick={action.action}
+                className={`h-20 flex-col gap-2 ${action.color} text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105`}
+              >
+                <action.icon className="h-5 w-5" />
+                <span className="text-xs font-medium text-center">{action.label}</span>
+              </Button>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Bed Management */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bed className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              General Beds
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Total Capacity</span>
-                <span className="text-2xl font-bold">{stats.totalBeds}</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Available</span>
-                  <span className="font-medium text-green-600 dark:text-green-400">{stats.availableBeds}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Occupied</span>
-                  <span className="font-medium text-orange-600 dark:text-orange-400">{stats.occupiedBeds}</span>
-                </div>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full"
-                  style={{ width: `${(stats.availableBeds / stats.totalBeds) * 100}%` }}
-                />
-              </div>
+      {/* Live Patient Monitoring */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Ambulance className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                Live Patient Monitoring
+              </CardTitle>
+              <CardDescription>Real-time patient status and incoming cases</CardDescription>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filter
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <PlusCircle className="h-4 w-4" />
+                Add Patient
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentPatients.map((patient) => (
+              <Card key={patient.id} className="border border-muted hover:shadow-md transition-all duration-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-600 to-green-600 flex items-center justify-center text-white font-semibold text-lg">
+                        {patient.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-lg">{patient.name}</h4>
+                        <p className="text-sm text-muted-foreground">Age: {patient.age} • ID: {patient.id}</p>
+                        <p className="text-xs text-muted-foreground">Room: {patient.room} • Dr: {patient.assignedDoctor}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge className={getSeverityColor(patient.severity)}>
+                        {patient.severity}
+                      </Badge>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">ETA: {patient.eta}</div>
+                        <div className="text-xs text-muted-foreground">{patient.condition}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4 pt-3 border-t">
+                    <div className="flex items-center gap-2">
+                      <Heart className="h-4 w-4 text-red-500" />
+                      <span className="text-sm">HR:</span>
+                      <span className={`text-sm font-medium ${getVitalStatus(patient.vitals.heartRate, 'heartRate')}`}>
+                        {patient.vitals.heartRate}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm">BP:</span>
+                      <span className="text-sm font-medium">{patient.vitals.bloodPressure}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Stethoscope className="h-4 w-4 text-green-500" />
+                      <span className="text-sm">O2:</span>
+                      <span className={`text-sm font-medium ${getVitalStatus(patient.vitals.oxygen, 'oxygen')}`}>
+                        {patient.vitals.oxygen}%
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 mt-4">
+                    <Button size="sm" variant="outline" className="flex-1">
+                      <Eye className="h-4 w-4 mr-1" />
+                      View Details
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      Contact
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Settings className="h-4 w-4 mr-1" />
+                      Manage
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-              ICU Beds
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Total ICU</span>
-                <span className="text-2xl font-bold">{stats.icuBeds}</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Available</span>
-                  <span className="font-medium text-green-600 dark:text-green-400">{stats.availableIcuBeds}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Occupied</span>
-                  <span className="font-medium text-red-600 dark:text-red-400">{stats.icuBeds - stats.availableIcuBeds}</span>
-                </div>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full"
-                  style={{ width: `${((stats.icuBeds - stats.availableIcuBeds) / stats.icuBeds) * 100}%` }}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Department Status */}
+      <DepartmentStatus />
     </div>
   );
 };

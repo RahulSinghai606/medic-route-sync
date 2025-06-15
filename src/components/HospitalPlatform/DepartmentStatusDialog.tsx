@@ -24,7 +24,7 @@ const DepartmentStatusDialog: React.FC<DepartmentStatusDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [availableBeds, setAvailableBeds] = useState(department?.beds || 0);
-  const [alertLevel, setAlertLevel] = useState(department?.alert || 'Low');
+  const [alertLevel, setAlertLevel] = useState<'Critical' | 'Medium' | 'Low'>(department?.alert || 'Low');
   const [notes, setNotes] = useState('');
 
   const handleUpdate = () => {
@@ -32,7 +32,7 @@ const DepartmentStatusDialog: React.FC<DepartmentStatusDialogProps> = ({
 
     const updates = {
       beds: availableBeds,
-      alert: alertLevel as 'Critical' | 'Medium' | 'Low'
+      alert: alertLevel
     };
 
     onUpdate(department.name, updates);
@@ -43,6 +43,10 @@ const DepartmentStatusDialog: React.FC<DepartmentStatusDialogProps> = ({
     });
 
     onClose();
+  };
+
+  const handleAlertChange = (value: string) => {
+    setAlertLevel(value as 'Critical' | 'Medium' | 'Low');
   };
 
   if (!department) return null;
@@ -77,7 +81,7 @@ const DepartmentStatusDialog: React.FC<DepartmentStatusDialogProps> = ({
             <Label htmlFor="alert-level" className="text-right">
               Alert Level
             </Label>
-            <Select value={alertLevel} onValueChange={setAlertLevel}>
+            <Select value={alertLevel} onValueChange={handleAlertChange}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select alert level" />
               </SelectTrigger>
