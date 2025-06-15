@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchPatients } from '@/lib/patientUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Search,
   PlusCircle,
@@ -21,7 +21,10 @@ import {
   ChevronRight,
   Trash2,
   AlertTriangle,
-  FileX
+  FileX,
+  Users,
+  Activity,
+  SlidersHorizontal
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -34,6 +37,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const Patients = () => {
   const navigate = useNavigate();
@@ -44,6 +52,12 @@ const Patients = () => {
   const [loading, setLoading] = useState(true);
   const [clearingRecords, setClearingRecords] = useState(false);
   const [clearingLogs, setClearingLogs] = useState(false);
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  
+  // Advanced search filters
+  const [ageFilter, setAgeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [ageRange, setAgeRange] = useState({ min: '', max: '' });
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -68,12 +82,12 @@ const Patients = () => {
       patient_id: 'EC-1001',
       created_at: new Date().toISOString(),
       vitals: [{
-        heart_rate: 78,
-        bp_systolic: 120,
-        bp_diastolic: 80,
-        spo2: 98,
-        gcs: 15,
-        chief_complaint: 'Cardiac chest pain',
+        heart_rate: 120,
+        bp_systolic: 160,
+        bp_diastolic: 95,
+        spo2: 92,
+        gcs: 12,
+        chief_complaint: 'Cardiac chest pain with shortness of breath',
         created_at: new Date().toISOString()
       }]
     },
@@ -90,7 +104,7 @@ const Patients = () => {
         bp_diastolic: 90,
         spo2: 94,
         gcs: 14,
-        chief_complaint: 'Trauma from accident',
+        chief_complaint: 'Motor vehicle accident with multiple injuries',
         created_at: new Date(Date.now() - 3600000).toISOString()
       }]
     },
@@ -107,24 +121,24 @@ const Patients = () => {
         bp_diastolic: 70,
         spo2: 99,
         gcs: 15,
-        chief_complaint: 'Respiratory issues',
+        chief_complaint: 'Mild respiratory discomfort',
         created_at: new Date(Date.now() - 7200000).toISOString()
       }]
     },
     {
       id: 'sample-4',
       name: 'Priya Sharma',
-      age: 35,
+      age: 8,
       gender: 'Female',
       patient_id: 'EC-1004',
       created_at: new Date(Date.now() - 10800000).toISOString(),
       vitals: [{
-        heart_rate: 68,
-        bp_systolic: 115,
-        bp_diastolic: 75,
-        spo2: 97,
+        heart_rate: 110,
+        bp_systolic: 95,
+        bp_diastolic: 60,
+        spo2: 96,
         gcs: 15,
-        chief_complaint: 'Pediatric emergency',
+        chief_complaint: 'High fever and vomiting',
         created_at: new Date(Date.now() - 10800000).toISOString()
       }]
     },
@@ -141,19 +155,34 @@ const Patients = () => {
         bp_diastolic: 85,
         spo2: 96,
         gcs: 13,
-        chief_complaint: 'Neurological symptoms',
+        chief_complaint: 'Neurological symptoms - confusion and dizziness',
         created_at: new Date(Date.now() - 14400000).toISOString()
+      }]
+    },
+    {
+      id: 'sample-6',
+      name: 'Anitha Rao',
+      age: 67,
+      gender: 'Female',
+      patient_id: 'EC-1006',
+      created_at: new Date(Date.now() - 18000000).toISOString(),
+      vitals: [{
+        heart_rate: 58,
+        bp_systolic: 180,
+        bp_diastolic: 100,
+        spo2: 88,
+        gcs: 11,
+        chief_complaint: 'Severe hypertension and breathing difficulty',
+        created_at: new Date(Date.now() - 18000000).toISOString()
       }]
     }
   ];
 
-  // Combine real patients with sample data if no real patients exist
   const displayPatients = patients.length > 0 ? patients : samplePatients;
 
   const clearAllRecords = async () => {
     setClearingRecords(true);
     try {
-      // Clear all patient records and related data
       const { error: vitalsError } = await supabase
         .from('vitals')
         .delete()
@@ -198,7 +227,6 @@ const Patients = () => {
   const clearPatientLogs = async () => {
     setClearingLogs(true);
     try {
-      // Clear all patient records and related data
       const { error: vitalsError } = await supabase
         .from('vitals')
         .delete()
@@ -218,7 +246,6 @@ const Patients = () => {
         throw new Error('Failed to clear some logs');
       }
 
-      // Reload patients to update display
       const { data } = await fetchPatients();
       if (data) {
         setPatients(data);
@@ -243,7 +270,6 @@ const Patients = () => {
   const getPatientVitals = (patient: any) => {
     if (!patient || !patient.vitals || patient.vitals.length === 0) return null;
     
-    // Get the most recent vitals
     return patient.vitals.reduce((latest: any, current: any) => {
       if (!latest) return current;
       return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
@@ -266,28 +292,39 @@ const Patients = () => {
   };
 
   const filteredPatients = displayPatients.filter(patient => {
-    const matchesSearch = 
+    // Basic search filter
+    const matchesBasicSearch = 
       (patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) || 
       (patient.patient_id?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
-    if (tab === 'all') return matchesSearch;
+    // Age filter
+    const matchesAge = ageFilter === '' || ageFilter === 'all' || 
+      (ageFilter === 'child' && patient.age < 18) ||
+      (ageFilter === 'adult' && patient.age >= 18 && patient.age < 65) ||
+      (ageFilter === 'senior' && patient.age >= 65) ||
+      (ageRange.min !== '' && ageRange.max !== '' && 
+       patient.age >= parseInt(ageRange.min) && patient.age <= parseInt(ageRange.max));
+    
+    // Status filter
+    const patientStatus = getPatientStatus(patient);
+    const matchesStatus = statusFilter === '' || statusFilter === 'all' || patientStatus === statusFilter;
+    
+    // Tab filter
+    let matchesTab = true;
     if (tab === 'critical') {
-      const status = getPatientStatus(patient);
-      return matchesSearch && (status === 'critical' || status === 'unstable');
-    }
-    if (tab === 'stable') {
-      const status = getPatientStatus(patient);
-      return matchesSearch && (status === 'stable' || status === 'moderate');
+      matchesTab = patientStatus === 'critical' || patientStatus === 'unstable';
+    } else if (tab === 'stable') {
+      matchesTab = patientStatus === 'stable' || patientStatus === 'moderate';
     }
     
-    return matchesSearch;
+    return matchesBasicSearch && matchesAge && matchesStatus && matchesTab;
   });
 
   const getStatusBadge = (patient: any) => {
     const status = getPatientStatus(patient);
     switch(status) {
       case 'critical':
-        return <Badge className="bg-emergency">Critical</Badge>;
+        return <Badge className="bg-emergency animate-pulse">Critical</Badge>;
       case 'unstable':
         return <Badge className="bg-warning">Unstable</Badge>;
       case 'moderate':
@@ -308,12 +345,29 @@ const Patients = () => {
     navigate('/assessment');
   };
 
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setAgeFilter('');
+    setStatusFilter('');
+    setAgeRange({ min: '', max: '' });
+  };
+
+  const activeFilterCount = [
+    searchTerm !== '',
+    ageFilter !== '' && ageFilter !== 'all',
+    statusFilter !== '' && statusFilter !== 'all',
+    ageRange.min !== '' || ageRange.max !== ''
+  ].filter(Boolean).length;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1>Patients</h1>
-          <p className="text-muted-foreground">Manage current patients and cases in Mysuru</p>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Users className="h-8 w-8 text-medical" />
+            Patients
+          </h1>
+          <p className="text-muted-foreground text-lg">Manage current patients and cases in Mysuru & Mandya</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <AlertDialog>
@@ -383,99 +437,204 @@ const Patients = () => {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle>Patient List - Mysuru Emergency Cases</CardTitle>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search patients..." 
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Activity className="h-5 w-5 text-medical" />
+                Patient Management System
+              </CardTitle>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-80">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by name or patient ID..." 
+                    className="pl-9 h-11 text-base"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Collapsible open={isAdvancedSearchOpen} onOpenChange={setIsAdvancedSearchOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-11 w-11 relative">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      {activeFilterCount > 0 && (
+                        <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-medical">
+                          {activeFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </Collapsible>
               </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
             </div>
+            
+            <Collapsible open={isAdvancedSearchOpen} onOpenChange={setIsAdvancedSearchOpen}>
+              <CollapsibleContent className="space-y-4">
+                <div className="bg-muted/30 p-4 rounded-lg border">
+                  <h3 className="font-medium text-base mb-3 flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Advanced Search Filters
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Age Category Filter */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Age Category</label>
+                      <Select value={ageFilter} onValueChange={setAgeFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select age group" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Ages</SelectItem>
+                          <SelectItem value="child">Child (0-17)</SelectItem>
+                          <SelectItem value="adult">Adult (18-64)</SelectItem>
+                          <SelectItem value="senior">Senior (65+)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Status Filter */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Patient Status</label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="critical">Critical</SelectItem>
+                          <SelectItem value="unstable">Unstable</SelectItem>
+                          <SelectItem value="moderate">Moderate</SelectItem>
+                          <SelectItem value="stable">Stable</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Age Range */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Custom Age Range</label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={ageRange.min}
+                          onChange={(e) => setAgeRange(prev => ({ ...prev, min: e.target.value }))}
+                          className="w-20"
+                        />
+                        <span className="self-center">-</span>
+                        <Input
+                          type="number"
+                          placeholder="Max"
+                          value={ageRange.max}
+                          onChange={(e) => setAgeRange(prev => ({ ...prev, max: e.target.value }))}
+                          className="w-20"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {activeFilterCount > 0 && (
+                    <div className="mt-4 flex justify-between items-center">
+                      <p className="text-sm text-muted-foreground">
+                        {filteredPatients.length} patient(s) found with {activeFilterCount} filter(s) applied
+                      </p>
+                      <Button variant="outline" size="sm" onClick={clearAllFilters}>
+                        Clear All Filters
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="all">All Patients</TabsTrigger>
-              <TabsTrigger value="critical">Critical</TabsTrigger>
-              <TabsTrigger value="stable">Stable</TabsTrigger>
+            <TabsList className="grid grid-cols-3 mb-6 h-12">
+              <TabsTrigger value="all" className="text-base">All Patients ({displayPatients.length})</TabsTrigger>
+              <TabsTrigger value="critical" className="text-base">Critical ({displayPatients.filter(p => ['critical', 'unstable'].includes(getPatientStatus(p))).length})</TabsTrigger>
+              <TabsTrigger value="stable" className="text-base">Stable ({displayPatients.filter(p => ['stable', 'moderate'].includes(getPatientStatus(p))).length})</TabsTrigger>
             </TabsList>
             
             <TabsContent value={tab}>
               {loading ? (
-                <div className="text-center py-10">
-                  <p>Loading patients...</p>
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-medical mx-auto"></div>
+                  <p className="mt-4 text-muted-foreground">Loading patients...</p>
                 </div>
               ) : filteredPatients.length > 0 ? (
-                <div className="rounded-md border overflow-hidden">
+                <div className="rounded-lg border overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-muted/50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Patient
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            Patient Information
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            Status & Vitals
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Vitals
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            Chief Complaint
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Added
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            Time Added
                           </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 uppercase tracking-wider">
                             Actions
                           </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {filteredPatients.map((patient) => (
-                          <tr key={patient.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
+                          <tr key={patient.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="px-6 py-4">
                               <div className="flex items-center">
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">
+                                  <div className="text-base font-semibold text-gray-900">
                                     {patient.name || 'Unknown Patient'}
                                   </div>
-                                  <div className="text-sm text-gray-500">
-                                    {patient.age ? `${patient.age} years` : ''}{patient.gender ? `, ${patient.gender}` : ''} • {patient.patient_id || 'No ID'}
+                                  <div className="text-sm text-gray-600 flex items-center gap-4">
+                                    <span>{patient.age ? `${patient.age} years` : ''}{patient.gender ? `, ${patient.gender}` : ''}</span>
+                                    <span className="font-mono bg-muted px-2 py-1 rounded text-xs">{patient.patient_id || 'No ID'}</span>
                                   </div>
-                                  <div className="text-sm text-gray-500">
-                                    📍 Mysuru, Karnataka • {getPatientVitals(patient)?.chief_complaint || 'No complaint recorded'}
+                                  <div className="text-sm text-gray-500 mt-1">
+                                    📍 Mysuru, Karnataka
                                   </div>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {getStatusBadge(patient)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span title="Heart Rate">HR: {getPatientVitals(patient)?.heart_rate || '–'}</span>
-                                  <span title="Blood Pressure">BP: {getPatientVitals(patient)?.bp_systolic || '–'}/{getPatientVitals(patient)?.bp_diastolic || '–'}</span>
-                                  <span title="Oxygen Saturation">SpO2: {getPatientVitals(patient)?.spo2 || '–'}%</span>
+                            <td className="px-6 py-4">
+                              <div className="space-y-2">
+                                {getStatusBadge(patient)}
+                                <div className="text-sm space-y-1">
+                                  <div className="flex items-center gap-4 text-xs">
+                                    <span title="Heart Rate" className="font-medium">HR: {getPatientVitals(patient)?.heart_rate || '–'}</span>
+                                    <span title="Blood Pressure">BP: {getPatientVitals(patient)?.bp_systolic || '–'}/{getPatientVitals(patient)?.bp_diastolic || '–'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-xs">
+                                    <span title="Oxygen Saturation">SpO2: {getPatientVitals(patient)?.spo2 || '–'}%</span>
+                                    <span title="Glasgow Coma Scale">GCS: {getPatientVitals(patient)?.gcs || '–'}/15</span>
+                                  </div>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4">
+                              <div className="text-sm text-gray-900 max-w-xs">
+                                {getPatientVitals(patient)?.chief_complaint || 'No complaint recorded'}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {getFormattedTime(patient.created_at)}
                               </div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                {new Date(patient.created_at).toLocaleDateString()}
+                              </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td className="px-6 py-4 text-right">
                               <div className="flex justify-end gap-2">
                                 <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => navigate('/assessment')}>
                                   <Stethoscope className="h-3 w-3" />
@@ -494,12 +653,25 @@ const Patients = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-10 border rounded-md">
-                  <p className="text-muted-foreground">No patients found matching your criteria</p>
-                  <Button className="mt-4" onClick={handleNewPatient}>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add New Patient
-                  </Button>
+                <div className="text-center py-12 border rounded-lg bg-muted/20">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No patients found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {activeFilterCount > 0 
+                      ? "No patients match your current search criteria" 
+                      : "No patients found matching your criteria"}
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    {activeFilterCount > 0 && (
+                      <Button variant="outline" onClick={clearAllFilters}>
+                        Clear Filters
+                      </Button>
+                    )}
+                    <Button onClick={handleNewPatient}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add New Patient
+                    </Button>
+                  </div>
                 </div>
               )}
             </TabsContent>
