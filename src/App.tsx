@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,7 +26,17 @@ import HospitalPlatform from "./pages/HospitalPlatform";
 
 const queryClient = new QueryClient();
 
-// Protected route component with enhanced role checking
+// Simple loading component
+const LoadingScreen = () => (
+  <div className="h-screen w-full flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-blue-600 font-medium">Loading...</p>
+    </div>
+  </div>
+);
+
+// Protected route component
 const ProtectedRoute = ({ 
   children,
   allowedRole
@@ -36,39 +47,21 @@ const ProtectedRoute = ({
   const { user, isLoading, profile } = useAuth();
   
   if (isLoading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-medical/10 dark:from-slate-950 dark:to-slate-900">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-medical mx-auto"></div>
-          <div>
-            <p className="text-medical font-bold text-xl">TERO</p>
-            <p className="text-muted-foreground">Emergency Response Platform</p>
-          </div>
-          <div className="animate-pulse">
-            <p className="text-sm text-muted-foreground">Initializing secure connection...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Enhanced role checking with better error handling
+  // Role-based redirection
   if (allowedRole && profile?.role !== allowedRole) {
-    console.log(`User role: ${profile?.role}, Required role: ${allowedRole}`);
-    
-    // Redirect hospital staff to hospital platform
     if (profile?.role === 'hospital') {
       return <Navigate to="/hospital-platform" replace />;
     }
-    // Redirect paramedics to main dashboard
     if (profile?.role === 'paramedic') {
       return <Navigate to="/" replace />;
     }
-    // If no valid role, redirect to login
     return <Navigate to="/login" replace />;
   }
   
@@ -78,22 +71,13 @@ const ProtectedRoute = ({
 const AppContent = () => {
   const { user, profile, isLoading } = useAuth();
   
-  // Show enhanced loading screen while determining user role
   if (isLoading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-medical/10 dark:from-slate-950 dark:to-slate-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical mx-auto mb-4"></div>
-          <p className="text-medical font-medium">Loading TERO...</p>
-          <p className="text-sm text-muted-foreground mt-2">Authenticating user access</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   return (
     <Routes>
-      {/* Auth routes with enhanced redirection */}
+      {/* Auth routes */}
       <Route path="/login" element={
         user ? (
           profile?.role === 'hospital' ? 
@@ -110,7 +94,7 @@ const AppContent = () => {
         ) : <Signup />
       } />
       
-      {/* Paramedic routes with proper role protection */}
+      {/* Paramedic routes */}
       <Route element={
         <ProtectedRoute allowedRole="paramedic">
           <AppLayout />
@@ -124,7 +108,7 @@ const AppContent = () => {
         <Route path="/disaster" element={<DisasterMode />} />
       </Route>
       
-      {/* Hospital platform routes with enhanced protection */}
+      {/* Hospital platform routes */}
       <Route path="/hospital-platform/*" element={
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />
