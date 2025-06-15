@@ -73,6 +73,36 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          alert: string
+          beds: number
+          created_at: string | null
+          id: string
+          name: string
+          total: number
+          updated_at: string | null
+        }
+        Insert: {
+          alert?: string
+          beds?: number
+          created_at?: string | null
+          id?: string
+          name: string
+          total?: number
+          updated_at?: string | null
+        }
+        Update: {
+          alert?: string
+          beds?: number
+          created_at?: string | null
+          id?: string
+          name?: string
+          total?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       incidents: {
         Row: {
           chief_complaint: string | null

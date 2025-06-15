@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +7,7 @@ import { Building2, BedDouble, Users, BarChart4, Settings, Download, RefreshCw }
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { departments, getAlertColor } from './utils';
+import { getAlertColor } from './utils';
 import DepartmentStatusDialog from './DepartmentStatusDialog';
 import BedManagementDialog from './BedManagementDialog';
 import { Department } from './types';
@@ -16,7 +17,8 @@ import { useDepartments } from '@/hooks/useDepartments';
 const Departments: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { departmentList, addDepartment, updateDepartment, removeDepartment, updateBeds } = useDepartments(departments);
+  // Don't use hardcoded departments; use initial [] (already pulled by hook)
+  const { departmentList, addDepartment, updateDepartment, removeDepartment, updateBeds, loading, error, reload } = useDepartments([]);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isBedManagementOpen, setIsBedManagementOpen] = useState(false);
@@ -33,13 +35,8 @@ const Departments: React.FC = () => {
     setIsStatusDialogOpen(true);
   };
 
-  const handleRefreshData = () => {
-    // Instead, update each department with simulated new bed counts via updateBeds
-    departmentList.forEach(dept => {
-      // simulate the algorithm as before but per dept, safely
-      const randomBeds = Math.max(0, Math.min(dept.total, dept.beds + Math.floor(Math.random() * 3) - 1));
-      updateBeds(dept.name, randomBeds);
-    });
+  const handleRefreshData = async () => {
+    await reload();
     toast({
       title: "Data Refreshed",
       description: "Department data has been updated with the latest information.",
@@ -115,7 +112,6 @@ const Departments: React.FC = () => {
     if (deptToEdit) {
       updateDepartment(deptToEdit.name, data);
     } else {
-      // To avoid TypeScript errors, add missing department fields by default
       const fallbackDept: Department = {
         name: data.name ?? "New Dept",
         beds: typeof data.beds === "number" ? data.beds : 0,
@@ -125,6 +121,22 @@ const Departments: React.FC = () => {
       addDepartment(fallbackDept);
     }
   };
+
+  // Displays loading/error states
+  if (loading) {
+    return (
+      <div className="p-8 flex justify-center items-center text-muted-foreground">
+        Loading departments...
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="p-8 flex justify-center items-center text-destructive">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -157,7 +169,7 @@ const Departments: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">8</div>
+            <div className="text-3xl font-bold">{departmentList.length}</div>
           </CardContent>
         </Card>
 
@@ -169,7 +181,7 @@ const Departments: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">120</div>
+            <div className="text-3xl font-bold">{departmentList.reduce((acc, dept) => acc + (dept.total || 0), 0)}</div>
             <div className="text-sm text-muted-foreground">Beds across all departments</div>
           </CardContent>
         </Card>
@@ -274,7 +286,16 @@ const Departments: React.FC = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">94%</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {departmentList.length > 0
+                  ? (
+                    Math.round(
+                      departmentList.reduce((acc, dept) => acc + ((dept.total > 0 ? ((dept.total - dept.beds) / dept.total) : 0)), 0) / departmentList.length * 100
+                    )
+                  )
+                  : 0
+                }%
+              </div>
               <div className="text-sm text-muted-foreground">Avg Occupancy</div>
             </div>
             <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
