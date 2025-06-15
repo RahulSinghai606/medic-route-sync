@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Mic, StopCircle, Play, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { processVoiceRecording } from "@/lib/patientUtils";
@@ -13,12 +13,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { useHospitals } from "@/hooks/useHospitals";
+import { createCase } from "@/hooks/useCases";
+import { useMutation } from "@tanstack/react-query";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Enums } from "@/integrations/supabase/types";
 
 interface VoiceToVitalsProps {
-  onVitalsExtracted: (vitals: any) => void;
+  patientId: string;
+  onCaseCreated: (caseId: string) => void;
 }
 
-const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
+const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ patientId, onCaseCreated }) => {
   const { t, language } = useLanguage();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -41,7 +50,16 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<number | null>(null);
   const { toast } = useToast();
+  
+  const { user } = useAuth();
+  const { data: hospitals, isLoading: isLoadingHospitals } = useHospitals();
+  const [extractedVitals, setExtractedVitals] = useState<any | null>(null);
 
+  const [selectedHospitalId, setSelectedHospitalId] = useState<string>('');
+  const [severity, setSeverity] = useState<Enums<'case_severity'>>('Stable');
+  const [eta, setEta] = useState<string>('');
+  const [paramedicNotes, setParamedicNotes] = useState<string>('');
+  
   // Update speech language when app language changes
   useEffect(() => {
     if (language === 'hi') {
@@ -169,6 +187,19 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     }
   };
 
+  const handleVitalsExtracted = (vitals: any) => {
+    setExtractedVitals(vitals);
+    if (vitals.transcription) {
+      setTranscription(vitals.transcription);
+    }
+    if (vitals.ai_assessment) {
+      setAiAssessment(vitals.ai_assessment);
+    }
+    if (vitals.notes) {
+      setParamedicNotes(prev => prev ? `${prev}\n\n---\nTranscription:\n${vitals.notes}` : `Transcription:\n${vitals.notes}`);
+    }
+  };
+
   const processRecording = async () => {
     if (audioChunksRef.current.length === 0) {
       toast({
@@ -211,15 +242,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       }
 
       if (data) {
-        if (data.transcription) {
-          setTranscription(data.transcription);
-        }
-
-        if (data.ai_assessment) {
-          setAiAssessment(data.ai_assessment);
-        }
-
-        onVitalsExtracted(data);
+        handleVitalsExtracted(data);
 
         toast({
           title: "Processing complete",
@@ -237,8 +260,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
       
       const fallbackData = fallbackExtractVitals();
       if (fallbackData) {
-        onVitalsExtracted(fallbackData);
-        setAiAssessment(fallbackData.ai_assessment);
+        handleVitalsExtracted(fallbackData);
       }
       
       toast({
@@ -386,8 +408,50 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
     ];
   };
 
+  const createCaseMutation = useMutation({
+    mutationFn: createCase,
+    onSuccess: (data) => {
+        toast({
+            title: "Case Created Successfully",
+            description: `Case #${data.id.substring(0, 8)} sent to ${hospitals?.find(h => h.id === selectedHospitalId)?.full_name}.`,
+        });
+        onCaseCreated(data.id);
+    },
+    onError: (error: Error) => {
+        toast({
+            title: "Error Creating Case",
+            description: error.message,
+            variant: "destructive",
+        });
+    }
+  });
+
+  const handleSubmitCase = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !patientId || !selectedHospitalId || !eta) {
+        toast({
+            title: "Missing Information",
+            description: "Please select a hospital and provide an ETA.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    const caseData = {
+        patient_id: patientId,
+        paramedic_id: user.id,
+        hospital_id: selectedHospitalId,
+        severity: severity,
+        eta_minutes: parseInt(eta, 10),
+        paramedic_notes: paramedicNotes,
+        vitals: extractedVitals,
+    };
+
+    createCaseMutation.mutate(caseData);
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row items-center gap-4">
@@ -523,6 +587,58 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ onVitalsExtracted }) => {
           </div>
         </CardContent>
       </Card>
+      
+      <form onSubmit={handleSubmitCase}>
+        <Card>
+            <CardHeader>
+                <CardTitle>Dispatch Case</CardTitle>
+                <CardDescription>Complete the case details and send to the hospital.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="hospital">Receiving Hospital</Label>
+                        <Select onValueChange={setSelectedHospitalId} value={selectedHospitalId} required disabled={isLoadingHospitals || createCaseMutation.isPending}>
+                            <SelectTrigger id="hospital">
+                                <SelectValue placeholder={isLoadingHospitals ? "Loading hospitals..." : "Select a hospital"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {hospitals?.map(hospital => (
+                                    <SelectItem key={hospital.id} value={hospital.id}>{hospital.full_name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="severity">Case Severity</Label>
+                        <Select onValueChange={(v) => setSeverity(v as any)} value={severity} required disabled={createCaseMutation.isPending}>
+                            <SelectTrigger id="severity">
+                                <SelectValue placeholder="Select severity" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Stable">Stable</SelectItem>
+                                <SelectItem value="Urgent">Urgent</SelectItem>
+                                <SelectItem value="Critical">Critical</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <div>
+                    <Label htmlFor="eta">ETA (minutes)</Label>
+                    <Input id="eta" type="number" placeholder="e.g., 15" value={eta} required onChange={e => setEta(e.target.value)} disabled={createCaseMutation.isPending} />
+                </div>
+                <div>
+                    <Label htmlFor="notes">Paramedic Notes</Label>
+                    <Textarea id="notes" placeholder="Add any additional notes for the hospital..." value={paramedicNotes} onChange={e => setParamedicNotes(e.target.value)} disabled={createCaseMutation.isPending} rows={4} />
+                </div>
+            </CardContent>
+            <CardFooter>
+                 <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={!extractedVitals || createCaseMutation.isPending}>
+                    {createCaseMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting Case...</> : 'Create & Dispatch Case'}
+                </Button>
+            </CardFooter>
+        </Card>
+      </form>
     </div>
   );
 };

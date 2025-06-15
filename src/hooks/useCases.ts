@@ -1,9 +1,8 @@
-
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { Tables } from '@/integrations/supabase/types';
+import { Tables, Enums } from '@/integrations/supabase/types';
 
 // Define the type for a case with related data from joined tables
 export type CaseWithRelations = Omit<Tables<'cases'>, 'patient_id' | 'paramedic_id'> & {
@@ -73,6 +72,29 @@ export const updateCaseStatus = async (caseId: string, status: 'accepted' | 'dec
 
   if (error) {
     console.error('Error updating case status:', error);
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
+export const createCase = async (caseData: {
+  patient_id: string;
+  paramedic_id: string;
+  hospital_id: string;
+  severity: Enums<'case_severity'>;
+  eta_minutes: number;
+  paramedic_notes: string | null;
+  vitals: any;
+}) => {
+  const { data, error } = await supabase
+    .from('cases')
+    .insert(caseData)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating case:', error);
     throw new Error(error.message);
   }
 
