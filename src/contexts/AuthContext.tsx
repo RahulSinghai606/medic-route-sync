@@ -27,18 +27,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log('Auth state change:', event, currentSession?.user?.id);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        if (currentSession?.user) {
-          // Add a small delay to prevent potential race conditions
-          setTimeout(() => {
-            fetchProfile(currentSession.user.id);
-          }, 0);
+        if (currentSession?.user && event === 'SIGNED_IN') {
+          // Small delay to ensure proper state management
+          setTimeout(async () => {
+            await fetchProfile(currentSession.user.id);
+            setIsLoading(false);
+          }, 100);
         } else {
           setProfile(null);
+          setIsLoading(false);
         }
       }
     );
@@ -50,10 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        fetchProfile(currentSession.user.id);
+        fetchProfile(currentSession.user.id).finally(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
 
     return () => {
@@ -72,6 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        // If no profile exists, try to get role from user metadata
+        const { data: user } = await supabase.auth.getUser();
+        if (user?.user?.user_metadata?.role) {
+          const profileData = {
+            id: userId,
+            role: user.user.user_metadata.role,
+            full_name: user.user.user_metadata.full_name || user.user.email,
+          };
+          setProfile(profileData);
+          console.log('Using metadata profile:', profileData);
+        }
       } else {
         console.log('Profile data retrieved:', data);
         setProfile(data);
@@ -84,10 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Enhanced signUp function that properly sets the user role
   const signUp = async (email: string, password: string, fullName: string, role: string = 'paramedic') => {
     try {
-      // Clean up auth state to prevent any lingering tokens
       cleanupAuthState();
       
-      // Try to sign out any existing session globally
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
@@ -95,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.log(`Signing up with role: ${role}`);
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -113,14 +124,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
       } else {
-        // Create a profile record with the specified role immediately after signup
-        // This ensures the role is stored in the database
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
+        // Create profile immediately after signup
+        if (data?.user) {
           const { error: profileError } = await supabase
             .from('profiles')
             .upsert({
-              id: userData.user.id,
+              id: data.user.id,
               full_name: fullName,
               role: role,
             });
@@ -154,22 +163,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string, role?: string) => {
     try {
-      // Clean up auth state to prevent any lingering tokens
       cleanupAuthState();
       
-      // Try to sign out any existing session globally
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
         // Continue even if this fails
       }
       
-      const { error } = await supabase.auth.signInWithPassword({
+      setIsLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        setIsLoading(false);
         toast({
           title: "Login failed",
           description: error.message,
@@ -177,15 +187,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         return { error };
       } else {
-        // If role is provided during login, ensure the user profile has this role
-        if (role) {
+        console.log('Login successful, user:', data.user?.id);
+        
+        // If role is provided during login, update the profile
+        if (role && data.user) {
           await updateProfile({ role });
         }
         
-        // Force fetch the updated profile
-        const { data: user } = await supabase.auth.getUser();
-        if (user) {
-          await fetchProfile(user.user.id);
+        // Force redirect based on role after successful login
+        if (data.user) {
+          await fetchProfile(data.user.id);
+          
+          // Get the updated profile to determine redirect
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+            
+          const userRole = profileData?.role || data.user.user_metadata?.role || role;
+          console.log('User role for redirect:', userRole);
+          
+          // Immediate redirect based on role
+          if (userRole === 'hospital') {
+            console.log('Redirecting to hospital platform');
+            window.location.href = '/hospital-platform';
+          } else {
+            console.log('Redirecting to paramedic dashboard');
+            window.location.href = '/';
+          }
         }
         
         toast({
@@ -196,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return { error };
     } catch (error: any) {
+      setIsLoading(false);
       toast({
         title: "Login failed",
         description: error.message,
@@ -222,13 +253,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    // Clean up auth state from localStorage for a more reliable logout
     cleanupAuthState();
-    
-    // Perform the actual signout
     await supabase.auth.signOut({ scope: 'global' });
-    
-    // Clear state
     setUser(null);
     setSession(null);
     setProfile(null);
@@ -238,7 +264,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       description: "You have been successfully logged out",
     });
     
-    // Force page reload for a clean state
     window.location.href = '/login';
   };
 
@@ -253,7 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const { error } = await supabase
         .from('profiles')
-        .update(data)
+        .upsert({ ...data, id: user.id })
         .eq('id', user.id);
 
       if (!error) {
