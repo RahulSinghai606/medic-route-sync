@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Navigation, Clock, Bed, BadgePercent, Phone, AlertTriangle, Loader2, Copy } from 'lucide-react';
+import { MapPin, Navigation, Clock, Bed, BadgePercent, Phone, AlertTriangle, Loader2, Copy, Activity } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { comprehensiveHospitals, calculateDistanceAndETA, ComprehensiveHospital } from '@/data/comprehensiveHospitals';
