@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Hospital, Lock, AlertCircle, Mail, Loader2, Activity, Heart, Shield, Plus, Stethoscope } from 'lucide-react';
+import { Hospital, Lock, AlertCircle, Mail, Loader2, Activity, Heart, Shield, Plus, Stethoscope, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -31,6 +31,7 @@ const Login = () => {
   const { signIn, user, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -167,6 +168,9 @@ const Login = () => {
                   <div>
                     <p className="font-semibold">Authentication Failed</p>
                     <p className="text-sm">{loginError}</p>
+                    <p className="text-xs mt-2 opacity-80">
+                      If you just created an account, please check your email for a confirmation link.
+                    </p>
                   </div>
                 </div>
               )}
@@ -270,11 +274,18 @@ const Login = () => {
                           <div className="relative">
                             <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                             <Input 
-                              className="pl-11 h-12 focus:border-primary focus:ring-primary" 
-                              type="password" 
+                              className="pl-11 pr-11 h-12 focus:border-primary focus:ring-primary" 
+                              type={showPassword ? "text" : "password"}
                               placeholder="••••••••••••" 
                               {...field} 
                             />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-3 h-5 w-5 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
                           </div>
                         </FormControl>
                         <FormMessage />

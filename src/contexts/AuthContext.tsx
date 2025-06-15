@@ -134,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       if (error) {
+        console.error("Signup error:", error);
         toast({
           title: "Registration failed",
           description: error.message,
@@ -156,12 +157,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         toast({
           title: "Registration successful",
-          description: "Please check your email to confirm your account",
+          description: data?.user?.email_confirmed_at ? 
+            "You can now sign in with your credentials" : 
+            "Please check your email to confirm your account",
         });
       }
       
       return { error };
     } catch (error: any) {
+      console.error("Signup exception:", error);
       toast({
         title: "Registration failed",
         description: error.message,
@@ -183,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       setIsLoading(true);
       
+      console.log('Attempting sign in for:', email, 'with role:', role);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -190,9 +196,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         setIsLoading(false);
+        console.error('Login error details:', error);
+        
+        let errorMessage = "Please check your credentials and try again.";
+        
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = "Invalid email or password. Please check your credentials.";
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = "Please check your email and click the confirmation link before signing in.";
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = "Too many login attempts. Please wait a moment and try again.";
+        }
+        
         toast({
           title: "Login failed",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
         return { error };
@@ -201,26 +219,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (data.user) {
           // Fetch or create profile
-          let { data: profileData } = await supabase
+          let { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single();
             
-          if (!profileData) {
+          if (profileError || !profileData) {
+            console.log('Creating new profile for user:', data.user.id);
             // Create profile if it doesn't exist
-            const { data: newProfile } = await supabase
+            const { data: newProfile, error: insertError } = await supabase
               .from('profiles')
               .insert({ 
                 id: data.user.id, 
-                role: role || 'paramedic',
+                role: role || data.user.user_metadata?.role || 'paramedic',
                 full_name: data.user.user_metadata?.full_name || data.user.email
               })
               .select()
               .single();
-            profileData = newProfile;
+              
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+            } else {
+              profileData = newProfile;
+            }
           } else if (role && role !== profileData.role) {
             // Update role if specified and different
+            console.log('Updating user role to:', role);
             const { data: updatedProfile } = await supabase
               .from('profiles')
               .update({ role: role })
@@ -232,10 +257,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           setProfile(profileData);
           
-          // Don't redirect immediately, let the auth state change handle it
           toast({
             title: "Login successful",
-            description: "Welcome back to TERO!",
+            description: `Welcome back to TERO!`,
           });
         }
       }
@@ -243,6 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error };
     } catch (error: any) {
       setIsLoading(false);
+      console.error('Login exception:', error);
       toast({
         title: "Login failed",
         description: error.message,
