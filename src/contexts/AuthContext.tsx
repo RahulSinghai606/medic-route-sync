@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,12 +25,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+    
     console.log('Setting up auth state listener...');
     
+    // Initialize auth state
+    const initializeAuth = async () => {
+      try {
+        console.log('Getting initial session...');
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        
+        if (!mounted) return;
+        
+        console.log('Initial session:', currentSession?.user?.id || 'No session');
+        
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          await fetchProfile(currentSession.user.id);
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error('Error during auth initialization:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
+      } finally {
+        if (mounted) {
+          console.log('Auth initialization complete, setting loading to false');
+          setIsLoading(false);
+        }
+      }
+    };
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log('Auth state change:', event, currentSession?.user?.id);
+        console.log('Auth state change:', event, currentSession?.user?.id || 'No user');
+        
+        if (!mounted) return;
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -44,36 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
         }
         
+        // Ensure loading is always set to false after auth state changes
         setIsLoading(false);
       }
     );
 
-    // Check for existing session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log('Initial session check:', currentSession?.user?.id);
-        
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (currentSession?.user) {
-          try {
-            await fetchProfile(currentSession.user.id);
-          } catch (error) {
-            console.error('Error fetching profile during initialization:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Error during auth initialization:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
+    // Initialize auth
     initializeAuth();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -89,39 +111,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error fetching profile:', error);
-        // Try to get role from user metadata as fallback
-        const { data: user } = await supabase.auth.getUser();
-        if (user?.user?.user_metadata?.role) {
-          const profileData = {
-            id: userId,
-            role: user.user.user_metadata.role,
-            full_name: user.user.user_metadata.full_name || user.user.email,
-            ambulance_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-          setProfile(profileData);
-          console.log('Using metadata profile:', profileData);
-        } else {
-          // Create a default profile if none exists
-          const defaultProfile = {
-            id: userId,
-            role: 'paramedic',
-            full_name: user?.user?.email || 'User',
-            ambulance_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-          setProfile(defaultProfile);
-          console.log('Using default profile:', defaultProfile);
-        }
+        // Create a default profile
+        const defaultProfile = {
+          id: userId,
+          role: 'paramedic',
+          full_name: 'User',
+          ambulance_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setProfile(defaultProfile);
+        console.log('Using default profile:', defaultProfile);
       } else {
         console.log('Profile data retrieved:', data);
         setProfile(data);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      // Set a fallback profile to prevent app from breaking
+      // Set a fallback profile
       setProfile({
         id: userId,
         role: 'paramedic',
@@ -222,8 +229,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Continue even if this fails
       }
       
-      setIsLoading(true);
-      
       console.log('Attempting sign in for:', email, 'with role:', role);
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -232,7 +237,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        setIsLoading(false);
         console.error('Login error details:', error);
         
         let errorMessage = "Please check your credentials and try again.";
@@ -321,7 +325,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return { error };
     } catch (error: any) {
-      setIsLoading(false);
       console.error('Login exception:', error);
       toast({
         title: "Login failed",
