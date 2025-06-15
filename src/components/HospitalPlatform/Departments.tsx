@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Building2, BedDouble, Users, BarChart4, Settings, Download, RefreshCw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { departments, getAlertColor } from './utils';
 import DepartmentStatusDialog from './DepartmentStatusDialog';
 import BedManagementDialog from './BedManagementDialog';
@@ -13,6 +13,7 @@ import { Department } from './types';
 
 const Departments: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [departmentList, setDepartmentList] = useState(departments);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
@@ -26,6 +27,10 @@ const Departments: React.FC = () => {
           : dept
       )
     );
+    toast({
+      title: "Department Updated",
+      description: `${departmentName} status has been updated successfully.`,
+    });
   };
 
   const handleDepartmentStatusClick = (department: Department) => {
@@ -34,6 +39,12 @@ const Departments: React.FC = () => {
   };
 
   const handleRefreshData = () => {
+    // Simulate data refresh with random updates
+    setDepartmentList(prev => prev.map(dept => ({
+      ...dept,
+      beds: Math.max(0, dept.beds + Math.floor(Math.random() * 3) - 1)
+    })));
+    
     toast({
       title: "Data Refreshed",
       description: "Department data has been updated with the latest information.",
@@ -41,6 +52,20 @@ const Departments: React.FC = () => {
   };
 
   const handleExportReport = () => {
+    // Generate and download a mock CSV report
+    const csvContent = "Department,Available Beds,Total Beds,Utilization,Alert Level\n" +
+      departmentList.map(dept => 
+        `${dept.name},${dept.beds},${dept.total},${((dept.total - dept.beds) / dept.total * 100).toFixed(1)}%,${dept.alert}`
+      ).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `department-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
     toast({
       title: "Report Generated",
       description: "Department analytics report has been downloaded.",
@@ -52,23 +77,26 @@ const Departments: React.FC = () => {
   };
 
   const handleResourceAllocation = () => {
+    navigate('/hospital-platform/operations');
     toast({
-      title: "Resource Allocation",
-      description: "Resource allocation panel would open here.",
+      title: "Navigating to Operations",
+      description: "Opening the Hospital Operations Center for resource allocation.",
     });
   };
 
   const handleAnalytics = () => {
+    navigate('/hospital-platform/operations');
     toast({
-      title: "Analytics Dashboard",
-      description: "Detailed analytics dashboard would open here.",
+      title: "Opening Analytics",
+      description: "Navigating to the advanced analytics dashboard.",
     });
   };
 
   const handleAmbulanceTracking = () => {
+    navigate('/hospital-platform/operations');
     toast({
       title: "Ambulance Tracking",
-      description: "Live ambulance tracking system would open here.",
+      description: "Opening live ambulance tracking system.",
     });
   };
 
@@ -152,13 +180,19 @@ const Departments: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge className={
-                    dept.alert === 'Critical' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 
-                    dept.alert === 'Medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' : 
-                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                  }>
-                    {dept.alert} Alert
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={
+                      dept.alert === 'Critical' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 
+                      dept.alert === 'Medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' : 
+                      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                    }>
+                      {dept.alert} Alert
+                    </Badge>
+                    <Button variant="outline" size="sm" onClick={handleBedManagement}>
+                      <BedDouble className="h-3 w-3 mr-1" />
+                      Bed Mgmt
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex items-center">
                   <div className="w-full">
@@ -188,7 +222,7 @@ const Departments: React.FC = () => {
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>Department Analytics</CardTitle>
-              <CardDescription>Performance metrics for the past 30 days</CardDescription>
+              <CardDescription>Performance metrics and operational insights</CardDescription>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleAnalytics}>
@@ -202,15 +236,29 @@ const Departments: React.FC = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center">
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">94%</div>
+              <div className="text-sm text-muted-foreground">Avg Occupancy</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">8.5min</div>
+              <div className="text-sm text-muted-foreground">Avg Response</div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">67</div>
+              <div className="text-sm text-muted-foreground">Admissions Today</div>
+            </div>
+            <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600">23</div>
+              <div className="text-sm text-muted-foreground">Discharges Today</div>
+            </div>
+          </div>
           <div className="text-center">
-            <BarChart4 className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground mb-4">
-              Department analytics visualization would appear here, showing capacity trends, average wait times, and patient flow metrics.
-            </p>
-            <Button onClick={handleAnalytics}>
-              <Settings className="mr-2 h-4 w-4" />
-              Configure Analytics
+            <Button onClick={handleAnalytics} size="lg">
+              <BarChart4 className="mr-2 h-5 w-5" />
+              Open Advanced Analytics Dashboard
             </Button>
           </div>
         </CardContent>

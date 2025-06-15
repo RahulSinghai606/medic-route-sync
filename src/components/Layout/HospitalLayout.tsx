@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Building2, Users, ClipboardList, LogOut, Settings, Bell, Home, BedDouble, ListChecks, Activity, ChevronDown, Search, MapPin, User } from 'lucide-react';
+import { Building2, Users, ClipboardList, LogOut, Settings, Bell, Home, BedDouble, ListChecks, Activity, ChevronDown, Search, MapPin, User, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -23,31 +24,19 @@ const HospitalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =
   };
 
   const handleBedManagement = () => {
-    toast({
-      title: "Bed Management",
-      description: "Opening bed management system...",
-    });
+    navigate('/hospital-platform/operations');
   };
 
   const handleResourceAllocation = () => {
-    toast({
-      title: "Resource Allocation",
-      description: "Opening resource allocation panel...",
-    });
+    navigate('/hospital-platform/operations');
   };
 
   const handleAnalytics = () => {
-    toast({
-      title: "Analytics Dashboard",
-      description: "Opening analytics dashboard...",
-    });
+    navigate('/hospital-platform/operations');
   };
 
   const handleAmbulanceTracking = () => {
-    toast({
-      title: "Ambulance Tracking",
-      description: "Opening live ambulance tracking...",
-    });
+    navigate('/hospital-platform/operations');
   };
 
   return (
@@ -139,6 +128,19 @@ const HospitalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =
           </NavLink>
 
           <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-6">Hospital Operations</p>
+          <NavLink
+            to="/hospital-platform/operations"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+                isActive
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                  : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600"
+              }`
+            }
+          >
+            <Monitor className="h-5 w-5" />
+            <span>Operations Center</span>
+          </NavLink>
           <div 
             className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer"
             onClick={handleBedManagement}

@@ -9,6 +9,7 @@ import HospitalDashboard from '@/components/HospitalPlatform/HospitalDashboard';
 import CasesDashboard from '@/components/HospitalPlatform/CasesDashboard';
 import CaseHandoffs from '@/components/HospitalPlatform/CaseHandoffs';
 import Departments from '@/components/HospitalPlatform/Departments';
+import HospitalOperations from '@/pages/HospitalOperations';
 
 const HospitalPlatform: React.FC = () => {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ const HospitalPlatform: React.FC = () => {
         <Route path="cases" element={<CasesDashboard />} />
         <Route path="handoffs" element={<CaseHandoffs />} />
         <Route path="departments" element={<Departments />} />
+        <Route path="operations" element={<HospitalOperations />} />
       </Routes>
     </HospitalLayout>
   );
