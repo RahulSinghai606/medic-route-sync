@@ -23,11 +23,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Enums } from "@/integrations/supabase/types";
 
 interface VoiceToVitalsProps {
-  patientId: string;
-  onCaseCreated: (caseId: string) => void;
+  patientId?: string;
+  onCaseCreated?: (caseId: string) => void;
+  onVitalsExtracted?: (vitals: any) => void;
 }
 
-const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ patientId, onCaseCreated }) => {
+const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ patientId, onCaseCreated, onVitalsExtracted }) => {
   const { t, language } = useLanguage();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -197,6 +198,9 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ patientId, onCaseCreated 
     }
     if (vitals.notes) {
       setParamedicNotes(prev => prev ? `${prev}\n\n---\nTranscription:\n${vitals.notes}` : `Transcription:\n${vitals.notes}`);
+    }
+    if (onVitalsExtracted) {
+      onVitalsExtracted(vitals);
     }
   };
 
@@ -415,7 +419,9 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ patientId, onCaseCreated 
             title: "Case Created Successfully",
             description: `Case #${data.id.substring(0, 8)} sent to ${hospitals?.find(h => h.id === selectedHospitalId)?.full_name}.`,
         });
-        onCaseCreated(data.id);
+        if (onCaseCreated) {
+          onCaseCreated(data.id);
+        }
     },
     onError: (error: Error) => {
         toast({
@@ -428,7 +434,7 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ patientId, onCaseCreated 
 
   const handleSubmitCase = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !patientId || !selectedHospitalId || !eta) {
+    if (!user || !patientId || !selectedHospitalId || !eta || !onCaseCreated) {
         toast({
             title: "Missing Information",
             description: "Please select a hospital and provide an ETA.",
@@ -588,57 +594,59 @@ const VoiceToVitals: React.FC<VoiceToVitalsProps> = ({ patientId, onCaseCreated 
         </CardContent>
       </Card>
       
-      <form onSubmit={handleSubmitCase}>
-        <Card>
-            <CardHeader>
-                <CardTitle>Dispatch Case</CardTitle>
-                <CardDescription>Complete the case details and send to the hospital.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label htmlFor="hospital">Receiving Hospital</Label>
-                        <Select onValueChange={setSelectedHospitalId} value={selectedHospitalId} required disabled={isLoadingHospitals || createCaseMutation.isPending}>
-                            <SelectTrigger id="hospital">
-                                <SelectValue placeholder={isLoadingHospitals ? "Loading hospitals..." : "Select a hospital"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {hospitals?.map(hospital => (
-                                    <SelectItem key={hospital.id} value={hospital.id}>{hospital.full_name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <Label htmlFor="severity">Case Severity</Label>
-                        <Select onValueChange={(v) => setSeverity(v as any)} value={severity} required disabled={createCaseMutation.isPending}>
-                            <SelectTrigger id="severity">
-                                <SelectValue placeholder="Select severity" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Stable">Stable</SelectItem>
-                                <SelectItem value="Urgent">Urgent</SelectItem>
-                                <SelectItem value="Critical">Critical</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                <div>
-                    <Label htmlFor="eta">ETA (minutes)</Label>
-                    <Input id="eta" type="number" placeholder="e.g., 15" value={eta} required onChange={e => setEta(e.target.value)} disabled={createCaseMutation.isPending} />
-                </div>
-                <div>
-                    <Label htmlFor="notes">Paramedic Notes</Label>
-                    <Textarea id="notes" placeholder="Add any additional notes for the hospital..." value={paramedicNotes} onChange={e => setParamedicNotes(e.target.value)} disabled={createCaseMutation.isPending} rows={4} />
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={!extractedVitals || createCaseMutation.isPending}>
-                    {createCaseMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting Case...</> : 'Create & Dispatch Case'}
-                </Button>
-            </CardFooter>
-        </Card>
-      </form>
+      {patientId && onCaseCreated && (
+        <form onSubmit={handleSubmitCase}>
+          <Card>
+              <CardHeader>
+                  <CardTitle>Dispatch Case</CardTitle>
+                  <CardDescription>Complete the case details and send to the hospital.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                          <Label htmlFor="hospital">Receiving Hospital</Label>
+                          <Select onValueChange={setSelectedHospitalId} value={selectedHospitalId} required disabled={isLoadingHospitals || createCaseMutation.isPending}>
+                              <SelectTrigger id="hospital">
+                                  <SelectValue placeholder={isLoadingHospitals ? "Loading hospitals..." : "Select a hospital"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  {hospitals?.map(hospital => (
+                                      <SelectItem key={hospital.id} value={hospital.id}>{hospital.full_name}</SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                      </div>
+                      <div>
+                          <Label htmlFor="severity">Case Severity</Label>
+                          <Select onValueChange={(v) => setSeverity(v as any)} value={severity} required disabled={createCaseMutation.isPending}>
+                              <SelectTrigger id="severity">
+                                  <SelectValue placeholder="Select severity" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="Stable">Stable</SelectItem>
+                                  <SelectItem value="Urgent">Urgent</SelectItem>
+                                  <SelectItem value="Critical">Critical</SelectItem>
+                              </SelectContent>
+                          </Select>
+                      </div>
+                  </div>
+                  <div>
+                      <Label htmlFor="eta">ETA (minutes)</Label>
+                      <Input id="eta" type="number" placeholder="e.g., 15" value={eta} required onChange={e => setEta(e.target.value)} disabled={createCaseMutation.isPending} />
+                  </div>
+                  <div>
+                      <Label htmlFor="notes">Paramedic Notes</Label>
+                      <Textarea id="notes" placeholder="Add any additional notes for the hospital..." value={paramedicNotes} onChange={e => setParamedicNotes(e.target.value)} disabled={createCaseMutation.isPending} rows={4} />
+                  </div>
+              </CardContent>
+              <CardFooter>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={!extractedVitals || createCaseMutation.isPending}>
+                      {createCaseMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting Case...</> : 'Create & Dispatch Case'}
+                  </Button>
+              </CardFooter>
+          </Card>
+        </form>
+      )}
     </div>
   );
 };
