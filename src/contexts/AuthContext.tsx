@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,15 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          // Use setTimeout to prevent potential deadlocks
-          setTimeout(async () => {
-            await fetchProfile(currentSession.user.id);
-            setIsLoading(false);
-          }, 100);
+          // Fetch profile data
+          await fetchProfile(currentSession.user.id);
         } else {
           setProfile(null);
-          setIsLoading(false);
         }
+        
+        setIsLoading(false);
       }
     );
 
@@ -260,6 +259,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             title: "Login successful",
             description: `Welcome back to TERO!`,
           });
+          
+          // Force page refresh to ensure clean state
+          setTimeout(() => {
+            if (profileData?.role === 'hospital') {
+              window.location.href = '/hospital-platform';
+            } else {
+              window.location.href = '/';
+            }
+          }, 100);
         }
       }
       
@@ -273,8 +281,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       });
       return { error };
-    } finally {
-      setIsLoading(false);
     }
   };
 
