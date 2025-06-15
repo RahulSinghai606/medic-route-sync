@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -97,6 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: userId,
             role: user.user.user_metadata.role,
             full_name: user.user.user_metadata.full_name || user.user.email,
+            ambulance_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           };
           setProfile(profileData);
           console.log('Using metadata profile:', profileData);
@@ -106,6 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: userId,
             role: 'paramedic',
             full_name: user?.user?.email || 'User',
+            ambulance_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           };
           setProfile(defaultProfile);
           console.log('Using default profile:', defaultProfile);
@@ -121,6 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: userId,
         role: 'paramedic',
         full_name: 'User',
+        ambulance_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
     }
   };
@@ -274,6 +282,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 id: data.user.id,
                 role: role || 'paramedic',
                 full_name: data.user.email,
+                ambulance_id: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
               };
             } else {
               profileData = newProfile;
