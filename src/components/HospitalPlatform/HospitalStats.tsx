@@ -2,181 +2,148 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Ambulance, Bell, BedDouble, Clock, Users, Activity, AlertTriangle, Heart } from 'lucide-react';
+import { 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Bed, 
+  Clock, 
+  AlertTriangle,
+  Activity,
+  TrendingUp,
+  TrendingDown,
+  Heart,
+  Stethoscope,
+  Ambulance
+} from 'lucide-react';
 
 const HospitalStats = () => {
-  // Mock real-time data that would come from hospital systems
-  const bedAvailability = {
-    icu: { available: 1, total: 8, critical: true },
-    emergency: { available: 4, total: 12, critical: false },
-    general: { available: 23, total: 45, critical: false },
-    surgery: { available: 2, total: 6, critical: false }
+  const statsData = [
+    {
+      title: 'Available Beds',
+      value: '127',
+      change: '+5',
+      changeType: 'increase',
+      icon: Bed,
+      description: 'Out of 450 total beds',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-950',
+      trend: 'up'
+    },
+    {
+      title: 'Active Patients',
+      value: '323',
+      change: '+12',
+      changeType: 'increase',
+      icon: Users,
+      description: 'Currently admitted',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-950',
+      trend: 'up'
+    },
+    {
+      title: 'Emergency Queue',
+      value: '8',
+      change: '-3',
+      changeType: 'decrease',
+      icon: AlertTriangle,
+      description: 'Waiting for treatment',
+      color: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-orange-100 dark:bg-orange-950',
+      trend: 'down'
+    },
+    {
+      title: 'Critical Cases',
+      value: '15',
+      change: '+2',
+      changeType: 'increase',
+      icon: Heart,
+      description: 'Requiring immediate attention',
+      color: 'text-red-600 dark:text-red-400',
+      bgColor: 'bg-red-100 dark:bg-red-950',
+      trend: 'up'
+    },
+    {
+      title: 'ICU Availability',
+      value: '12',
+      change: '0',
+      changeType: 'stable',
+      icon: Activity,
+      description: 'Out of 45 ICU beds',
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-100 dark:bg-purple-950',
+      trend: 'stable'
+    },
+    {
+      title: 'Incoming Ambulances',
+      value: '3',
+      change: '+1',
+      changeType: 'increase',
+      icon: Ambulance,
+      description: 'ETA within 15 minutes',
+      color: 'text-teal-600 dark:text-teal-400',
+      bgColor: 'bg-teal-100 dark:bg-teal-950',
+      trend: 'up'
+    }
+  ];
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case 'up':
+        return <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />;
+      case 'down':
+        return <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />;
+      default:
+        return <Activity className="h-4 w-4 text-muted-foreground" />;
+    }
   };
 
-  const incomingCases = [
-    { id: 1, eta: 3, severity: 'critical', type: 'Cardiac Arrest' },
-    { id: 2, eta: 7, severity: 'high', type: 'Motor Vehicle Accident' },
-    { id: 3, eta: 12, severity: 'medium', type: 'Respiratory Distress' }
-  ];
-
-  const departmentAlerts = [
-    { dept: 'ICU', message: 'Only 1 bed remaining', severity: 'critical' },
-    { dept: 'Emergency', message: 'High patient volume', severity: 'warning' },
-    { dept: 'Surgery', message: 'Room 3 equipment check needed', severity: 'info' }
-  ];
+  const getChangeColor = (changeType: string) => {
+    switch (changeType) {
+      case 'increase':
+        return 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/50';
+      case 'decrease':
+        return 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/50';
+      default:
+        return 'text-muted-foreground bg-muted';
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-red-600">Critical Patients</p>
-                <p className="text-2xl font-bold text-red-700">12</p>
-              </div>
-              <Heart className="h-8 w-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-600">Incoming Ambulances</p>
-                <p className="text-2xl font-bold text-blue-700">3</p>
-              </div>
-              <Ambulance className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-600">Available Beds</p>
-                <p className="text-2xl font-bold text-green-700">30</p>
-              </div>
-              <BedDouble className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-yellow-600">Active Alerts</p>
-                <p className="text-2xl font-bold text-yellow-700">4</p>
-              </div>
-              <Bell className="h-8 w-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Detailed Information */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Bed Availability */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BedDouble className="h-5 w-5 text-blue-600" />
-              Bed Availability
-            </CardTitle>
-            <CardDescription>Real-time bed status by department</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(bedAvailability).map(([dept, data]) => (
-              <div key={dept} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium capitalize flex items-center gap-2">
-                    {dept.toUpperCase()}
-                    {data.critical && (
-                      <Badge variant="destructive" className="text-xs">Critical</Badge>
-                    )}
-                  </span>
-                  <span className="text-sm font-bold">
-                    {data.available}/{data.total}
-                  </span>
-                </div>
-                <Progress 
-                  value={(data.available / data.total) * 100} 
-                  className={`h-2 ${data.critical ? 'bg-red-100' : 'bg-green-100'}`}
-                />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Incoming Cases */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Ambulance className="h-5 w-5 text-blue-600" />
-              Incoming Cases
-            </CardTitle>
-            <CardDescription>Ambulances en route to hospital</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {incomingCases.map((case_item) => (
-              <div key={case_item.id} className="border rounded-lg p-3 space-y-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium text-sm">{case_item.type}</p>
-                    <p className="text-xs text-gray-500">ETA: {case_item.eta} minutes</p>
-                  </div>
-                  <Badge 
-                    variant={case_item.severity === 'critical' ? 'destructive' : 
-                             case_item.severity === 'high' ? 'secondary' : 'outline'}
-                    className="text-xs"
-                  >
-                    {case_item.severity}
-                  </Badge>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {statsData.map((stat, index) => {
+        const IconComponent = stat.icon;
+        return (
+          <Card key={index} className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-transparent hover:border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                  {stat.change !== '0' && (
+                    <Badge variant="secondary" className={`text-xs ${getChangeColor(stat.changeType)}`}>
+                      {stat.change}
+                    </Badge>
+                  )}
                 </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Department Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-blue-600" />
-              Department Alerts
-            </CardTitle>
-            <CardDescription>Active notifications requiring attention</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {departmentAlerts.map((alert, index) => (
-              <div key={index} className="border rounded-lg p-3 space-y-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium text-sm">{alert.dept}</p>
-                    <p className="text-xs text-gray-600">{alert.message}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {alert.severity === 'critical' && (
-                      <AlertTriangle className="h-4 w-4 text-red-500" />
-                    )}
-                    {alert.severity === 'warning' && (
-                      <Clock className="h-4 w-4 text-yellow-500" />
-                    )}
-                    {alert.severity === 'info' && (
-                      <Activity className="h-4 w-4 text-blue-500" />
-                    )}
-                  </div>
-                </div>
+              <div className={`p-3 rounded-lg ${stat.bgColor}`}>
+                <IconComponent className={`h-6 w-6 ${stat.color}`} />
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-xs">
+                  {stat.description}
+                </CardDescription>
+                {getTrendIcon(stat.trend)}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

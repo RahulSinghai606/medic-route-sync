@@ -1,219 +1,267 @@
 
-import React, { useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Clock, Activity, Users, Heart, AlertTriangle, Zap, Shield, Globe, Satellite, TrendingUp, TrendingDown, Radio, BedDouble, Ambulance, Bell } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Bed, 
+  Clock, 
+  AlertTriangle,
+  Activity,
+  Heart,
+  Stethoscope,
+  Ambulance,
+  TrendingUp,
+  TrendingDown,
+  Eye,
+  ChevronRight
+} from 'lucide-react';
 import HospitalStats from './HospitalStats';
-import CaseFeed from './CaseFeed';
-import DepartmentStatus from './DepartmentStatus';
-import RecentNotifications from './RecentNotifications';
 
-const HospitalDashboard: React.FC = () => {
-  const { profile } = useAuth();
-  const [currentTime, setCurrentTime] = useState(new Date());
-  
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+const HospitalDashboard = () => {
+  // Mock data for demonstration
+  const stats = {
+    totalBeds: 450,
+    availableBeds: 127,
+    occupiedBeds: 323,
+    icuBeds: 45,
+    availableIcuBeds: 12,
+    emergencyQueue: 8,
+    incomingAmbulances: 3,
+    criticalPatients: 15
+  };
 
-  // Real medical dashboard stats
-  const medicalStats = [
-    { 
-      label: 'Critical Patients', 
-      value: '12', 
-      change: '+3',
-      trend: 'up',
-      icon: Heart, 
-      color: 'text-red-500', 
-      bg: 'bg-red-50',
-      border: 'border-red-200'
+  const recentPatients = [
+    {
+      id: 'P001',
+      name: 'Sarah Johnson',
+      age: 34,
+      condition: 'Cardiac Emergency',
+      severity: 'Critical',
+      eta: '5 min',
+      vitals: { heartRate: 110, bloodPressure: '140/90', oxygen: 94 }
     },
-    { 
-      label: 'ICU Beds Available', 
-      value: '1/8', 
-      change: '-2',
-      trend: 'down',
-      icon: BedDouble, 
-      color: 'text-orange-500', 
-      bg: 'bg-orange-50',
-      border: 'border-orange-200'
+    {
+      id: 'P002', 
+      name: 'Michael Chen',
+      age: 67,
+      condition: 'Stroke Symptoms',
+      severity: 'High',
+      eta: '12 min',
+      vitals: { heartRate: 95, bloodPressure: '160/100', oxygen: 97 }
     },
-    { 
-      label: 'Incoming Ambulances', 
-      value: '3', 
-      change: '+1',
-      trend: 'up',
-      icon: Ambulance, 
-      color: 'text-blue-500', 
-      bg: 'bg-blue-50',
-      border: 'border-blue-200'
-    },
-    { 
-      label: 'Active Alerts', 
-      value: '4', 
-      change: '+1',
-      trend: 'up',
-      icon: Bell, 
-      color: 'text-yellow-500', 
-      bg: 'bg-yellow-50',
-      border: 'border-yellow-200'
+    {
+      id: 'P003',
+      name: 'Emma Williams',
+      age: 28,
+      condition: 'Trauma - MVA',
+      severity: 'Critical',
+      eta: '8 min',
+      vitals: { heartRate: 125, bloodPressure: '110/70', oxygen: 89 }
     }
   ];
-  
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'Critical': return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300';
+      case 'High': return 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300';
+      case 'Medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300';
+      default: return 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300';
+    }
+  };
+
+  const getVitalStatus = (vital: number, type: string) => {
+    if (type === 'heartRate') {
+      if (vital > 100 || vital < 60) return 'text-red-600 dark:text-red-400';
+      return 'text-green-600 dark:text-green-400';
+    }
+    if (type === 'oxygen') {
+      if (vital < 95) return 'text-red-600 dark:text-red-400';
+      return 'text-green-600 dark:text-green-400';
+    }
+    return 'text-foreground';
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 relative overflow-hidden">
-      {/* Medical background pattern */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300a8ff' fill-opacity='0.4'%3E%3Cpath d='M30 28h4v4h-4z M26 28h4v4h-4z M30 24h4v4h-4z M30 32h4v4h-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}></div>
-        </div>
+    <div className="space-y-8 p-6 bg-gradient-to-br from-blue-50/50 via-white to-green-50/50 dark:from-slate-950/50 dark:via-slate-900/50 dark:to-slate-950/50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-700 to-green-700 bg-clip-text text-transparent">
+          Hospital Command Center
+        </h1>
+        <p className="text-muted-foreground text-lg">
+          Real-time patient monitoring and emergency coordination
+        </p>
       </div>
 
-      <div className="relative z-10 space-y-6 p-6">
-        {/* Medical Header */}
-        <div className="flex justify-between items-start">
-          <div className="space-y-2">
+      {/* Key Stats Grid */}
+      <HospitalStats />
+
+      {/* Emergency Alerts */}
+      <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-red-800 dark:text-red-300 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Active Emergencies
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="relative bg-gradient-to-r from-blue-600 to-green-600 p-3 rounded-full shadow-lg">
-                  <Shield className="h-8 w-8 text-white" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-                  Hospital Dashboard
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Welcome back, {profile?.full_name || 'Doctor'} • {profile?.hospitalAffiliation || 'Medical Center'}
-                </p>
-              </div>
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.criticalPatients}</div>
+              <span className="text-sm text-red-700 dark:text-red-300">Critical patients in facility</span>
             </div>
-            <div className="flex items-center gap-4 text-gray-500">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span>Current Time: {currentTime.toLocaleTimeString()}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 animate-pulse text-green-500" />
-                <span>All Systems Online</span>
-              </div>
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.incomingAmbulances}</div>
+              <span className="text-sm text-orange-700 dark:text-orange-300">Incoming ambulances</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="flex items-center gap-3">
-            <Badge className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 border-green-200">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="font-medium">Hospital Systems Online</span>
-            </Badge>
-            <Button className="bg-red-500 hover:bg-red-600 text-white">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Emergency Protocol
+      {/* Incoming Patients */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Ambulance className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                Incoming Patients
+              </CardTitle>
+              <CardDescription>Emergency cases en route to facility</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Eye className="h-4 w-4" />
+              View All
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-        </div>
-
-        {/* Medical Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {medicalStats.map((stat, index) => (
-            <Card key={index} className={`${stat.bg} ${stat.border} border-2 hover:shadow-lg transition-all duration-300`}>
-              <CardContent className="p-6">
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentPatients.map((patient) => (
+              <div key={patient.id} className="border rounded-lg p-4 space-y-3 hover:bg-accent/50 transition-colors">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
-                      <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-                        stat.trend === 'up' 
-                          ? 'bg-red-100 text-red-600' 
-                          : 'bg-green-100 text-green-600'
-                      }`}>
-                        {stat.trend === 'up' ? (
-                          <TrendingUp className="h-3 w-3" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3" />
-                        )}
-                        <span>{stat.change}</span>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-green-600 flex items-center justify-center text-white font-semibold">
+                      {patient.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">{patient.name}</h4>
+                      <p className="text-sm text-muted-foreground">Age: {patient.age} • ID: {patient.id}</p>
                     </div>
                   </div>
-                  <div className={`p-4 rounded-xl ${stat.bg} ${stat.border} border`}>
-                    <stat.icon className={`h-8 w-8 ${stat.color}`} />
+                  <div className="flex items-center gap-2">
+                    <Badge className={getSeverityColor(patient.severity)}>
+                      {patient.severity}
+                    </Badge>
+                    <div className="text-right">
+                      <div className="text-sm font-medium">ETA: {patient.eta}</div>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Enhanced Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Patient Feed */}
-            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-gray-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-800">
-                  <Ambulance className="h-5 w-5 text-blue-600" />
-                  Live Patient Feed
-                </CardTitle>
-                <CardDescription className="text-gray-600">
-                  Real-time patient arrivals and case updates
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CaseFeed />
-              </CardContent>
-            </Card>
+                
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">
+                    <span className="font-medium">Condition:</span> {patient.condition}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-red-500" />
+                    <span className="text-sm">HR:</span>
+                    <span className={`text-sm font-medium ${getVitalStatus(patient.vitals.heartRate, 'heartRate')}`}>
+                      {patient.vitals.heartRate}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm">BP:</span>
+                    <span className="text-sm font-medium">{patient.vitals.bloodPressure}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Stethoscope className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">O2:</span>
+                    <span className={`text-sm font-medium ${getVitalStatus(patient.vitals.oxygen, 'oxygen')}`}>
+                      {patient.vitals.oxygen}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="space-y-6">
-            {/* Department Status */}
-            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-gray-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-800">
-                  <Activity className="h-5 w-5 text-green-600" />
-                  Department Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DepartmentStatus />
-              </CardContent>
-            </Card>
-
-            {/* Recent Notifications */}
-            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-gray-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-800">
-                  <Bell className="h-5 w-5 text-yellow-600" />
-                  Recent Alerts
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RecentNotifications />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Enhanced Hospital Stats */}
-        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-gray-200">
+      {/* Bed Management */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-800">
-              <Shield className="h-5 w-5 text-blue-600" />
-              Hospital Operations Dashboard
+            <CardTitle className="flex items-center gap-2">
+              <Bed className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              General Beds
             </CardTitle>
-            <CardDescription className="text-gray-600">
-              Comprehensive hospital status and resource management
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <HospitalStats />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total Capacity</span>
+                <span className="text-2xl font-bold">{stats.totalBeds}</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Available</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">{stats.availableBeds}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Occupied</span>
+                  <span className="font-medium text-orange-600 dark:text-orange-400">{stats.occupiedBeds}</span>
+                </div>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full"
+                  style={{ width: `${(stats.availableBeds / stats.totalBeds) * 100}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              ICU Beds
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total ICU</span>
+                <span className="text-2xl font-bold">{stats.icuBeds}</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Available</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">{stats.availableIcuBeds}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Occupied</span>
+                  <span className="font-medium text-red-600 dark:text-red-400">{stats.icuBeds - stats.availableIcuBeds}</span>
+                </div>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full"
+                  style={{ width: `${((stats.icuBeds - stats.availableIcuBeds) / stats.icuBeds) * 100}%` }}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
