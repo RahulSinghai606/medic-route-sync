@@ -8,29 +8,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ambulance, User, Mail, Lock, Hospital, AlertCircle, Building2, Loader2 } from 'lucide-react';
+import { Ambulance, User, Mail, Lock, Hospital, AlertCircle, Building2, Loader2, Shield, Heart, Activity, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
 
 const signupSchema = z.object({
-  fullName: z.string().min(3, { message: 'Full name must be at least 3 characters long' }),
+  fullName: z.string().min(2, { message: 'Name must be at least 2 characters' }),
   email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters long' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   confirmPassword: z.string(),
   role: z.enum(['paramedic', 'hospital'], { 
     required_error: 'Please select your role' 
   }),
   hospitalName: z.string().optional(),
-  department: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
 }).refine(
   data => data.role !== 'hospital' || (data.hospitalName && data.hospitalName.length > 0), 
   {
-    message: 'Hospital name is required for hospital staff',
+    message: 'Hospital/Organization name is required',
     path: ['hospitalName'],
   }
 );
@@ -45,14 +44,12 @@ const Signup = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    // Redirect based on role if user is already logged in
     if (user && profile) {
       redirectBasedOnRole(profile.role);
     }
   }, [user, profile, navigate]);
 
   const redirectBasedOnRole = (role: string) => {
-    console.log(`Redirecting based on role: ${role}`);
     if (role === 'hospital') {
       navigate('/hospital-platform');
     } else {
@@ -69,7 +66,6 @@ const Signup = () => {
       confirmPassword: '',
       role: 'paramedic',
       hospitalName: '',
-      department: '',
     },
   });
 
@@ -80,15 +76,10 @@ const Signup = () => {
     setSignupError(null);
     
     try {
-      console.log(`Signing up with role: ${data.role}`);
       let fullName = data.fullName;
       
-      // For hospital users, combine hospital name with department
       if (data.role === 'hospital' && data.hospitalName) {
-        fullName = data.hospitalName;
-        if (data.department) {
-          fullName += ` - ${data.department}`;
-        }
+        fullName = `${data.fullName} (${data.hospitalName})`;
       }
       
       const { error } = await signUp(data.email, data.password, fullName, data.role);
@@ -109,220 +100,305 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background p-4">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-screen w-full relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-green-50">
+      {/* Medical background pattern */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300a8ff' fill-opacity='0.4'%3E%3Cpath d='M30 28h4v4h-4z M26 28h4v4h-4z M30 24h4v4h-4z M30 32h4v4h-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}></div>
+        </div>
+        
+        {/* Floating medical icons */}
+        <div className="absolute inset-0">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute opacity-10 text-blue-500"
+              style={{
+                left: `${Math.random() * 90 + 5}%`,
+                top: `${Math.random() * 90 + 5}%`,
+                fontSize: `${Math.random() * 15 + 10}px`,
+                animation: `float ${3 + Math.random() * 2}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 2}s`
+              }}
+            >
+              {i % 4 === 0 && <Plus />}
+              {i % 4 === 1 && <Heart />}
+              {i % 4 === 2 && <Activity />}
+              {i % 4 === 3 && <Shield />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="absolute top-4 right-4 z-50">
         <ThemeToggle />
       </div>
       
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emergency mb-4">
-            <Ambulance className="h-6 w-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold">TERO</h1>
-          <p className="text-muted-foreground">Triage and Emergency Routing Optimization</p>
-          <p className="text-xs text-muted-foreground mt-1">Medical Services Platform</p>
-        </div>
-
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle>Create Account</CardTitle>
-            <CardDescription>
-              Enter your information to sign up
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {signupError && (
-              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md text-red-800 dark:text-red-300 mb-4 flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Registration Error</p>
-                  <p className="text-sm">{signupError}</p>
-                </div>
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Medical Header */}
+          <div className="text-center mb-8">
+            <div className="relative inline-block mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 via-green-600 to-teal-600 shadow-xl mx-auto">
+                <Plus className="h-8 w-8 text-white" />
               </div>
-            )}
+            </div>
             
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>I am registering as</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-6"
-                        >
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="paramedic" />
-                            </FormControl>
-                            <FormLabel className="font-normal flex items-center">
-                              <Ambulance className="h-4 w-4 mr-2 text-emergency" />
-                              Paramedic Staff
-                            </FormLabel>
-                          </FormItem>
-                          
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="hospital" />
-                            </FormControl>
-                            <FormLabel className="font-normal flex items-center">
-                              <Hospital className="h-4 w-4 mr-2 text-blue-600" />
-                              Hospital Staff
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {selectedRole === 'hospital' && (
-                  <>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-green-600 to-teal-600 bg-clip-text text-transparent mb-3">
+              TERO
+            </h1>
+            <p className="text-gray-600 text-lg font-medium mb-2">Emergency Response Platform</p>
+            <p className="text-gray-500 text-sm">Join the Healthcare Network</p>
+          </div>
+
+          <Card className="border-0 bg-white/90 backdrop-blur-md shadow-2xl">
+            <CardHeader className="text-center pb-6 pt-8">
+              <CardTitle className="text-2xl flex items-center justify-center gap-3 text-gray-800">
+                <Shield className="h-6 w-6 text-blue-600" />
+                Create Your Account
+              </CardTitle>
+              <CardDescription className="text-gray-600 text-base">
+                Join TERO to access emergency response tools
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              {signupError && (
+                <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-red-700 flex items-start gap-3 mb-6">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Registration Error</p>
+                    <p className="text-sm">{signupError}</p>
+                  </div>
+                </div>
+              )}
+              
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Role Selection */}
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem className="space-y-4">
+                        <FormLabel className="text-gray-700 font-medium">I am registering as</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="grid grid-cols-1 gap-3"
+                          >
+                            <FormItem className="flex items-center space-x-3 space-y-0 border border-gray-200 rounded-lg p-4 hover:bg-blue-50 cursor-pointer transition-all">
+                              <FormControl>
+                                <RadioGroupItem value="paramedic" className="border-blue-500 text-blue-500" />
+                              </FormControl>
+                              <FormLabel className="font-normal flex items-center cursor-pointer flex-1 text-gray-800">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-blue-100 rounded-lg">
+                                    <Ambulance className="h-5 w-5 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">Paramedic / EMS Staff</div>
+                                    <div className="text-xs text-gray-500">Emergency medical services</div>
+                                  </div>
+                                </div>
+                              </FormLabel>
+                            </FormItem>
+                            
+                            <FormItem className="flex items-center space-x-3 space-y-0 border border-gray-200 rounded-lg p-4 hover:bg-green-50 cursor-pointer transition-all">
+                              <FormControl>
+                                <RadioGroupItem value="hospital" className="border-green-500 text-green-500" />
+                              </FormControl>
+                              <FormLabel className="font-normal flex items-center cursor-pointer flex-1 text-gray-800">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-green-100 rounded-lg">
+                                    <Hospital className="h-5 w-5 text-green-600" />
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">Hospital Staff</div>
+                                    <div className="text-xs text-gray-500">Hospital administration</div>
+                                  </div>
+                                </div>
+                              </FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Full Name */}
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Full Name
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                            <Input 
+                              className="pl-11 h-12 bg-white border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-blue-500" 
+                              placeholder="Enter your full name" 
+                              {...field} 
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Hospital Name (conditionally shown) */}
+                  {selectedRole === 'hospital' && (
                     <FormField
                       control={form.control}
                       name="hospitalName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Hospital Name</FormLabel>
+                          <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            Hospital/Organization Name
+                          </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Building2 className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                               <Input 
-                                className="pl-10" 
-                                placeholder="e.g., General Hospital, City Medical Center"
+                                className="pl-11 h-12 bg-white border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-blue-500" 
+                                placeholder="e.g., Apollo Hospital, City Medical Center"
                                 {...field}
                               />
                             </div>
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-red-500" />
                         </FormItem>
                       )}
                     />
-                    
-                    <FormField
-                      control={form.control}
-                      name="department"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Department (Optional)</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Hospital className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input 
-                                className="pl-10" 
-                                placeholder="e.g., Emergency Department, ICU"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-                
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{selectedRole === 'hospital' ? 'Admin Full Name' : 'Full Name'}</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            className="pl-10" 
-                            placeholder={selectedRole === 'hospital' ? "Hospital administrator name" : "Your full name"} 
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
                   )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input className="pl-10" type="email" placeholder="name@example.com" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input className="pl-10" type="password" placeholder="******" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input className="pl-10" type="password" placeholder="******" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button type="submit" className="w-full medical-btn" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link to="/login" className="text-medical hover:underline">
-                Sign In
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+                  
+                  {/* Email */}
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Email Address
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                            <Input 
+                              className="pl-11 h-12 bg-white border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-blue-500" 
+                              type="email" 
+                              placeholder="your.email@hospital.com" 
+                              {...field} 
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Password */}
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
+                          <Lock className="h-4 w-4" />
+                          Password
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                            <Input 
+                              className="pl-11 h-12 bg-white border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-blue-500" 
+                              type="password" 
+                              placeholder="••••••••••••" 
+                              {...field} 
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Confirm Password */}
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
+                          <Lock className="h-4 w-4" />
+                          Confirm Password
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                            <Input 
+                              className="pl-11 h-12 bg-white border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-blue-500" 
+                              type="password" 
+                              placeholder="••••••••••••" 
+                              {...field} 
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 transition-all shadow-lg font-semibold" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="mr-2 h-5 w-5" />
+                        Create Account
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+            
+            <CardFooter className="flex justify-center pb-8">
+              <p className="text-base text-gray-600">
+                Already have an account?{" "}
+                <Link to="/login" className="text-blue-600 hover:text-blue-500 font-medium transition-colors">
+                  Sign In
+                </Link>
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+      `}</style>
     </div>
   );
 };
