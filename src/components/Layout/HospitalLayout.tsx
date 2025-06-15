@@ -9,15 +9,45 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import logo from './logo.jpg';
+import { useToast } from '@/components/ui/use-toast';
 
 const HospitalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { signOut, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
+  };
+
+  const handleBedManagement = () => {
+    toast({
+      title: "Bed Management",
+      description: "Opening bed management system...",
+    });
+  };
+
+  const handleResourceAllocation = () => {
+    toast({
+      title: "Resource Allocation",
+      description: "Opening resource allocation panel...",
+    });
+  };
+
+  const handleAnalytics = () => {
+    toast({
+      title: "Analytics Dashboard",
+      description: "Opening analytics dashboard...",
+    });
+  };
+
+  const handleAmbulanceTracking = () => {
+    toast({
+      title: "Ambulance Tracking",
+      description: "Opening live ambulance tracking...",
+    });
   };
 
   return (
@@ -109,26 +139,38 @@ const HospitalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =
           </NavLink>
 
           <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-6">Hospital Operations</p>
-          <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer">
+          <div 
+            className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer"
+            onClick={handleBedManagement}
+          >
             <div className="flex items-center gap-3">
               <BedDouble className="h-5 w-5" />
               <span>Bed Management</span>
             </div>
           </div>
-          <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer">
+          <div 
+            className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer"
+            onClick={handleResourceAllocation}
+          >
             <div className="flex items-center gap-3">
               <ListChecks className="h-5 w-5" />
               <span>Resource Allocation</span>
             </div>
           </div>
-          <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer">
+          <div 
+            className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer"
+            onClick={handleAnalytics}
+          >
             <div className="flex items-center gap-3">
               <Activity className="h-5 w-5" />
               <span>Analytics</span>
             </div>
             <Badge className="bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30">New</Badge>
           </div>
-          <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer">
+          <div 
+            className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all cursor-pointer"
+            onClick={handleAmbulanceTracking}
+          >
             <div className="flex items-center gap-3">
               <MapPin className="h-5 w-5" />
               <span>Ambulance Tracking</span>

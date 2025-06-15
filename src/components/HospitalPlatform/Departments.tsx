@@ -1,17 +1,95 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, BedDouble, Users, BarChart4 } from 'lucide-react';
+import { Building2, BedDouble, Users, BarChart4, Settings, Download, RefreshCw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 import { departments, getAlertColor } from './utils';
+import DepartmentStatusDialog from './DepartmentStatusDialog';
+import BedManagementDialog from './BedManagementDialog';
+import { Department } from './types';
 
 const Departments: React.FC = () => {
+  const { toast } = useToast();
+  const [departmentList, setDepartmentList] = useState(departments);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [isBedManagementOpen, setIsBedManagementOpen] = useState(false);
+
+  const handleUpdateStatus = (departmentName: string, updates: Partial<Department>) => {
+    setDepartmentList(prev => 
+      prev.map(dept => 
+        dept.name === departmentName 
+          ? { ...dept, ...updates }
+          : dept
+      )
+    );
+  };
+
+  const handleDepartmentStatusClick = (department: Department) => {
+    setSelectedDepartment(department);
+    setIsStatusDialogOpen(true);
+  };
+
+  const handleRefreshData = () => {
+    toast({
+      title: "Data Refreshed",
+      description: "Department data has been updated with the latest information.",
+    });
+  };
+
+  const handleExportReport = () => {
+    toast({
+      title: "Report Generated",
+      description: "Department analytics report has been downloaded.",
+    });
+  };
+
+  const handleBedManagement = () => {
+    setIsBedManagementOpen(true);
+  };
+
+  const handleResourceAllocation = () => {
+    toast({
+      title: "Resource Allocation",
+      description: "Resource allocation panel would open here.",
+    });
+  };
+
+  const handleAnalytics = () => {
+    toast({
+      title: "Analytics Dashboard",
+      description: "Detailed analytics dashboard would open here.",
+    });
+  };
+
+  const handleAmbulanceTracking = () => {
+    toast({
+      title: "Ambulance Tracking",
+      description: "Live ambulance tracking system would open here.",
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold mb-2">Hospital Departments</h1>
-      <p className="text-muted-foreground mb-6">Department management and coordination</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold mb-2">Hospital Departments</h1>
+          <p className="text-muted-foreground">Department management and coordination</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefreshData}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={handleExportReport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export Report
+          </Button>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
@@ -60,7 +138,7 @@ const Departments: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {departments.map((dept, index) => (
+            {departmentList.map((dept, index) => (
               <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center">
@@ -90,7 +168,12 @@ const Departments: React.FC = () => {
                     </div>
                     <Progress value={(dept.total - dept.beds) / dept.total * 100} className="h-2" />
                   </div>
-                  <Button variant="outline" size="sm" className="ml-4 whitespace-nowrap">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="ml-4 whitespace-nowrap"
+                    onClick={() => handleDepartmentStatusClick(dept)}
+                  >
                     Update Status
                   </Button>
                 </div>
@@ -102,18 +185,48 @@ const Departments: React.FC = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Department Analytics</CardTitle>
-          <CardDescription>Performance metrics for the past 30 days</CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Department Analytics</CardTitle>
+              <CardDescription>Performance metrics for the past 30 days</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleAnalytics}>
+                <BarChart4 className="mr-2 h-4 w-4" />
+                View Analytics
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportReport}>
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center">
           <div className="text-center">
             <BarChart4 className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Department analytics visualization would appear here, showing capacity trends, average wait times, and patient flow metrics.
             </p>
+            <Button onClick={handleAnalytics}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configure Analytics
+            </Button>
           </div>
         </CardContent>
       </Card>
+
+      <DepartmentStatusDialog
+        department={selectedDepartment}
+        isOpen={isStatusDialogOpen}
+        onClose={() => setIsStatusDialogOpen(false)}
+        onUpdate={handleUpdateStatus}
+      />
+
+      <BedManagementDialog
+        isOpen={isBedManagementOpen}
+        onClose={() => setIsBedManagementOpen(false)}
+      />
     </div>
   );
 };
