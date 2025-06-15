@@ -37,7 +37,14 @@ const ProtectedRoute = ({
   const { user, isLoading, profile } = useAuth();
   
   if (isLoading) {
-    return <div className="h-screen w-full flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-medical/10">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical mx-auto mb-4"></div>
+          <p className="text-medical font-medium">Loading TERO...</p>
+        </div>
+      </div>
+    );
   }
   
   if (!user) {
@@ -48,10 +55,10 @@ const ProtectedRoute = ({
   if (allowedRole && profile?.role !== allowedRole) {
     // Redirect hospital staff to hospital platform
     if (profile?.role === 'hospital') {
-      return <Navigate to="/hospital-platform" />;
+      return <Navigate to="/hospital-platform" replace />;
     }
     // Redirect paramedics to main dashboard
-    return <Navigate to="/" />;
+    return <Navigate to="/" replace />;
   }
   
   return <>{children}</>;
@@ -62,7 +69,14 @@ const AppRoutes = () => {
   
   // Show loading screen while determining user role
   if (isLoading) {
-    return <div className="h-screen w-full flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-medical/10">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical mx-auto mb-4"></div>
+          <p className="text-medical font-medium">Loading TERO...</p>
+        </div>
+      </div>
+    );
   }
   
   return (
@@ -71,20 +85,20 @@ const AppRoutes = () => {
       <Route path="/login" element={
         user ? (
           profile?.role === 'hospital' ? 
-            <Navigate to="/hospital-platform" /> : 
-            <Navigate to="/" />
+            <Navigate to="/hospital-platform" replace /> : 
+            <Navigate to="/" replace />
         ) : <Login />
       } />
       
       <Route path="/signup" element={
         user ? (
           profile?.role === 'hospital' ? 
-            <Navigate to="/hospital-platform" /> : 
-            <Navigate to="/" />
+            <Navigate to="/hospital-platform" replace /> : 
+            <Navigate to="/" replace />
         ) : <Signup />
       } />
       
-      {/* Paramedic routes - Explicitly set role check */}
+      {/* Paramedic routes */}
       <Route element={
         <ProtectedRoute allowedRole="paramedic">
           <AppLayout />
@@ -98,7 +112,7 @@ const AppRoutes = () => {
         <Route path="/disaster" element={<DisasterMode />} />
       </Route>
       
-      {/* Hospital platform routes - completely separate from paramedic routes with explicit role check */}
+      {/* Hospital platform routes */}
       <Route path="/hospital-platform" element={
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />
@@ -109,13 +123,6 @@ const AppRoutes = () => {
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />
         </ProtectedRoute>
-      } />
-      
-      {/* Root redirect based on user role */}
-      <Route path="/" element={
-        !user ? <Navigate to="/login" /> : 
-        profile?.role === 'hospital' ? <Navigate to="/hospital-platform" /> : 
-        <Navigate to="/" />
       } />
       
       <Route path="*" element={<NotFound />} />

@@ -175,15 +175,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           description: error.message,
           variant: "destructive",
         });
-      } else if (role) {
+        return { error };
+      } else {
         // If role is provided during login, ensure the user profile has this role
-        await updateProfile({ role });
+        if (role) {
+          await updateProfile({ role });
+        }
         
         // Force fetch the updated profile
         const { data: user } = await supabase.auth.getUser();
         if (user) {
           await fetchProfile(user.user.id);
         }
+        
+        toast({
+          title: "Login successful",
+          description: "Welcome back to TERO!",
+        });
       }
       
       return { error };
