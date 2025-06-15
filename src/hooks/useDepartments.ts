@@ -4,13 +4,24 @@ import { useToast } from '@/hooks/use-toast';
 import { Department } from '@/components/HospitalPlatform/types';
 import { supabase } from '@/integrations/supabase/client';
 
+// Guarantee only allowed alert types
+const ALERT_VALUES = ["Critical", "Medium", "Low"] as const;
+type AllowedAlert = (typeof ALERT_VALUES)[number];
+function mapToDepartment(raw: any): Department {
+  return {
+    name: raw.name,
+    beds: raw.beds,
+    total: raw.total,
+    alert: ALERT_VALUES.includes(raw.alert) ? raw.alert as AllowedAlert : "Low",
+  };
+}
+
 export const useDepartments = (initial: Department[] = []) => {
   const { toast } = useToast();
   const [departmentList, setDepartmentList] = useState<Department[]>(initial);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch departments from Supabase on mount
   useEffect(() => {
     const fetchDepartments = async () => {
       setLoading(true);
@@ -23,7 +34,8 @@ export const useDepartments = (initial: Department[] = []) => {
         setError('Failed to load departments');
         setDepartmentList([]);
       } else {
-        setDepartmentList(data || []);
+        // Fix: map every row to Department type
+        setDepartmentList((data || []).map(mapToDepartment));
         setError(null);
       }
       setLoading(false);
@@ -33,7 +45,6 @@ export const useDepartments = (initial: Department[] = []) => {
     // Optionally: set up real-time updates here in the future!
   }, []);
 
-  // Add a department
   const addDepartment = useCallback(async (dept: Omit<Department, "id" | "created_at" | "updated_at">) => {
     const { data, error: insertError } = await supabase
       .from('departments')
@@ -44,13 +55,12 @@ export const useDepartments = (initial: Department[] = []) => {
       setError('Failed to add department');
       toast({ title: "Add Error", description: `Failed to add department "${dept.name}"` });
     } else if (data && data[0]) {
-      setDepartmentList(prev => [...prev, data[0]]);
+      setDepartmentList(prev => [...prev, mapToDepartment(data[0])]);
       setError(null);
       toast({ title: "Department Added", description: `Department "${dept.name}" added.` });
     }
   }, [toast]);
 
-  // Update department
   const updateDepartment = useCallback(async (name: string, updates: Partial<Department>) => {
     const { data, error: updateError } = await supabase
       .from('departments')
@@ -63,14 +73,13 @@ export const useDepartments = (initial: Department[] = []) => {
       toast({ title: "Update Error", description: `Failed to update "${name}"` });
     } else if (data && data[0]) {
       setDepartmentList(prev =>
-        prev.map(dept => dept.name === name ? { ...dept, ...updates } : dept)
+        prev.map(dept => dept.name === name ? mapToDepartment({ ...dept, ...updates, ...data[0] }) : dept)
       );
       setError(null);
       toast({ title: "Department Updated", description: `Department "${name}" updated.` });
     }
   }, [toast]);
 
-  // Remove department
   const removeDepartment = useCallback(async (name: string) => {
     const { error: deleteError } = await supabase
       .from('departments')
@@ -87,7 +96,6 @@ export const useDepartments = (initial: Department[] = []) => {
     }
   }, [toast]);
 
-  // Bed Operations
   const updateBeds = useCallback(async (deptName: string, beds: number) => {
     const { data, error: updateError } = await supabase
       .from('departments')
@@ -100,12 +108,11 @@ export const useDepartments = (initial: Department[] = []) => {
       toast({ title: "Bed Update Error", description: `Failed to update beds for "${deptName}"` });
     } else if (data && data[0]) {
       setDepartmentList(prev =>
-        prev.map(dept => dept.name === deptName ? { ...dept, beds } : dept)
+        prev.map(dept => dept.name === deptName ? mapToDepartment({ ...dept, beds, ...data[0] }) : dept)
       );
     }
   }, [toast]);
 
-  // Optionally: add a reload function
   const reload = useCallback(async () => {
     setLoading(true);
     const { data, error: fetchError } = await supabase
@@ -117,7 +124,7 @@ export const useDepartments = (initial: Department[] = []) => {
       setError('Failed to load departments');
       setDepartmentList([]);
     } else {
-      setDepartmentList(data || []);
+      setDepartmentList((data || []).map(mapToDepartment));
       setError(null);
     }
     setLoading(false);
