@@ -7,7 +7,7 @@ type Staff = {
   id: string;
   name: string | null;
   role: string | null;
-  department?: string | null;
+  // Removed: department?: string | null;
   status?: string | null;
 };
 
@@ -34,7 +34,7 @@ export const useLiveStaff = () => {
           id: s.id,
           name: s.full_name ?? null,
           role: s.role ?? null,
-          department: s.department ?? null,
+          // department: s.department ?? null, // Removed, not in schema
           status: "Available",
         }))
       );
