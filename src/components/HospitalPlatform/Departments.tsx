@@ -24,17 +24,8 @@ const Departments: React.FC = () => {
   const [deptToEdit, setDeptToEdit] = useState<Department | null>(null);
 
   const handleUpdateStatus = (departmentName: string, updates: Partial<Department>) => {
-    setDepartmentList(prev => 
-      prev.map(dept => 
-        dept.name === departmentName 
-          ? { ...dept, ...updates }
-          : dept
-      )
-    );
-    toast({
-      title: "Department Updated",
-      description: `${departmentName} status has been updated successfully.`,
-    });
+    updateDepartment(departmentName, updates);
+    // toast is already handled inside updateDepartment
   };
 
   const handleDepartmentStatusClick = (department: Department) => {
@@ -43,12 +34,12 @@ const Departments: React.FC = () => {
   };
 
   const handleRefreshData = () => {
-    // Simulate data refresh with random updates
-    setDepartmentList(prev => prev.map(dept => ({
-      ...dept,
-      beds: Math.max(0, dept.beds + Math.floor(Math.random() * 3) - 1)
-    })));
-    
+    // Instead, update each department with simulated new bed counts via updateBeds
+    departmentList.forEach(dept => {
+      // simulate the algorithm as before but per dept, safely
+      const randomBeds = Math.max(0, Math.min(dept.total, dept.beds + Math.floor(Math.random() * 3) - 1));
+      updateBeds(dept.name, randomBeds);
+    });
     toast({
       title: "Data Refreshed",
       description: "Department data has been updated with the latest information.",
@@ -56,24 +47,30 @@ const Departments: React.FC = () => {
   };
 
   const handleExportReport = () => {
-    // Generate and download a mock CSV report
+    if (!departmentList || departmentList.length === 0) {
+      toast({ title: "No Data", description: "No departments to export." });
+      return;
+    }
     const csvContent = "Department,Available Beds,Total Beds,Utilization,Alert Level\n" +
       departmentList.map(dept => 
-        `${dept.name},${dept.beds},${dept.total},${((dept.total - dept.beds) / dept.total * 100).toFixed(1)}%,${dept.alert}`
+        `${dept.name},${dept.beds},${dept.total},${dept.total > 0 ? ((dept.total - dept.beds) / dept.total * 100).toFixed(1) : "0"}%,${dept.alert}`
       ).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `department-report-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Report Generated",
-      description: "Department analytics report has been downloaded.",
-    });
+    try {
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `department-report-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Report Generated",
+        description: "Department analytics report has been downloaded.",
+      });
+    } catch (err) {
+      toast({ title: "Export Error", description: "Failed to export report. Please try again." });
+    }
   };
 
   const handleBedManagement = () => {
@@ -118,7 +115,14 @@ const Departments: React.FC = () => {
     if (deptToEdit) {
       updateDepartment(deptToEdit.name, data);
     } else {
-      addDepartment(data as Department);
+      // To avoid TypeScript errors, add missing department fields by default
+      const fallbackDept: Department = {
+        name: data.name ?? "New Dept",
+        beds: typeof data.beds === "number" ? data.beds : 0,
+        total: typeof data.total === "number" ? data.total : 0,
+        alert: (data.alert as "Critical" | "Medium" | "Low") ?? "Low"
+      };
+      addDepartment(fallbackDept);
     }
   };
 
@@ -229,9 +233,9 @@ const Departments: React.FC = () => {
                   <div className="w-full">
                     <div className="flex justify-between text-xs mb-1">
                       <span>Utilization</span>
-                      <span>{((dept.total - dept.beds) / dept.total * 100).toFixed(0)}%</span>
+                      <span>{(dept.total > 0 ? ((dept.total - dept.beds) / dept.total * 100).toFixed(0) : "0")}%</span>
                     </div>
-                    <Progress value={(dept.total - dept.beds) / dept.total * 100} className="h-2" />
+                    <Progress value={dept.total > 0 ? ((dept.total - dept.beds) / dept.total * 100) : 0} className="h-2" />
                   </div>
                   <Button 
                     variant="outline" 
