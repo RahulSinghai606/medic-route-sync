@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -126,12 +125,6 @@ const AppContent = () => {
       </Route>
       
       {/* Hospital platform routes with enhanced protection */}
-      <Route path="/hospital-platform" element={
-        <ProtectedRoute allowedRole="hospital">
-          <HospitalPlatform />
-        </ProtectedRoute>
-      } />
-      
       <Route path="/hospital-platform/*" element={
         <ProtectedRoute allowedRole="hospital">
           <HospitalPlatform />

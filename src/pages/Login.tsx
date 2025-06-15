@@ -39,16 +39,16 @@ const Login = () => {
       console.log('User role detected on login page:', profile.role);
       redirectBasedOnRole(profile.role);
     }
-  }, [user, profile, navigate]);
+  }, [user, profile]);
 
   const redirectBasedOnRole = (role: string) => {
     console.log('Redirecting based on role:', role);
     if (role === 'hospital') {
       console.log("Redirecting to hospital platform");
-      window.location.href = '/hospital-platform';
+      navigate('/hospital-platform', { replace: true });
     } else {
       console.log("Redirecting to paramedic dashboard");
-      window.location.href = '/';
+      navigate('/', { replace: true });
     }
   };
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, UserCheck, Clock, AlertCircle } from 'lucide-react';
 import { getSeverityColor } from './utils';
-import { useCases } from '@/hooks/useCases';
+import { useCases, CaseWithRelations } from '@/hooks/useCases';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const CasesDashboard: React.FC = () => {
@@ -47,6 +48,64 @@ const CasesDashboard: React.FC = () => {
     ));
   };
   
+  const renderActiveCases = () => {
+    if (isLoadingActive) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
+      );
+    }
+
+    if (activeError) {
+      return (
+        <div className="text-red-500 flex items-center gap-2 p-4 bg-red-50 dark:bg-red-950/50 rounded-lg">
+          <AlertCircle className="h-4 w-4" />
+          <span>Error loading active cases: {activeError.message}</span>
+        </div>
+      );
+    }
+
+    if (!activeCases || activeCases.length === 0) {
+      return <p className="text-muted-foreground text-center py-8 col-span-full">No active cases at the moment.</p>;
+    }
+
+    return activeCases.map((caseItem: CaseWithRelations) => (
+      <Card key={caseItem.id}>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <User className="h-5 w-5 text-blue-600" />
+              {caseItem.patients?.name || 'Unknown Patient'}
+            </span>
+            <Badge className={getSeverityColor(caseItem.severity)}>
+              {caseItem.severity}
+            </Badge>
+          </CardTitle>
+          <CardDescription>Case #{caseItem.id.substring(0, 8)}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Paramedic:</span>
+            <span>{caseItem.paramedic?.full_name || 'N/A'}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Accepted:</span>
+            <span>{new Date(caseItem.updated_at).toLocaleTimeString()}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Status:</span>
+            <Badge variant="secondary">In-progress</Badge>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button variant="outline" size="sm" className="w-full">View Details</Button>
+        </CardFooter>
+      </Card>
+    ));
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold mb-2">Case Management</h1>
@@ -60,33 +119,7 @@ const CasesDashboard: React.FC = () => {
         </TabsList>
         <TabsContent value="active" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              {/* This is still mock data, will be replaced in a future step */}
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <User className="h-5 w-5 mr-2 text-blue-600" />
-                  Patient #A23985
-                </CardTitle>
-                <CardDescription>Male, 62 - Cardiac Event</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Status:</span>
-                  <Badge>In Treatment - Cardiology</Badge>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Admitted:</span>
-                  <span>Today, 10:35 AM</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Assigned Physician:</span>
-                  <span>Dr. Patel</span>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" size="sm" className="w-full">View Details</Button>
-              </CardFooter>
-            </Card>
+            {renderActiveCases()}
           </div>
         </TabsContent>
         
