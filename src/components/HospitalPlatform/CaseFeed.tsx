@@ -3,14 +3,17 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, Heart, AlertTriangle } from 'lucide-react';
-import { useCases } from '@/hooks/useCases';
+import { Clock, User, Heart, AlertTriangle, Activity } from 'lucide-react';
+import { useCases, updateCaseStatus } from '@/hooks/useCases';
 import CaseDetails from './CaseDetails';
 import CaseSummary from './CaseSummary';
+import { useToast } from '@/hooks/use-toast';
 
 const CaseFeed: React.FC = () => {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const { data: cases, isLoading } = useCases();
+  const { toast } = useToast();
 
   const handleViewDetails = (caseId: string) => {
     setSelectedCaseId(caseId);
@@ -18,6 +21,46 @@ const CaseFeed: React.FC = () => {
 
   const handleCloseDetails = () => {
     setSelectedCaseId(null);
+  };
+
+  const handleAccept = async (caseId: number) => {
+    setLoading(true);
+    try {
+      await updateCaseStatus(caseId.toString(), 'accepted');
+      toast({
+        title: "Case Accepted",
+        description: "The case has been successfully accepted.",
+      });
+      setSelectedCaseId(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to accept the case. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecline = async (caseId: number) => {
+    setLoading(true);
+    try {
+      await updateCaseStatus(caseId.toString(), 'declined');
+      toast({
+        title: "Case Declined",
+        description: "The case has been declined and redirected.",
+      });
+      setSelectedCaseId(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to decline the case. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -44,7 +87,27 @@ const CaseFeed: React.FC = () => {
   return (
     <div className="space-y-4">
       {selectedCase ? (
-        <CaseDetails case={selectedCase} onClose={handleCloseDetails} />
+        <CaseDetails
+          caseId={parseInt(selectedCase.id.substring(0, 8), 16)}
+          onBack={handleCloseDetails}
+          caseItem={{
+            id: parseInt(selectedCase.id.substring(0, 8), 16),
+            severity: selectedCase.severity as 'Critical' | 'Urgent' | 'Stable',
+            patient: selectedCase.patients?.name || 'Unknown Patient',
+            condition: selectedCase.paramedic_notes || 'No condition notes',
+            eta: selectedCase.eta_minutes || 0,
+            location: 'En route',
+            vitals: {
+              hr: 85,
+              bp: '120/80',
+              spo2: 98,
+              gcs: 15
+            }
+          }}
+          loading={loading}
+          onAccept={handleAccept}
+          onDecline={handleDecline}
+        />
       ) : (
         <Card>
           <CardHeader>
