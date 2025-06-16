@@ -82,6 +82,51 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  /* High Contrast Mode */
+  .high-contrast {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 90%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 85%;
+    --muted-foreground: 0 0% 15%;
+    --accent: 0 0% 85%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 60%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 0%;
+  }
+
+  .high-contrast.dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 25%;
+    --muted-foreground: 0 0% 85%;
+    --accent: 0 0% 25%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 70%;
+    --destructive-foreground: 0 0% 0%;
+    --border: 0 0% 40%;
+    --input: 0 0% 20%;
+    --ring: 0 0% 100%;
+  }
 }
 
 @layer base {
@@ -107,6 +152,27 @@
 
   h3 {
     @apply text-xl md:text-2xl;
+  }
+
+  /* High contrast specific styles */
+  .high-contrast button {
+    @apply border-2 border-solid;
+  }
+
+  .high-contrast .bg-green-500 {
+    @apply bg-green-700;
+  }
+
+  .high-contrast .bg-red-500 {
+    @apply bg-red-700;
+  }
+
+  .high-contrast .bg-yellow-500 {
+    @apply bg-yellow-600;
+  }
+
+  .high-contrast .bg-blue-500 {
+    @apply bg-blue-700;
   }
 }
 
@@ -151,5 +217,22 @@
 
   .status-en-route {
     @apply bg-warning;
+  }
+
+  /* Accessibility improvements */
+  .high-contrast .status-indicator {
+    @apply border-2 border-foreground;
+  }
+
+  /* Focus indicators for keyboard navigation */
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background outline-none;
+  }
+
+  /* Skip to main content link */
+  .skip-link {
+    @apply absolute left-0 top-0 bg-primary text-primary-foreground px-4 py-2 
+      transform -translate-y-full focus:translate-y-0 transition-transform z-50;
   }
 }

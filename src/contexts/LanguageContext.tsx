@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Language = 'en' | 'hi' | 'kn';
@@ -11,7 +10,7 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// Enhanced translations with proper medical terminology
+// Enhanced translations with accessibility and UI elements
 const translations = {
   en: {
     // App general
@@ -19,6 +18,12 @@ const translations = {
     'app.subtitle': 'Advanced Emergency Response System',
     'language.select': 'Select Language',
     'paramedic': 'Paramedic',
+    'toggle.sidebar': 'Toggle Sidebar',
+    
+    // Accessibility
+    'accessibility.high_contrast': 'High Contrast',
+    'accessibility.sound_alerts': 'Sound Alerts',
+    'accessibility.options': 'Accessibility Options',
     
     // Vitals section
     'vitals.title': 'Voice to Vitals',
@@ -45,7 +50,7 @@ const translations = {
     'assessment.specialties': 'Medical Specialties',
     'assessment.hospital': 'Find Hospitals',
 
-    // Location and hospitals
+    // Hospital and location
     'location.updated': 'Location Updated',
     'location.success': 'Location detected successfully',
     'location.error': 'Location access denied',
@@ -75,7 +80,15 @@ const translations = {
     'no.hospitals.description': 'Try expanding your search area or check your location',
     'error.no.location': 'Location Required',
     'error.directions': 'Please enable location access to get directions',
-    'error.opening.directions': 'Opening Directions'
+    'error.opening.directions': 'Opening Directions',
+
+    // Disaster mode
+    'disaster.mode': 'Disaster Mode',
+    'disaster.activate': 'Activate Disaster Mode',
+    'disaster.deactivate': 'Deactivate Disaster Mode',
+    'disaster.active': 'Mass Casualty Protocol Active',
+    'triage.mode': 'Triage Mode',
+    'triage.center': 'Triage Center'
   },
   hi: {
     // App general
@@ -83,6 +96,12 @@ const translations = {
     'app.subtitle': 'उन्नत आपातकालीन प्रतिक्रिया प्रणाली',
     'language.select': 'भाषा चुनें',
     'paramedic': 'पैरामेडिक',
+    'toggle.sidebar': 'साइडबार टॉगल करें',
+    
+    // Accessibility
+    'accessibility.high_contrast': 'उच्च कंट्रास्ट',
+    'accessibility.sound_alerts': 'ध्वनि अलर्ट',
+    'accessibility.options': 'पहुंच विकल्प',
     
     // Vitals section
     'vitals.title': 'आवाज से जीवन संकेत',
@@ -109,7 +128,7 @@ const translations = {
     'assessment.specialties': 'चिकित्सा विशेषज्ञताएं',
     'assessment.hospital': 'अस्पताल खोजें',
 
-    // Location and hospitals
+    // Hospital and location
     'location.updated': 'स्थान अपडेट किया गया',
     'location.success': 'स्थान सफलतापूर्वक पता लगाया गया',
     'location.error': 'स्थान पहुंच अस्वीकृत',
@@ -139,7 +158,15 @@ const translations = {
     'no.hospitals.description': 'अपने खोज क्षेत्र का विस्तार करने या अपना स्थान जांचने का प्रयास करें',
     'error.no.location': 'स्थान आवश्यक',
     'error.directions': 'दिशा-निर्देश प्राप्त करने के लिए कृपया स्थान पहुंच सक्षम करें',
-    'error.opening.directions': 'दिशा-निर्देश खोल रहे हैं'
+    'error.opening.directions': 'दिशा-निर्देश खोल रहे हैं',
+
+    // Disaster mode
+    'disaster.mode': 'आपदा मोड',
+    'disaster.activate': 'आपदा मोड सक्रिय करें',
+    'disaster.deactivate': 'आपदा मोड निष्क्रिय करें',
+    'disaster.active': 'सामूहिक हताहत प्रोटोकॉल सक्रिय',
+    'triage.mode': 'ट्राइएज मोड',
+    'triage.center': 'ट्राइएज केंद्र'
   },
   kn: {
     // App general
@@ -147,6 +174,12 @@ const translations = {
     'app.subtitle': 'ಮುಂದುವರಿದ ತುರ್ತು ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ',
     'language.select': 'ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ',
     'paramedic': 'ಪ್ಯಾರಾಮೆಡಿಕ್',
+    'toggle.sidebar': 'ಸೈಡ್‌ಬಾರ್ ಟಾಗಲ್ ಮಾಡಿ',
+    
+    // Accessibility
+    'accessibility.high_contrast': 'ಹೆಚ್ಚಿನ ಕಾಂಟ್ರಾಸ್ಟ್',
+    'accessibility.sound_alerts': 'ಧ್ವನಿ ಎಚ್ಚರಿಕೆಗಳು',
+    'accessibility.options': 'ಪ್ರವೇಶ ಆಯ್ಕೆಗಳು',
     
     // Vitals section
     'vitals.title': 'ಧ್ವನಿಯಿಂದ ಜೀವನ ಚಿಹ್ನೆಗಳು',
@@ -173,7 +206,7 @@ const translations = {
     'assessment.specialties': 'ವೈದ್ಯಕೀಯ ವಿಶೇಷತೆಗಳು',
     'assessment.hospital': 'ಆಸ್ಪತ್ರೆಗಳನ್ನು ಹುಡುಕಿ',
 
-    // Location and hospitals
+    // Hospital and location
     'location.updated': 'ಸ್ಥಳ ನವೀಕರಿಸಲಾಗಿದೆ',
     'location.success': 'ಸ್ಥಳವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಪತ್ತೆ ಮಾಡಲಾಗಿದೆ',
     'location.error': 'ಸ್ಥಳ ಪ್ರವೇಶ ನಿರಾಕರಿಸಲಾಗಿದೆ',
@@ -203,12 +236,24 @@ const translations = {
     'no.hospitals.description': 'ನಿಮ್ಮ ಹುಡುಕಾಟ ಪ್ರದೇಶವನ್ನು ವಿಸ್ತರಿಸಲು ಅಥವಾ ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಪರಿಶೀಲಿಸಲು ಪ್ರಯತ್ನಿಸಿ',
     'error.no.location': 'ಸ್ಥಳ ಅಗತ್ಯವಿದೆ',
     'error.directions': 'ದಿಕ್ಕುಗಳನ್ನು ಪಡೆಯಲು ದಯವಿಟ್ಟು ಸ್ಥಳ ಪ್ರವೇಶವನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ',
-    'error.opening.directions': 'ದಿಕ್ಕುಗಳನ್ನು ತೆರೆಯುತ್ತಿದೆ'
+    'error.opening.directions': 'ದಿಕ್ಕುಗಳನ್ನು ತೆರೆಯುತ್ತಿದೆ',
+
+    // Disaster mode
+    'disaster.mode': 'ವಿಪತ್ತು ಕ್ರಮ',
+    'disaster.activate': 'ವಿಪತ್ತು ಕ್ರಮ ಸಕ್ರಿಯಗೊಳಿಸಿ',
+    'disaster.deactivate': 'ವಿಪತ್ತು ಕ್ರಮ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ',
+    'disaster.active': 'ಸಾಮೂಹಿಕ ಸಾವುನೋವು ಪ್ರೋಟೋಕಾಲ್ ಸಕ್ರಿಯವಾಗಿದೆ',
+    'triage.mode': 'ಟ್ರಯಾಜ್ ಮೋಡ್',
+    'triage.center': 'ಟ್ರಯಾಜ್ ಕೇಂದ್ರ'
   }
 };
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>(() => {
+    // Load saved language from localStorage
+    const saved = localStorage.getItem('telemedic-language');
+    return (saved as Language) || 'en';
+  });
 
   const t = (key: string): string => {
     return translations[language]?.[key] || key;
@@ -216,7 +261,17 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
+    // Persist language choice
+    localStorage.setItem('telemedic-language', lang);
+    
+    // Set document language for accessibility
+    document.documentElement.lang = lang;
   };
+
+  // Set initial document language
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const value = {
     language,

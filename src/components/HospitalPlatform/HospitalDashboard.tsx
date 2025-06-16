@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,11 +37,16 @@ import {
 } from 'lucide-react';
 import HospitalStats from './HospitalStats';
 import DepartmentStatus from './DepartmentStatus';
+import DisasterModeToggle from './DisasterModeToggle';
+import VitalSignsIndicator from '../VitalSignsIndicator';
+import LiveDataSimulator from '../LiveDataSimulator';
 
 const HospitalDashboard = () => {
   const { toast } = useToast();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [emergencyMode, setEmergencyMode] = useState(false);
+  const [disasterMode, setDisasterMode] = useState(false);
+  const [liveDataActive, setLiveDataActive] = useState(true);
 
   React.useEffect(() => {
     const timer = setInterval(() => {
@@ -113,6 +117,18 @@ const HospitalDashboard = () => {
     { label: 'Resource Management', icon: Shield, color: 'bg-indigo-500 hover:bg-indigo-600', action: () => handleResourceManagement() },
     { label: 'Analytics Dashboard', icon: BarChart3, color: 'bg-pink-500 hover:bg-pink-600', action: () => handleAnalytics() }
   ];
+
+  const handleDisasterModeToggle = (active: boolean) => {
+    setDisasterMode(active);
+    if (active) {
+      setEmergencyMode(true);
+    }
+  };
+
+  const handleLiveDataUpdate = (data: any) => {
+    console.log('Live data update:', data);
+    // Here you would typically update your state with the new data
+  };
 
   const handleEmergencyAlert = () => {
     setEmergencyMode(!emergencyMode);
@@ -227,41 +243,90 @@ const HospitalDashboard = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handleRefreshData} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
-          <Button variant="outline" onClick={handleExportReport} className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <Badge 
-            variant={emergencyMode ? "destructive" : "default"} 
-            className={`flex items-center gap-2 px-4 py-2 ${emergencyMode ? 'animate-pulse' : ''}`}
-          >
-            <div className={`h-2 w-2 rounded-full ${emergencyMode ? 'bg-red-400' : 'bg-green-500 animate-pulse'}`} />
-            <span className="font-medium">{emergencyMode ? 'Emergency Mode' : 'Normal Operations'}</span>
-          </Badge>
+        <div className="flex flex-col lg:flex-row items-end lg:items-center gap-3">
+          <DisasterModeToggle 
+            isActive={disasterMode} 
+            onToggle={handleDisasterModeToggle} 
+          />
+          
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={handleRefreshData} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+            <Button variant="outline" onClick={handleExportReport} className="gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Badge 
+              variant={emergencyMode ? "destructive" : "default"} 
+              className={`flex items-center gap-2 px-4 py-2 ${emergencyMode ? 'animate-pulse' : ''}`}
+            >
+              <div className={`h-2 w-2 rounded-full ${emergencyMode ? 'bg-red-400' : 'bg-green-500 animate-pulse'}`} />
+              <span className="font-medium">{emergencyMode ? 'Emergency Mode' : 'Normal Operations'}</span>
+            </Badge>
+          </div>
         </div>
       </div>
 
-      {/* Emergency Alert Banner */}
-      {emergencyMode && (
+      {/* Live Data Simulator */}
+      <LiveDataSimulator 
+        isActive={liveDataActive} 
+        onDataUpdate={handleLiveDataUpdate} 
+      />
+
+      {/* Enhanced Emergency Alert Banner */}
+      {(emergencyMode || disasterMode) && (
         <Card className="border-red-200 dark:border-red-800 bg-red-50/80 dark:bg-red-950/30 animate-pulse">
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
                 <div>
-                  <h3 className="font-semibold text-red-800 dark:text-red-200">Emergency Protocol Active</h3>
-                  <p className="text-red-700 dark:text-red-300">All departments on high alert • Priority dispatch enabled</p>
+                  <h3 className="font-semibold text-red-800 dark:text-red-200">
+                    {disasterMode ? "Disaster Protocol Active" : "Emergency Protocol Active"}
+                  </h3>
+                  <p className="text-red-700 dark:text-red-300">
+                    {disasterMode 
+                      ? "Mass casualty incident • Triage protocols engaged • All departments coordinating"
+                      : "All departments on high alert • Priority dispatch enabled"
+                    }
+                  </p>
                 </div>
               </div>
-              <Button variant="outline" onClick={handleEmergencyAlert} className="border-red-300">
-                Deactivate
-              </Button>
+              <div className="flex gap-2">
+                {disasterMode && (
+                  <Button variant="outline" className="border-red-300" size="sm">
+                    <Users className="h-4 w-4 mr-1" />
+                    Triage Center
+                  </Button>
+                )}
+                <Button variant="outline" onClick={handleEmergencyAlert} className="border-red-300">
+                  Deactivate
+                </Button>
+              </div>
             </div>
+            
+            {disasterMode && (
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/10 p-3 rounded-lg">
+                  <div className="text-red-800 dark:text-red-200 font-semibold">Triage Status</div>
+                  <div className="text-2xl font-bold text-red-700 dark:text-red-300">Active</div>
+                </div>
+                <div className="bg-white/10 p-3 rounded-lg">
+                  <div className="text-red-800 dark:text-red-200 font-semibold">Ventilators</div>
+                  <div className="text-2xl font-bold text-red-700 dark:text-red-300">8 Available</div>
+                </div>
+                <div className="bg-white/10 p-3 rounded-lg">
+                  <div className="text-red-800 dark:text-red-200 font-semibold">OR Capacity</div>
+                  <div className="text-2xl font-bold text-red-700 dark:text-red-300">3 Ready</div>
+                </div>
+                <div className="bg-white/10 p-3 rounded-lg">
+                  <div className="text-red-800 dark:text-red-200 font-semibold">Blood Bank</div>
+                  <div className="text-2xl font-bold text-red-700 dark:text-red-300">Full Stock</div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -298,7 +363,7 @@ const HospitalDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Live Patient Monitoring */}
+      {/* Enhanced Live Patient Monitoring */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -306,6 +371,7 @@ const HospitalDashboard = () => {
               <CardTitle className="flex items-center gap-2">
                 <Ambulance className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 Live Patient Monitoring
+                {disasterMode && <Badge variant="destructive">Triage Mode</Badge>}
               </CardTitle>
               <CardDescription>Real-time patient status and incoming cases</CardDescription>
             </div>
@@ -348,26 +414,14 @@ const HospitalDashboard = () => {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-4 pt-3 border-t">
-                    <div className="flex items-center gap-2">
-                      <Heart className="h-4 w-4 text-red-500" />
-                      <span className="text-sm">HR:</span>
-                      <span className={`text-sm font-medium ${getVitalStatus(patient.vitals.heartRate, 'heartRate')}`}>
-                        {patient.vitals.heartRate}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm">BP:</span>
-                      <span className="text-sm font-medium">{patient.vitals.bloodPressure}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Stethoscope className="h-4 w-4 text-green-500" />
-                      <span className="text-sm">O2:</span>
-                      <span className={`text-sm font-medium ${getVitalStatus(patient.vitals.oxygen, 'oxygen')}`}>
-                        {patient.vitals.oxygen}%
-                      </span>
-                    </div>
+                  {/* Enhanced Vitals Display */}
+                  <div className="mb-3">
+                    <VitalSignsIndicator
+                      heartRate={patient.vitals.heartRate}
+                      bloodPressure={patient.vitals.bloodPressure}
+                      oxygenSaturation={patient.vitals.oxygen}
+                      size="sm"
+                    />
                   </div>
                   
                   <div className="flex gap-2 mt-4">
@@ -383,6 +437,12 @@ const HospitalDashboard = () => {
                       <Settings className="h-4 w-4 mr-1" />
                       Manage
                     </Button>
+                    {disasterMode && (
+                      <Button size="sm" variant="destructive">
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        Triage
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
