@@ -33,7 +33,8 @@ import {
   PlusCircle,
   Filter,
   Download,
-  RefreshCw
+  RefreshCw,
+  HelpCircle
 } from 'lucide-react';
 import HospitalStats from './HospitalStats';
 import DepartmentStatus from './DepartmentStatus';
