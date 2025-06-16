@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -59,7 +58,7 @@ const EnhancedDisasterMode: React.FC<EnhancedDisasterModeProps> = ({
 
   const disasterLocation = {
     name: "Multi-site Emergency Response",
-    type: "mass_casualty" as const,
+    type: "earthquake" as const,
     region: "Greater Guwahati Area",
     affectedArea: "Multiple locations",
     casualties: 23,
