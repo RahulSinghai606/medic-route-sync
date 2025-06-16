@@ -10,7 +10,7 @@ import CasesDashboard from '@/components/HospitalPlatform/CasesDashboard';
 import CaseHandoffs from '@/components/HospitalPlatform/CaseHandoffs';
 import Departments from '@/components/HospitalPlatform/Departments';
 import HospitalOperations from '@/pages/HospitalOperations';
-import DisasterMode from '@/components/DisasterManagement/DisasterMode';
+import EnhancedDisasterMode from '@/components/DisasterManagement/EnhancedDisasterMode';
 
 const HospitalPlatform: React.FC = () => {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const HospitalPlatform: React.FC = () => {
         <Route path="handoffs" element={<CaseHandoffs />} />
         <Route path="departments" element={<Departments />} />
         <Route path="operations" element={<HospitalOperations />} />
-        <Route path="disaster" element={<DisasterMode />} />
+        <Route path="disaster" element={<EnhancedDisasterMode isActive={true} onToggle={() => {}} />} />
       </Routes>
     </HospitalLayout>
   );
