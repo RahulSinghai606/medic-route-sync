@@ -17,7 +17,7 @@ import {
   Ambulance
 } from 'lucide-react';
 
-const HospitalStats = () => {
+const HospitalStats: React.FC = () => {
   const statsData = [
     {
       title: 'Available Beds',

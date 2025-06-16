@@ -25,8 +25,8 @@ import ContextualHelp from '@/components/Onboarding/ContextualHelp';
 
 const HospitalDashboard: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('overview');
-  const { cases, isLoading: casesLoading } = useCases();
-  const { departments, isLoading: deptLoading } = useDepartments();
+  const { data: cases, isLoading: casesLoading } = useCases();
+  const { departmentList: departments, loading: deptLoading } = useDepartments();
 
   const stats = [
     {
@@ -159,7 +159,7 @@ const HospitalDashboard: React.FC = () => {
       )}
 
       {/* Statistics Cards */}
-      <HospitalStats stats={stats} />
+      <HospitalStats />
 
       {/* Main Dashboard Content */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
@@ -199,12 +199,12 @@ const HospitalDashboard: React.FC = () => {
             </Card>
 
             {/* Department Status Overview */}
-            <DepartmentStatus departments={departments || []} />
+            <DepartmentStatus />
           </div>
         </TabsContent>
 
         <TabsContent value="cases" className="space-y-4">
-          <CaseFeed cases={cases || []} />
+          <CaseFeed />
         </TabsContent>
 
         <TabsContent value="departments" className="space-y-4">

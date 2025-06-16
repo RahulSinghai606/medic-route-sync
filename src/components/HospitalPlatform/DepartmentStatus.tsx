@@ -4,16 +4,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { departments, getAlertColor } from './utils';
+import { useDepartments } from '@/hooks/useDepartments';
 import BedManagementDialog from './BedManagementDialog';
 
 const DepartmentStatus: React.FC = () => {
   const { toast } = useToast();
+  const { departmentList: departments, loading } = useDepartments();
   const [isBedManagementOpen, setIsBedManagementOpen] = useState(false);
 
   const handleUpdateBedStatus = () => {
     setIsBedManagementOpen(true);
   };
+
+  const getAlertColor = (alert: string) => {
+    switch (alert) {
+      case 'Critical':
+        return 'bg-red-500';
+      case 'Medium':
+        return 'bg-yellow-500';
+      default:
+        return 'bg-green-500';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -31,10 +53,10 @@ const DepartmentStatus: React.FC = () => {
                   {dept.name}
                 </span>
                 <span className="text-sm font-medium">
-                  {dept.beds}/{dept.total} Available
+                  {dept.total - dept.beds}/{dept.total} Available
                 </span>
               </div>
-              <Progress className="h-2" value={(dept.beds / dept.total) * 100} />
+              <Progress className="h-2" value={((dept.total - dept.beds) / dept.total) * 100} />
             </div>
           ))}
 
