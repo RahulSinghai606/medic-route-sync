@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, Routes, Route } from 'react-router-dom';
 import HospitalLayout from '@/components/Layout/HospitalLayout';
@@ -9,7 +10,7 @@ import CasesDashboard from '@/components/HospitalPlatform/CasesDashboard';
 import CaseHandoffs from '@/components/HospitalPlatform/CaseHandoffs';
 import Departments from '@/components/HospitalPlatform/Departments';
 import HospitalOperations from '@/pages/HospitalOperations';
-import DisasterMode from '@/components/HospitalPlatform/DisasterMode';
+import DisasterMode from '@/components/DisasterManagement/DisasterMode';
 
 const HospitalPlatform: React.FC = () => {
   const navigate = useNavigate();
