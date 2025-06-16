@@ -59,7 +59,7 @@ const EnhancedDisasterMode: React.FC<EnhancedDisasterModeProps> = ({
 
   const disasterLocation = {
     name: "Multi-site Emergency Response",
-    type: "flood" as const,
+    type: "mass_casualty" as const,
     region: "Greater Guwahati Area",
     affectedArea: "Multiple locations",
     casualties: 23,

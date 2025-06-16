@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,7 @@ import {
   PlusCircle,
   Filter,
   Download,
-  RefreshCw,
-  HelpCircle
+  RefreshCw
 } from 'lucide-react';
 import HospitalStats from './HospitalStats';
 import DepartmentStatus from './DepartmentStatus';
@@ -44,12 +43,8 @@ import LiveDataSimulator from '../LiveDataSimulator';
 import EnhancedDisasterMode from '../DisasterManagement/EnhancedDisasterMode';
 import RealTimeUpdatesPanel from './RealTimeUpdatesPanel';
 import AnimatedMicButton from '../VoiceInput/AnimatedMicButton';
-import GuidedTour from '@/components/Onboarding/GuidedTour';
-import FeedbackSystem from '@/components/Feedback/FeedbackSystem';
-import QuickStartTemplates from '@/components/Workflows/QuickStartTemplates';
-import ContextualHelp from '@/components/Onboarding/ContextualHelp';
 
-const HospitalDashboard: React.FC = () => {
+const HospitalDashboard = () => {
   const { toast } = useToast();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [emergencyMode, setEmergencyMode] = useState(false);
@@ -58,7 +53,6 @@ const HospitalDashboard: React.FC = () => {
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [voiceProcessing, setVoiceProcessing] = useState(false);
   const [voiceTranscription, setVoiceTranscription] = useState<string>('');
-  const [showGuidedTour, setShowGuidedTour] = useState(false);
 
   React.useEffect(() => {
     const timer = setInterval(() => {
@@ -251,38 +245,62 @@ const HospitalDashboard: React.FC = () => {
     return 'text-foreground';
   };
 
-  useEffect(() => {
-    // Check if hospital tour completed
-    const tourCompleted = localStorage.getItem('tero-tour-completed-hospital');
-    if (!tourCompleted) {
-      setShowGuidedTour(true);
-    }
-  }, []);
-
-  const handleTemplateSelect = (template: any) => {
-    console.log('Hospital selected template:', template);
-    // Implement hospital workflow logic
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Header with contextual help */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Hospital Dashboard</h1>
-          <p className="text-muted-foreground">Real-time hospital operations and patient management</p>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50/50 via-white to-green-50/50 dark:from-slate-950/50 dark:via-slate-900/50 dark:to-slate-950/50 min-h-screen">
+      {/* Enhanced Header with Voice Input */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-gradient-to-br from-blue-600 to-green-600 rounded-xl text-white shadow-lg">
+              <Stethoscope className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-700 to-green-700 bg-clip-text text-transparent">
+                Hospital Command Center
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Real-time operations • {currentTime.toLocaleDateString()} • {currentTime.toLocaleTimeString()}
+              </p>
+            
+              {/* Voice Input Button */}
+              <div className="ml-4">
+                <AnimatedMicButton
+                  onStartRecording={handleStartVoiceRecording}
+                  onStopRecording={handleStopVoiceRecording}
+                  isRecording={voiceRecording}
+                  isProcessing={voiceProcessing}
+                  transcription={voiceTranscription}
+                  confidence={0.95}
+                  language="en"
+                />
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ContextualHelp context="case-management" />
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowGuidedTour(true)}
-            className="flex items-center gap-2"
-          >
-            <HelpCircle className="h-4 w-4" />
-            Help & Tour
-          </Button>
+        
+        <div className="flex flex-col lg:flex-row items-end lg:items-center gap-3">
+          <DisasterModeToggle 
+            isActive={disasterMode} 
+            onToggle={handleDisasterModeToggle} 
+          />
+          
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={handleRefreshData} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+            <Button variant="outline" onClick={handleExportReport} className="gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Badge 
+              variant={emergencyMode ? "destructive" : "default"} 
+              className={`flex items-center gap-2 px-4 py-2 ${emergencyMode ? 'animate-pulse' : ''}`}
+            >
+              <div className={`h-2 w-2 rounded-full ${emergencyMode ? 'bg-red-400' : 'bg-green-500 animate-pulse'}`} />
+              <span className="font-medium">{emergencyMode ? 'Emergency Mode' : 'Normal Operations'}</span>
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -459,22 +477,6 @@ const HospitalDashboard: React.FC = () => {
           <RealTimeUpdatesPanel />
         </div>
       </div>
-
-      {/* Quick Start Templates */}
-      <QuickStartTemplates 
-        userRole="hospital"
-        onSelectTemplate={handleTemplateSelect}
-      />
-
-      {/* Feedback System */}
-      <FeedbackSystem />
-
-      {/* Guided Tour */}
-      <GuidedTour
-        isOpen={showGuidedTour}
-        onClose={() => setShowGuidedTour(false)}
-        userRole="hospital"
-      />
     </div>
   );
 };
