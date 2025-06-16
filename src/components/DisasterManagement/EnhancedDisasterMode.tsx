@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -58,7 +59,7 @@ const EnhancedDisasterMode: React.FC<EnhancedDisasterModeProps> = ({
 
   const disasterLocation = {
     name: "Multi-site Emergency Response",
-    type: "earthquake" as const,
+    type: "mass_casualty" as const,
     region: "Greater Guwahati Area",
     affectedArea: "Multiple locations",
     casualties: 23,
@@ -190,7 +191,7 @@ const EnhancedDisasterMode: React.FC<EnhancedDisasterModeProps> = ({
             <Card>
               <CardContent className="pt-6">
                 <HazardOverlay 
-                  type="earthquake"
+                  type="flood"
                   region="Greater Guwahati Area"
                 />
               </CardContent>
