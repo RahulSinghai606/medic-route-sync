@@ -1,35 +1,33 @@
 
 import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame, extend } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Extend Three.js to make it work with React Three Fiber
-extend({ 
-  OrbitControls: THREE.OrbitControls,
-  FontLoader: THREE.FontLoader,
-  TextGeometry: THREE.TextGeometry 
-});
-
-// Simple orbit controls component
+// Simple orbit controls component using useThree hook
 const OrbitControls = () => {
-  const controlsRef = useRef<any>();
+  const { camera, gl } = useThree();
+  const controlsRef = useRef<THREE.OrbitControls>();
   
-  useFrame((state) => {
+  useFrame(() => {
     if (controlsRef.current) {
       controlsRef.current.update();
     }
   });
 
-  return (
-    <orbitControls
-      ref={controlsRef}
-      args={[state.camera, state.gl.domElement]}
-      enableZoom={false}
-      enablePan={false}
-      autoRotate={true}
-      autoRotateSpeed={1}
-    />
-  );
+  React.useEffect(() => {
+    const controls = new THREE.OrbitControls(camera, gl.domElement);
+    controls.enableZoom = false;
+    controls.enablePan = false;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 1;
+    controlsRef.current = controls;
+
+    return () => {
+      controls.dispose();
+    };
+  }, [camera, gl]);
+
+  return null;
 };
 
 // Ambulance 3D Component
@@ -107,9 +105,8 @@ const RoutePath = ({ start, end }: { start: [number, number, number], end: [numb
   }, [points]);
 
   return (
-    <line>
-      <bufferGeometry attach="geometry" {...lineGeometry} />
-      <lineBasicMaterial attach="material" color="#00aaff" />
+    <line geometry={lineGeometry}>
+      <lineBasicMaterial color="#00aaff" />
     </line>
   );
 };
