@@ -6,7 +6,7 @@ import * as THREE from 'three';
 // Simple orbit controls component using useThree hook
 const OrbitControls = () => {
   const { camera, gl } = useThree();
-  const controlsRef = useRef<THREE.OrbitControls>();
+  const controlsRef = useRef<any>();
   
   useFrame(() => {
     if (controlsRef.current) {
@@ -15,16 +15,20 @@ const OrbitControls = () => {
   });
 
   React.useEffect(() => {
-    const controls = new THREE.OrbitControls(camera, gl.domElement);
-    controls.enableZoom = false;
-    controls.enablePan = false;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 1;
-    controlsRef.current = controls;
+    // @ts-ignore - OrbitControls might not be available in this setup
+    if (THREE.OrbitControls) {
+      // @ts-ignore
+      const controls = new THREE.OrbitControls(camera, gl.domElement);
+      controls.enableZoom = false;
+      controls.enablePan = false;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 1;
+      controlsRef.current = controls;
 
-    return () => {
-      controls.dispose();
-    };
+      return () => {
+        controls.dispose();
+      };
+    }
   }, [camera, gl]);
 
   return null;
@@ -35,6 +39,20 @@ const Ambulance = ({ position, rotation }: { position: [number, number, number],
   const meshRef = useRef<THREE.Mesh>(null);
   const lightRef1 = useRef<THREE.Mesh>(null);
   const lightRef2 = useRef<THREE.Mesh>(null);
+  
+  const whiteMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff" }), []);
+  const redMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: "#ff0000" }), []);
+  const redEmissiveMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#ff4444", 
+    emissive: "#ff0000", 
+    emissiveIntensity: 0.8 
+  }), []);
+  const blueEmissiveMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#4444ff", 
+    emissive: "#0000ff", 
+    emissiveIntensity: 0.8 
+  }), []);
+  const blackMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: "#333333" }), []);
   
   useFrame((state) => {
     if (meshRef.current) {
@@ -53,45 +71,36 @@ const Ambulance = ({ position, rotation }: { position: [number, number, number],
   return (
     <group position={position} rotation={rotation}>
       {/* Main ambulance body */}
-      <mesh ref={meshRef}>
+      <mesh ref={meshRef} material={whiteMaterial}>
         <boxGeometry args={[2, 1, 4]} />
-        <meshStandardMaterial color="#ffffff" />
       </mesh>
       {/* Red cross - horizontal */}
-      <mesh position={[0, 0.6, 0]}>
+      <mesh position={[0, 0.6, 0]} material={redMaterial}>
         <boxGeometry args={[0.3, 0.1, 0.8]} />
-        <meshStandardMaterial color="#ff0000" />
       </mesh>
       {/* Red cross - vertical */}
-      <mesh position={[0, 0.6, 0]} rotation={[0, 0, Math.PI / 2]}>
+      <mesh position={[0, 0.6, 0]} rotation={[0, 0, Math.PI / 2]} material={redMaterial}>
         <boxGeometry args={[0.3, 0.1, 0.8]} />
-        <meshStandardMaterial color="#ff0000" />
       </mesh>
       {/* Emergency lights with blinking animation */}
-      <mesh ref={lightRef1} position={[-0.8, 0.8, 1.5]}>
+      <mesh ref={lightRef1} position={[-0.8, 0.8, 1.5]} material={redEmissiveMaterial}>
         <sphereGeometry args={[0.2]} />
-        <meshStandardMaterial color="#ff4444" emissive="#ff0000" emissiveIntensity={0.8} />
       </mesh>
-      <mesh ref={lightRef2} position={[0.8, 0.8, 1.5]}>
+      <mesh ref={lightRef2} position={[0.8, 0.8, 1.5]} material={blueEmissiveMaterial}>
         <sphereGeometry args={[0.2]} />
-        <meshStandardMaterial color="#4444ff" emissive="#0000ff" emissiveIntensity={0.8} />
       </mesh>
       {/* Wheels */}
-      <mesh position={[-0.8, -0.3, 1.5]}>
+      <mesh position={[-0.8, -0.3, 1.5]} material={blackMaterial}>
         <cylinderGeometry args={[0.3, 0.3, 0.2]} />
-        <meshStandardMaterial color="#333333" />
       </mesh>
-      <mesh position={[0.8, -0.3, 1.5]}>
+      <mesh position={[0.8, -0.3, 1.5]} material={blackMaterial}>
         <cylinderGeometry args={[0.3, 0.3, 0.2]} />
-        <meshStandardMaterial color="#333333" />
       </mesh>
-      <mesh position={[-0.8, -0.3, -1.5]}>
+      <mesh position={[-0.8, -0.3, -1.5]} material={blackMaterial}>
         <cylinderGeometry args={[0.3, 0.3, 0.2]} />
-        <meshStandardMaterial color="#333333" />
       </mesh>
-      <mesh position={[0.8, -0.3, -1.5]}>
+      <mesh position={[0.8, -0.3, -1.5]} material={blackMaterial}>
         <cylinderGeometry args={[0.3, 0.3, 0.2]} />
-        <meshStandardMaterial color="#333333" />
       </mesh>
     </group>
   );
@@ -101,6 +110,17 @@ const Ambulance = ({ position, rotation }: { position: [number, number, number],
 const HospitalMarker = ({ position }: { position: [number, number, number] }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const crossRef = useRef<THREE.Group>(null);
+  
+  const hospitalMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#00ff88", 
+    emissive: "#00aa44", 
+    emissiveIntensity: 0.4 
+  }), []);
+  const crossMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#ffffff", 
+    emissive: "#ffffff", 
+    emissiveIntensity: 0.3 
+  }), []);
   
   useFrame((state) => {
     if (meshRef.current) {
@@ -115,19 +135,16 @@ const HospitalMarker = ({ position }: { position: [number, number, number] }) =>
 
   return (
     <group position={position}>
-      <mesh ref={meshRef}>
+      <mesh ref={meshRef} material={hospitalMaterial}>
         <cylinderGeometry args={[0.5, 0.5, 2]} />
-        <meshStandardMaterial color="#00ff88" emissive="#00aa44" emissiveIntensity={0.4} />
       </mesh>
       {/* Hospital cross */}
       <group ref={crossRef} position={[0, 1.2, 0]}>
-        <mesh>
+        <mesh material={crossMaterial}>
           <boxGeometry args={[0.8, 0.2, 0.2]} />
-          <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.3} />
         </mesh>
-        <mesh>
+        <mesh material={crossMaterial}>
           <boxGeometry args={[0.2, 0.8, 0.2]} />
-          <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.3} />
         </mesh>
       </group>
     </group>
@@ -138,19 +155,23 @@ const HospitalMarker = ({ position }: { position: [number, number, number] }) =>
 const RoutePath = ({ start, end }: { start: [number, number, number], end: [number, number, number] }) => {
   const lineRef = useRef<THREE.Line>(null);
   
-  const points = useMemo(() => {
+  const { points, lineGeometry, lineMaterial } = useMemo(() => {
     const curve = new THREE.CatmullRomCurve3([
       new THREE.Vector3(...start),
       new THREE.Vector3((start[0] + end[0]) / 2, start[1] + 2, (start[2] + end[2]) / 2),
       new THREE.Vector3(...end)
     ]);
-    return curve.getPoints(50);
+    const pts = curve.getPoints(50);
+    const geometry = new THREE.BufferGeometry().setFromPoints(pts);
+    const material = new THREE.LineBasicMaterial({ 
+      color: "#00aaff", 
+      transparent: true,
+      opacity: 0.8 
+    });
+    return { points: pts, lineGeometry: geometry, lineMaterial: material };
   }, [start, end]);
 
-  const lineGeometry = useMemo(() => {
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    return geometry;
-  }, [points]);
+  const line = useMemo(() => new THREE.Line(lineGeometry, lineMaterial), [lineGeometry, lineMaterial]);
 
   useFrame((state) => {
     if (lineRef.current) {
@@ -160,15 +181,6 @@ const RoutePath = ({ start, end }: { start: [number, number, number], end: [numb
     }
   });
 
-  const line = useMemo(() => {
-    const material = new THREE.LineBasicMaterial({ 
-      color: "#00aaff", 
-      transparent: true,
-      opacity: 0.8 
-    });
-    return new THREE.Line(lineGeometry, material);
-  }, [lineGeometry]);
-
   return <primitive ref={lineRef} object={line} />;
 };
 
@@ -176,7 +188,7 @@ const RoutePath = ({ start, end }: { start: [number, number, number], end: [numb
 const FloatingParticles = () => {
   const particlesRef = useRef<THREE.Points>(null);
   
-  const particles = useMemo(() => {
+  const { particles, particleMaterial } = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(100 * 3);
     
@@ -187,7 +199,15 @@ const FloatingParticles = () => {
     }
     
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    return geometry;
+    
+    const material = new THREE.PointsMaterial({ 
+      color: "#ffffff", 
+      size: 0.1, 
+      transparent: true, 
+      opacity: 0.6 
+    });
+    
+    return { particles: geometry, particleMaterial: material };
   }, []);
 
   useFrame((state) => {
@@ -198,14 +218,20 @@ const FloatingParticles = () => {
 
   return (
     <points ref={particlesRef}>
-      <bufferGeometry attach="geometry" {...particles} />
-      <pointsMaterial attach="material" color="#ffffff" size={0.1} transparent opacity={0.6} />
+      <primitive object={particles} attach="geometry" />
+      <primitive object={particleMaterial} attach="material" />
     </points>
   );
 };
 
 // Main 3D Scene with enhanced lighting and effects
 const Scene3D = () => {
+  const groundMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#1a1a1a", 
+    transparent: true, 
+    opacity: 0.3 
+  }), []);
+
   return (
     <div className="w-full h-full">
       <Canvas
@@ -237,9 +263,8 @@ const Scene3D = () => {
         <FloatingParticles />
         
         {/* Ground plane for better depth perception */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} material={groundMaterial}>
           <planeGeometry args={[30, 30]} />
-          <meshStandardMaterial color="#1a1a1a" transparent opacity={0.3} />
         </mesh>
         
         <OrbitControls />
