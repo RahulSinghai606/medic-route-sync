@@ -1,7 +1,7 @@
 
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Box, Sphere, Line } from '@react-three/drei';
+import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Ambulance 3D Component
@@ -30,12 +30,14 @@ const Ambulance = ({ position, rotation }: { position: [number, number, number],
         <meshStandardMaterial color="#ff0000" />
       </mesh>
       {/* Emergency lights */}
-      <Sphere args={[0.2]} position={[-0.8, 0.8, 1.5]}>
+      <mesh position={[-0.8, 0.8, 1.5]}>
+        <sphereGeometry args={[0.2]} />
         <meshStandardMaterial color="#ff4444" emissive="#ff0000" emissiveIntensity={0.5} />
-      </Sphere>
-      <Sphere args={[0.2]} position={[0.8, 0.8, 1.5]}>
+      </mesh>
+      <mesh position={[0.8, 0.8, 1.5]}>
+        <sphereGeometry args={[0.2]} />
         <meshStandardMaterial color="#4444ff" emissive="#0000ff" emissiveIntensity={0.5} />
-      </Sphere>
+      </mesh>
     </group>
   );
 };
@@ -69,15 +71,16 @@ const RoutePath = ({ start, end }: { start: [number, number, number], end: [numb
     return curve.getPoints(50);
   }, [start, end]);
 
+  const lineGeometry = useMemo(() => {
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    return geometry;
+  }, [points]);
+
   return (
-    <Line
-      points={points}
-      color="#00aaff"
-      lineWidth={3}
-      dashed={true}
-      dashSize={0.3}
-      gapSize={0.1}
-    />
+    <line>
+      <bufferGeometry attach="geometry" {...lineGeometry} />
+      <lineBasicMaterial attach="material" color="#00aaff" />
+    </line>
   );
 };
 
