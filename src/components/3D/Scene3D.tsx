@@ -45,26 +45,26 @@ const Ambulance = ({ position, rotation }: { position: [number, number, number],
       {/* Main ambulance body */}
       <mesh ref={meshRef}>
         <boxGeometry args={[2, 1, 4]} />
-        <meshStandardMaterial color="#ffffff" />
+        <meshStandardMaterial args={[{ color: "#ffffff" }]} />
       </mesh>
       {/* Red cross - horizontal */}
       <mesh position={[0, 0.6, 0]}>
         <boxGeometry args={[0.3, 0.1, 0.8]} />
-        <meshStandardMaterial color="#ff0000" />
+        <meshStandardMaterial args={[{ color: "#ff0000" }]} />
       </mesh>
       {/* Red cross - vertical */}
       <mesh position={[0, 0.6, 0]} rotation={[0, 0, Math.PI / 2]}>
         <boxGeometry args={[0.3, 0.1, 0.8]} />
-        <meshStandardMaterial color="#ff0000" />
+        <meshStandardMaterial args={[{ color: "#ff0000" }]} />
       </mesh>
       {/* Emergency lights */}
       <mesh position={[-0.8, 0.8, 1.5]}>
         <sphereGeometry args={[0.2]} />
-        <meshStandardMaterial color="#ff4444" emissive="#ff0000" emissiveIntensity={0.5} />
+        <meshStandardMaterial args={[{ color: "#ff4444", emissive: "#ff0000", emissiveIntensity: 0.5 }]} />
       </mesh>
       <mesh position={[0.8, 0.8, 1.5]}>
         <sphereGeometry args={[0.2]} />
-        <meshStandardMaterial color="#4444ff" emissive="#0000ff" emissiveIntensity={0.5} />
+        <meshStandardMaterial args={[{ color: "#4444ff", emissive: "#0000ff", emissiveIntensity: 0.5 }]} />
       </mesh>
     </group>
   );
@@ -83,7 +83,7 @@ const HospitalMarker = ({ position }: { position: [number, number, number] }) =>
   return (
     <mesh ref={meshRef} position={position}>
       <cylinderGeometry args={[0.5, 0.5, 2]} />
-      <meshStandardMaterial color="#00ff88" emissive="#00aa44" emissiveIntensity={0.3} />
+      <meshStandardMaterial args={[{ color: "#00ff88", emissive: "#00aa44", emissiveIntensity: 0.3 }]} />
     </mesh>
   );
 };
@@ -105,9 +105,7 @@ const RoutePath = ({ start, end }: { start: [number, number, number], end: [numb
   }, [points]);
 
   return (
-    <line geometry={lineGeometry}>
-      <lineBasicMaterial color="#00aaff" />
-    </line>
+    <primitive object={new THREE.Line(lineGeometry, new THREE.LineBasicMaterial({ color: "#00aaff" }))} />
   );
 };
 
@@ -116,7 +114,7 @@ const EmergencyText = ({ position }: { position: [number, number, number] }) => 
   return (
     <mesh position={position}>
       <boxGeometry args={[2, 0.5, 0.1]} />
-      <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.3} />
+      <meshStandardMaterial args={[{ color: "#ff0000", emissive: "#ff0000", emissiveIntensity: 0.3 }]} />
     </mesh>
   );
 };
