@@ -1,8 +1,36 @@
 
 import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import { Canvas, useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
+
+// Extend Three.js to make it work with React Three Fiber
+extend({ 
+  OrbitControls: THREE.OrbitControls,
+  FontLoader: THREE.FontLoader,
+  TextGeometry: THREE.TextGeometry 
+});
+
+// Simple orbit controls component
+const OrbitControls = () => {
+  const controlsRef = useRef<any>();
+  
+  useFrame((state) => {
+    if (controlsRef.current) {
+      controlsRef.current.update();
+    }
+  });
+
+  return (
+    <orbitControls
+      ref={controlsRef}
+      args={[state.camera, state.gl.domElement]}
+      enableZoom={false}
+      enablePan={false}
+      autoRotate={true}
+      autoRotateSpeed={1}
+    />
+  );
+};
 
 // Ambulance 3D Component
 const Ambulance = ({ position, rotation }: { position: [number, number, number], rotation: [number, number, number] }) => {
@@ -16,15 +44,17 @@ const Ambulance = ({ position, rotation }: { position: [number, number, number],
 
   return (
     <group position={position} rotation={rotation}>
+      {/* Main ambulance body */}
       <mesh ref={meshRef}>
         <boxGeometry args={[2, 1, 4]} />
         <meshStandardMaterial color="#ffffff" />
       </mesh>
-      {/* Ambulance cross */}
+      {/* Red cross - horizontal */}
       <mesh position={[0, 0.6, 0]}>
         <boxGeometry args={[0.3, 0.1, 0.8]} />
         <meshStandardMaterial color="#ff0000" />
       </mesh>
+      {/* Red cross - vertical */}
       <mesh position={[0, 0.6, 0]} rotation={[0, 0, Math.PI / 2]}>
         <boxGeometry args={[0.3, 0.1, 0.8]} />
         <meshStandardMaterial color="#ff0000" />
@@ -84,6 +114,16 @@ const RoutePath = ({ start, end }: { start: [number, number, number], end: [numb
   );
 };
 
+// Simple text component using basic mesh
+const EmergencyText = ({ position }: { position: [number, number, number] }) => {
+  return (
+    <mesh position={position}>
+      <boxGeometry args={[2, 0.5, 0.1]} />
+      <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.3} />
+    </mesh>
+  );
+};
+
 // Main 3D Scene
 const Scene3D = () => {
   return (
@@ -108,17 +148,9 @@ const Scene3D = () => {
         <RoutePath start={[-4, 0, 0]} end={[6, 0, -2]} />
         
         {/* Emergency indicator */}
-        <Text
-          position={[-4, 3, 0]}
-          fontSize={0.8}
-          color="#ff0000"
-          anchorX="center"
-          anchorY="middle"
-        >
-          EMERGENCY
-        </Text>
+        <EmergencyText position={[-4, 3, 0]} />
         
-        <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={1} />
+        <OrbitControls />
       </Canvas>
     </div>
   );
