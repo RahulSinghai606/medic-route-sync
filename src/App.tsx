@@ -21,6 +21,7 @@ import Cases from "./pages/Cases";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import ModernHomepage from "./pages/ModernHomepage";
 import DisasterMode from "./components/DisasterManagement/DisasterMode";
 import HospitalPlatform from "./pages/HospitalPlatform";
 
@@ -82,7 +83,7 @@ const AppContent = () => {
         user ? (
           profile?.role === 'hospital' ? 
             <Navigate to="/hospital-platform" replace /> : 
-            <Navigate to="/" replace />
+            <Navigate to="/dashboard" replace />
         ) : <Login />
       } />
       
@@ -90,8 +91,17 @@ const AppContent = () => {
         user ? (
           profile?.role === 'hospital' ? 
             <Navigate to="/hospital-platform" replace /> : 
-            <Navigate to="/" replace />
+            <Navigate to="/dashboard" replace />
         ) : <Signup />
+      } />
+      
+      {/* Homepage - show modern landing for non-authenticated users */}
+      <Route path="/" element={
+        user ? (
+          profile?.role === 'hospital' ? 
+            <Navigate to="/hospital-platform" replace /> : 
+            <Navigate to="/dashboard" replace />
+        ) : <ModernHomepage />
       } />
       
       {/* Paramedic routes */}
@@ -100,7 +110,7 @@ const AppContent = () => {
           <AppLayout />
         </ProtectedRoute>
       }>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/patients" element={<Patients />} />
         <Route path="/assessment" element={<Assessment />} />
         <Route path="/hospitals" element={<Hospitals />} />

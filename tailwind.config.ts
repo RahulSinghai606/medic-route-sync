@@ -63,16 +63,28 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// EmergConnect custom colors
+				// Enhanced emergency color palette
 				emergency: {
 					DEFAULT: '#ea384c',
 					light: '#ff6b76',
-					dark: '#c01f2f'
+					dark: '#c01f2f',
+					critical: '#dc2626',
+					urgent: '#f59e0b',
+					moderate: '#10b981',
+					low: '#6b7280'
 				},
 				medical: {
 					DEFAULT: '#0EA5E9',
 					light: '#38bdf8',
 					dark: '#0284c7'
+				},
+				// Triage colors
+				triage: {
+					critical: '#dc2626',    // Red - Life threatening
+					urgent: '#f59e0b',      // Yellow - Urgent care needed
+					less_urgent: '#10b981', // Green - Can wait
+					minor: '#6b7280',       // Gray - Minor injury
+					deceased: '#1f2937'     // Black - Deceased
 				},
 				success: '#10b981',
 				warning: '#f59e0b',
@@ -103,12 +115,22 @@ export default {
 				'pulse-emergency': {
 					'0%, 100%': { opacity: '1' },
 					'50%': { opacity: '0.6' }
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0px)' },
+					'50%': { transform: 'translateY(-20px)' }
+				},
+				'glow': {
+					'0%, 100%': { boxShadow: '0 0 5px rgba(239, 68, 68, 0.5)' },
+					'50%': { boxShadow: '0 0 20px rgba(239, 68, 68, 0.8)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'pulse-emergency': 'pulse-emergency 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+				'pulse-emergency': 'pulse-emergency 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'float': 'float 3s ease-in-out infinite',
+				'glow': 'glow 2s ease-in-out infinite'
 			}
 		}
 	},
