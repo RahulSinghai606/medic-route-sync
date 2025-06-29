@@ -104,31 +104,37 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
   return (
     <group position={position} rotation={rotation}>
       {/* Main ambulance body - more rounded */}
-      <mesh ref={meshRef} material={ambulanceBodyMaterial}>
+      <mesh ref={meshRef}>
         <boxGeometry args={[2.2, 1.2, 4.5]} />
+        <primitive object={ambulanceBodyMaterial} attach="material" />
       </mesh>
       
       {/* Ambulance cabin */}
-      <mesh position={[0, 0.3, 1.8]} material={ambulanceCabinMaterial}>
+      <mesh position={[0, 0.3, 1.8]}>
         <boxGeometry args={[2, 1, 1.5]} />
+        <primitive object={ambulanceCabinMaterial} attach="material" />
       </mesh>
       
       {/* Medical cross - larger and more prominent */}
       <group position={[0, 0.7, 0]}>
-        <mesh material={redCrossMaterial}>
+        <mesh>
           <boxGeometry args={[0.4, 0.15, 1.2]} />
+          <primitive object={redCrossMaterial} attach="material" />
         </mesh>
-        <mesh rotation={[0, 0, Math.PI / 2]} material={redCrossMaterial}>
+        <mesh rotation={[0, 0, Math.PI / 2]}>
           <boxGeometry args={[0.4, 0.15, 1.2]} />
+          <primitive object={redCrossMaterial} attach="material" />
         </mesh>
       </group>
       
       {/* Emergency lights with better positioning */}
-      <mesh ref={lightRef1} position={[-0.9, 1, 1.8]} material={redLightMaterial}>
+      <mesh ref={lightRef1} position={[-0.9, 1, 1.8]}>
         <sphereGeometry args={[0.15]} />
+        <primitive object={redLightMaterial} attach="material" />
       </mesh>
-      <mesh ref={lightRef2} position={[0.9, 1, 1.8]} material={blueLightMaterial}>
+      <mesh ref={lightRef2} position={[0.9, 1, 1.8]}>
         <sphereGeometry args={[0.15]} />
+        <primitive object={blueLightMaterial} attach="material" />
       </mesh>
       
       {/* Wheels with better detail */}
@@ -139,18 +145,21 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
         [0.9, -0.4, -1.8]
       ].map((pos, i) => (
         <group key={i} position={pos as [number, number, number]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]} material={wheelMaterial}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.35, 0.35, 0.25]} />
+            <primitive object={wheelMaterial} attach="material" />
           </mesh>
-          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.13]} material={hubcapMaterial}>
+          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.13]}>
             <cylinderGeometry args={[0.25, 0.25, 0.05]} />
+            <primitive object={hubcapMaterial} attach="material" />
           </mesh>
         </group>
       ))}
       
       {/* Medical equipment on back */}
-      <mesh position={[0, 0, -2.4]} material={equipmentMaterial}>
+      <mesh position={[0, 0, -2.4]}>
         <boxGeometry args={[1.8, 0.8, 0.3]} />
+        <primitive object={equipmentMaterial} attach="material" />
       </mesh>
     </group>
   );
@@ -209,22 +218,26 @@ const HospitalBuilding = ({ position }: { position: [number, number, number] }) 
   return (
     <group position={position}>
       {/* Main hospital building */}
-      <mesh ref={meshRef} position={[0, 1, 0]} material={buildingMaterial}>
+      <mesh ref={meshRef} position={[0, 1, 0]}>
         <boxGeometry args={[2, 3, 2]} />
+        <primitive object={buildingMaterial} attach="material" />
       </mesh>
       
       {/* Hospital roof */}
-      <mesh position={[0, 2.7, 0]} material={roofMaterial}>
+      <mesh position={[0, 2.7, 0]}>
         <boxGeometry args={[2.2, 0.4, 2.2]} />
+        <primitive object={roofMaterial} attach="material" />
       </mesh>
       
       {/* Medical cross on building */}
       <group ref={crossRef} position={[0, 2, 1.1]}>
-        <mesh material={crossMaterial}>
+        <mesh>
           <boxGeometry args={[0.6, 0.15, 0.1]} />
+          <primitive object={crossMaterial} attach="material" />
         </mesh>
-        <mesh material={crossMaterial}>
+        <mesh>
           <boxGeometry args={[0.15, 0.6, 0.1]} />
+          <primitive object={crossMaterial} attach="material" />
         </mesh>
       </group>
       
@@ -233,14 +246,16 @@ const HospitalBuilding = ({ position }: { position: [number, number, number] }) 
         [-0.6, 1.5, 1.01], [0.6, 1.5, 1.01],
         [-0.6, 0.5, 1.01], [0.6, 0.5, 1.01]
       ].map((pos, i) => (
-        <mesh key={i} position={pos as [number, number, number]} material={windowMaterial}>
+        <mesh key={i} position={pos as [number, number, number]}>
           <boxGeometry args={[0.4, 0.4, 0.02]} />
+          <primitive object={windowMaterial} attach="material" />
         </mesh>
       ))}
       
       {/* Emergency entrance */}
-      <mesh position={[0, 0.5, 1.01]} material={entranceMaterial}>
+      <mesh position={[0, 0.5, 1.01]}>
         <boxGeometry args={[0.8, 1, 0.02]} />
+        <primitive object={entranceMaterial} attach="material" />
       </mesh>
     </group>
   );
@@ -296,66 +311,79 @@ const MedicalHelicopter = ({ position }: { position: [number, number, number] })
   return (
     <group ref={meshRef} position={position}>
       {/* Helicopter body */}
-      <mesh material={helicopterBodyMaterial}>
+      <mesh>
         <sphereGeometry args={[0.8, 16, 8]} />
+        <primitive object={helicopterBodyMaterial} attach="material" />
       </mesh>
       
       {/* Cockpit */}
-      <mesh position={[0, 0.2, 0.6]} material={cockpitMaterial}>
+      <mesh position={[0, 0.2, 0.6]}>
         <sphereGeometry args={[0.5, 8, 6]} />
+        <primitive object={cockpitMaterial} attach="material" />
       </mesh>
       
       {/* Main rotor */}
       <group position={[0, 1.2, 0]}>
-        <mesh ref={rotorRef} material={rotorMaterial}>
+        <mesh ref={rotorRef}>
           <boxGeometry args={[3, 0.05, 0.1]} />
+          <primitive object={rotorMaterial} attach="material" />
         </mesh>
-        <mesh ref={rotorRef} rotation={[0, Math.PI/2, 0]} material={rotorMaterial}>
+        <mesh ref={rotorRef} rotation={[0, Math.PI/2, 0]}>
           <boxGeometry args={[3, 0.05, 0.1]} />
+          <primitive object={rotorMaterial} attach="material" />
         </mesh>
       </group>
       
       {/* Medical cross */}
       <group position={[0, 0, -0.81]}>
-        <mesh material={crossMaterial}>
+        <mesh>
           <boxGeometry args={[0.4, 0.1, 0.02]} />
+          <primitive object={crossMaterial} attach="material" />
         </mesh>
-        <mesh material={crossMaterial}>
+        <mesh>
           <boxGeometry args={[0.1, 0.4, 0.02]} />
+          <primitive object={crossMaterial} attach="material" />
         </mesh>
       </group>
       
       {/* Landing skids */}
-      <mesh position={[-0.6, -0.6, 0]} material={skidMaterial}>
+      <mesh position={[-0.6, -0.6, 0]}>
         <boxGeometry args={[0.1, 0.1, 1.2]} />
+        <primitive object={skidMaterial} attach="material" />
       </mesh>
-      <mesh position={[0.6, -0.6, 0]} material={skidMaterial}>
+      <mesh position={[0.6, -0.6, 0]}>
         <boxGeometry args={[0.1, 0.1, 1.2]} />
+        <primitive object={skidMaterial} attach="material" />
       </mesh>
     </group>
   );
 };
 
-// Enhanced Route Path with medical theme
+// Fixed Medical Route Path component
 const MedicalRoutePath = ({ start, end }: { start: [number, number, number], end: [number, number, number] }) => {
   const lineRef = useRef<THREE.Line>(null);
   
-  const { points, lineGeometry, lineMaterial } = useMemo(() => {
+  const { points, lineMaterial } = useMemo(() => {
     const curve = new THREE.CatmullRomCurve3([
       new THREE.Vector3(...start),
       new THREE.Vector3((start[0] + end[0]) / 2, start[1] + 3, (start[2] + end[2]) / 2),
       new THREE.Vector3(...end)
     ]);
     const pts = curve.getPoints(100);
-    const geometry = new THREE.BufferGeometry().setFromPoints(pts);
+    
     const material = new THREE.LineBasicMaterial({
       color: "#10b981",
       transparent: true,
       opacity: 0.8,
       linewidth: 3
     });
-    return { points: pts, lineGeometry: geometry, lineMaterial: material };
+    return { points: pts, lineMaterial: material };
   }, [start, end]);
+
+  const lineGeometry = useMemo(() => {
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    return geometry;
+  }, [points]);
 
   useFrame((state) => {
     if (lineRef.current) {
@@ -483,8 +511,9 @@ const Scene3D = () => {
         <MedicalParticles />
         
         {/* Professional ground plane */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]} receiveShadow material={groundMaterial}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]} receiveShadow>
           <planeGeometry args={[50, 50]} />
+          <primitive object={groundMaterial} attach="material" />
         </mesh>
         
         <OrbitControls />
