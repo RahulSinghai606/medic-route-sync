@@ -15,20 +15,46 @@ const OrbitControls = () => {
   });
 
   React.useEffect(() => {
-    // @ts-ignore - OrbitControls might not be available in this setup
-    if (THREE.OrbitControls) {
-      // @ts-ignore
-      const controls = new THREE.OrbitControls(camera, gl.domElement);
-      controls.enableZoom = false;
-      controls.enablePan = false;
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.5;
-      controlsRef.current = controls;
-
-      return () => {
-        controls.dispose();
-      };
-    }
+    // Simple manual orbit controls
+    let mouseDown = false;
+    let mouseX = 0;
+    let mouseY = 0;
+    
+    const handleMouseDown = (event: MouseEvent) => {
+      mouseDown = true;
+      mouseX = event.clientX;
+      mouseY = event.clientY;
+    };
+    
+    const handleMouseUp = () => {
+      mouseDown = false;
+    };
+    
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!mouseDown) return;
+      
+      const deltaX = event.clientX - mouseX;
+      const deltaY = event.clientY - mouseY;
+      
+      camera.position.x = camera.position.x * Math.cos(deltaX * 0.01) - camera.position.z * Math.sin(deltaX * 0.01);
+      camera.position.z = camera.position.x * Math.sin(deltaX * 0.01) + camera.position.z * Math.cos(deltaX * 0.01);
+      camera.position.y += deltaY * 0.05;
+      
+      camera.lookAt(0, 0, 0);
+      
+      mouseX = event.clientX;
+      mouseY = event.clientY;
+    };
+    
+    gl.domElement.addEventListener('mousedown', handleMouseDown);
+    gl.domElement.addEventListener('mouseup', handleMouseUp);
+    gl.domElement.addEventListener('mousemove', handleMouseMove);
+    
+    return () => {
+      gl.domElement.removeEventListener('mousedown', handleMouseDown);
+      gl.domElement.removeEventListener('mouseup', handleMouseUp);
+      gl.domElement.removeEventListener('mousemove', handleMouseMove);
+    };
   }, [camera, gl]);
 
   return null;
@@ -40,54 +66,6 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
   const lightRef1 = useRef<THREE.Mesh>(null);
   const lightRef2 = useRef<THREE.Mesh>(null);
   
-  const ambulanceBodyMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#ffffff",
-    metalness: 0.1,
-    roughness: 0.3
-  }), []);
-
-  const ambulanceCabinMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#f8f9fa",
-    metalness: 0.2,
-    roughness: 0.4
-  }), []);
-
-  const redCrossMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#dc2626",
-    emissive: "#dc2626",
-    emissiveIntensity: 0.3
-  }), []);
-
-  const redLightMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#ef4444",
-    emissive: "#ef4444",
-    emissiveIntensity: 1.2
-  }), []);
-
-  const blueLightMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#3b82f6",
-    emissive: "#3b82f6",
-    emissiveIntensity: 1.2
-  }), []);
-
-  const wheelMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#1f2937",
-    metalness: 0.8,
-    roughness: 0.2
-  }), []);
-
-  const hubcapMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#6b7280",
-    metalness: 0.9,
-    roughness: 0.1
-  }), []);
-
-  const equipmentMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#f3f4f6",
-    metalness: 0.3,
-    roughness: 0.6
-  }), []);
-
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 1.5) * 0.05;
@@ -103,41 +81,41 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Main ambulance body - more rounded */}
+      {/* Main ambulance body */}
       <mesh ref={meshRef}>
         <boxGeometry args={[2.2, 1.2, 4.5]} />
-        <primitive object={ambulanceBodyMaterial} attach="material" />
+        <meshStandardMaterial color="#ffffff" metalness={0.1} roughness={0.3} />
       </mesh>
       
       {/* Ambulance cabin */}
       <mesh position={[0, 0.3, 1.8]}>
         <boxGeometry args={[2, 1, 1.5]} />
-        <primitive object={ambulanceCabinMaterial} attach="material" />
+        <meshStandardMaterial color="#f8f9fa" metalness={0.2} roughness={0.4} />
       </mesh>
       
-      {/* Medical cross - larger and more prominent */}
+      {/* Medical cross */}
       <group position={[0, 0.7, 0]}>
         <mesh>
           <boxGeometry args={[0.4, 0.15, 1.2]} />
-          <primitive object={redCrossMaterial} attach="material" />
+          <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.3} />
         </mesh>
         <mesh rotation={[0, 0, Math.PI / 2]}>
           <boxGeometry args={[0.4, 0.15, 1.2]} />
-          <primitive object={redCrossMaterial} attach="material" />
+          <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.3} />
         </mesh>
       </group>
       
-      {/* Emergency lights with better positioning */}
+      {/* Emergency lights */}
       <mesh ref={lightRef1} position={[-0.9, 1, 1.8]}>
         <sphereGeometry args={[0.15]} />
-        <primitive object={redLightMaterial} attach="material" />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={1.2} />
       </mesh>
       <mesh ref={lightRef2} position={[0.9, 1, 1.8]}>
         <sphereGeometry args={[0.15]} />
-        <primitive object={blueLightMaterial} attach="material" />
+        <meshStandardMaterial color="#3b82f6" emissive="#3b82f6" emissiveIntensity={1.2} />
       </mesh>
       
-      {/* Wheels with better detail */}
+      {/* Wheels */}
       {[
         [-0.9, -0.4, 1.8],
         [0.9, -0.4, 1.8],
@@ -147,11 +125,11 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
         <group key={i} position={pos as [number, number, number]}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.35, 0.35, 0.25]} />
-            <primitive object={wheelMaterial} attach="material" />
+            <meshStandardMaterial color="#1f2937" metalness={0.8} roughness={0.2} />
           </mesh>
           <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.13]}>
             <cylinderGeometry args={[0.25, 0.25, 0.05]} />
-            <primitive object={hubcapMaterial} attach="material" />
+            <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
           </mesh>
         </group>
       ))}
@@ -159,7 +137,7 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
       {/* Medical equipment on back */}
       <mesh position={[0, 0, -2.4]}>
         <boxGeometry args={[1.8, 0.8, 0.3]} />
-        <primitive object={equipmentMaterial} attach="material" />
+        <meshStandardMaterial color="#f3f4f6" metalness={0.3} roughness={0.6} />
       </mesh>
     </group>
   );
@@ -170,42 +148,6 @@ const HospitalBuilding = ({ position }: { position: [number, number, number] }) 
   const meshRef = useRef<THREE.Mesh>(null);
   const crossRef = useRef<THREE.Group>(null);
   
-  const buildingMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#f8fafc",
-    metalness: 0.1,
-    roughness: 0.4,
-    emissive: "#f1f5f9",
-    emissiveIntensity: 0.1
-  }), []);
-
-  const roofMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#e2e8f0",
-    metalness: 0.2,
-    roughness: 0.3
-  }), []);
-
-  const crossMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#10b981",
-    emissive: "#10b981",
-    emissiveIntensity: 0.5,
-    metalness: 0.3,
-    roughness: 0.2
-  }), []);
-
-  const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#0ea5e9",
-    transparent: true,
-    opacity: 0.7,
-    emissive: "#0ea5e9",
-    emissiveIntensity: 0.2
-  }), []);
-
-  const entranceMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#dc2626",
-    emissive: "#dc2626",
-    emissiveIntensity: 0.3
-  }), []);
-
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 2) * 0.03);
@@ -220,24 +162,42 @@ const HospitalBuilding = ({ position }: { position: [number, number, number] }) 
       {/* Main hospital building */}
       <mesh ref={meshRef} position={[0, 1, 0]}>
         <boxGeometry args={[2, 3, 2]} />
-        <primitive object={buildingMaterial} attach="material" />
+        <meshStandardMaterial 
+          color="#f8fafc" 
+          metalness={0.1} 
+          roughness={0.4} 
+          emissive="#f1f5f9" 
+          emissiveIntensity={0.1} 
+        />
       </mesh>
       
       {/* Hospital roof */}
       <mesh position={[0, 2.7, 0]}>
         <boxGeometry args={[2.2, 0.4, 2.2]} />
-        <primitive object={roofMaterial} attach="material" />
+        <meshStandardMaterial color="#e2e8f0" metalness={0.2} roughness={0.3} />
       </mesh>
       
       {/* Medical cross on building */}
       <group ref={crossRef} position={[0, 2, 1.1]}>
         <mesh>
           <boxGeometry args={[0.6, 0.15, 0.1]} />
-          <primitive object={crossMaterial} attach="material" />
+          <meshStandardMaterial 
+            color="#10b981" 
+            emissive="#10b981" 
+            emissiveIntensity={0.5} 
+            metalness={0.3} 
+            roughness={0.2} 
+          />
         </mesh>
         <mesh>
           <boxGeometry args={[0.15, 0.6, 0.1]} />
-          <primitive object={crossMaterial} attach="material" />
+          <meshStandardMaterial 
+            color="#10b981" 
+            emissive="#10b981" 
+            emissiveIntensity={0.5} 
+            metalness={0.3} 
+            roughness={0.2} 
+          />
         </mesh>
       </group>
       
@@ -248,14 +208,20 @@ const HospitalBuilding = ({ position }: { position: [number, number, number] }) 
       ].map((pos, i) => (
         <mesh key={i} position={pos as [number, number, number]}>
           <boxGeometry args={[0.4, 0.4, 0.02]} />
-          <primitive object={windowMaterial} attach="material" />
+          <meshStandardMaterial 
+            color="#0ea5e9" 
+            transparent 
+            opacity={0.7} 
+            emissive="#0ea5e9" 
+            emissiveIntensity={0.2} 
+          />
         </mesh>
       ))}
       
       {/* Emergency entrance */}
       <mesh position={[0, 0.5, 1.01]}>
         <boxGeometry args={[0.8, 1, 0.02]} />
-        <primitive object={entranceMaterial} attach="material" />
+        <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.3} />
       </mesh>
     </group>
   );
@@ -266,38 +232,6 @@ const MedicalHelicopter = ({ position }: { position: [number, number, number] })
   const meshRef = useRef<THREE.Group>(null);
   const rotorRef = useRef<THREE.Mesh>(null);
   
-  const helicopterBodyMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#ffffff",
-    metalness: 0.4,
-    roughness: 0.3
-  }), []);
-
-  const cockpitMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#0ea5e9",
-    transparent: true,
-    opacity: 0.8,
-    metalness: 0.6,
-    roughness: 0.1
-  }), []);
-
-  const rotorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#374151",
-    metalness: 0.8,
-    roughness: 0.2
-  }), []);
-
-  const crossMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#dc2626",
-    emissive: "#dc2626",
-    emissiveIntensity: 0.4
-  }), []);
-
-  const skidMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#374151",
-    metalness: 0.7,
-    roughness: 0.3
-  }), []);
-
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 2) * 0.15;
@@ -313,24 +247,30 @@ const MedicalHelicopter = ({ position }: { position: [number, number, number] })
       {/* Helicopter body */}
       <mesh>
         <sphereGeometry args={[0.8, 16, 8]} />
-        <primitive object={helicopterBodyMaterial} attach="material" />
+        <meshStandardMaterial color="#ffffff" metalness={0.4} roughness={0.3} />
       </mesh>
       
       {/* Cockpit */}
       <mesh position={[0, 0.2, 0.6]}>
         <sphereGeometry args={[0.5, 8, 6]} />
-        <primitive object={cockpitMaterial} attach="material" />
+        <meshStandardMaterial 
+          color="#0ea5e9" 
+          transparent 
+          opacity={0.8} 
+          metalness={0.6} 
+          roughness={0.1} 
+        />
       </mesh>
       
       {/* Main rotor */}
       <group position={[0, 1.2, 0]}>
         <mesh ref={rotorRef}>
           <boxGeometry args={[3, 0.05, 0.1]} />
-          <primitive object={rotorMaterial} attach="material" />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
         </mesh>
         <mesh ref={rotorRef} rotation={[0, Math.PI/2, 0]}>
           <boxGeometry args={[3, 0.05, 0.1]} />
-          <primitive object={rotorMaterial} attach="material" />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
         </mesh>
       </group>
       
@@ -338,132 +278,29 @@ const MedicalHelicopter = ({ position }: { position: [number, number, number] })
       <group position={[0, 0, -0.81]}>
         <mesh>
           <boxGeometry args={[0.4, 0.1, 0.02]} />
-          <primitive object={crossMaterial} attach="material" />
+          <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.4} />
         </mesh>
         <mesh>
           <boxGeometry args={[0.1, 0.4, 0.02]} />
-          <primitive object={crossMaterial} attach="material" />
+          <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.4} />
         </mesh>
       </group>
       
       {/* Landing skids */}
       <mesh position={[-0.6, -0.6, 0]}>
         <boxGeometry args={[0.1, 0.1, 1.2]} />
-        <primitive object={skidMaterial} attach="material" />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
       </mesh>
       <mesh position={[0.6, -0.6, 0]}>
         <boxGeometry args={[0.1, 0.1, 1.2]} />
-        <primitive object={skidMaterial} attach="material" />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
       </mesh>
     </group>
   );
 };
 
-// Fixed Medical Route Path component
-const MedicalRoutePath = ({ start, end }: { start: [number, number, number], end: [number, number, number] }) => {
-  const lineRef = useRef<THREE.Line>(null);
-  
-  const { points, lineMaterial } = useMemo(() => {
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(...start),
-      new THREE.Vector3((start[0] + end[0]) / 2, start[1] + 3, (start[2] + end[2]) / 2),
-      new THREE.Vector3(...end)
-    ]);
-    const pts = curve.getPoints(100);
-    
-    const material = new THREE.LineBasicMaterial({
-      color: "#10b981",
-      transparent: true,
-      opacity: 0.8,
-      linewidth: 3
-    });
-    return { points: pts, lineMaterial: material };
-  }, [start, end]);
-
-  const lineGeometry = useMemo(() => {
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    return geometry;
-  }, [points]);
-
-  useFrame((state) => {
-    if (lineRef.current) {
-      const material = lineRef.current.material as THREE.LineBasicMaterial;
-      material.opacity = 0.6 + Math.sin(state.clock.elapsedTime * 3) * 0.3;
-    }
-  });
-
-  return (
-    <line ref={lineRef}>
-      <primitive object={lineGeometry} attach="geometry" />
-      <primitive object={lineMaterial} attach="material" />
-    </line>
-  );
-};
-
-// Medical particles (like medical data flowing)
-const MedicalParticles = () => {
-  const particlesRef = useRef<THREE.Points>(null);
-  
-  const { particleGeometry, particleMaterial } = useMemo(() => {
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(200 * 3);
-    const colors = new Float32Array(200 * 3);
-    
-    for (let i = 0; i < 200; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 30;
-      positions[i * 3 + 1] = Math.random() * 15;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
-      
-      // Medical-themed colors (green, blue, white)
-      const colorChoice = Math.random();
-      if (colorChoice < 0.33) {
-        colors[i * 3] = 0.06; colors[i * 3 + 1] = 0.73; colors[i * 3 + 2] = 0.51; // Green
-      } else if (colorChoice < 0.66) {
-        colors[i * 3] = 0.06; colors[i * 3 + 1] = 0.65; colors[i * 3 + 2] = 0.91; // Blue
-      } else {
-        colors[i * 3] = 1; colors[i * 3 + 1] = 1; colors[i * 3 + 2] = 1; // White
-      }
-    }
-    
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    
-    const material = new THREE.PointsMaterial({
-      size: 0.15,
-      transparent: true,
-      opacity: 0.8,
-      vertexColors: true,
-      sizeAttenuation: true
-    });
-    
-    return { particleGeometry: geometry, particleMaterial: material };
-  }, []);
-
-  useFrame((state) => {
-    if (particlesRef.current) {
-      particlesRef.current.rotation.y = state.clock.elapsedTime * 0.05;
-      particlesRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.1) * 0.1;
-    }
-  });
-
-  return (
-    <points ref={particlesRef}>
-      <primitive object={particleGeometry} attach="geometry" />
-      <primitive object={particleMaterial} attach="material" />
-    </points>
-  );
-};
-
 // Main enhanced medical 3D scene
 const Scene3D = () => {
-  const groundMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#f1f5f9",
-    transparent: true,
-    opacity: 0.2,
-    metalness: 0.1,
-    roughness: 0.9
-  }), []);
-
   return (
     <div className="w-full h-full">
       <Canvas
@@ -478,8 +315,6 @@ const Scene3D = () => {
           intensity={1.2} 
           color="#ffffff"
           castShadow 
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
         />
         <pointLight position={[0, 15, 0]} intensity={0.6} color="#10b981" />
         <spotLight 
@@ -487,7 +322,6 @@ const Scene3D = () => {
           angle={0.4} 
           intensity={0.8} 
           color="#0ea5e9"
-          penumbra={0.5}
         />
         
         {/* Subtle medical atmosphere fog */}
@@ -502,18 +336,16 @@ const Scene3D = () => {
         <HospitalBuilding position={[4, 0, -6]} />
         <HospitalBuilding position={[-2, 0, 8]} />
         
-        {/* Medical route paths */}
-        <MedicalRoutePath start={[-6, 2, 0]} end={[6, 2, 2]} />
-        <MedicalRoutePath start={[-6, 2, 0]} end={[4, 2, -6]} />
-        <MedicalRoutePath start={[0, 8, -5]} end={[6, 5, 2]} />
-        
-        {/* Medical data particles */}
-        <MedicalParticles />
-        
         {/* Professional ground plane */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]} receiveShadow>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]}>
           <planeGeometry args={[50, 50]} />
-          <primitive object={groundMaterial} attach="material" />
+          <meshStandardMaterial 
+            color="#f1f5f9" 
+            transparent 
+            opacity={0.2} 
+            metalness={0.1} 
+            roughness={0.9} 
+          />
         </mesh>
         
         <OrbitControls />
