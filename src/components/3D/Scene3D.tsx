@@ -6,14 +6,7 @@ import * as THREE from 'three';
 // Simple orbit controls component
 const OrbitControls = () => {
   const { camera, gl } = useThree();
-  const controlsRef = useRef<any>();
   
-  useFrame(() => {
-    if (controlsRef.current) {
-      controlsRef.current.update();
-    }
-  });
-
   React.useEffect(() => {
     // Simple manual orbit controls
     let mouseDown = false;
@@ -79,40 +72,88 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
     }
   });
 
+  const whiteMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#ffffff", 
+    metalness: 0.1, 
+    roughness: 0.3 
+  }), []);
+
+  const cabinMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#f8f9fa", 
+    metalness: 0.2, 
+    roughness: 0.4 
+  }), []);
+
+  const crossMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#dc2626", 
+    emissive: "#dc2626", 
+    emissiveIntensity: 0.3 
+  }), []);
+
+  const redLightMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#ef4444", 
+    emissive: "#ef4444", 
+    emissiveIntensity: 1.2 
+  }), []);
+
+  const blueLightMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#3b82f6", 
+    emissive: "#3b82f6", 
+    emissiveIntensity: 1.2 
+  }), []);
+
+  const wheelMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#1f2937", 
+    metalness: 0.8, 
+    roughness: 0.2 
+  }), []);
+
+  const rimMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#6b7280", 
+    metalness: 0.9, 
+    roughness: 0.1 
+  }), []);
+
+  const equipmentMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#f3f4f6", 
+    metalness: 0.3, 
+    roughness: 0.6 
+  }), []);
+
   return (
     <group position={position} rotation={rotation}>
       {/* Main ambulance body */}
       <mesh ref={meshRef}>
         <boxGeometry args={[2.2, 1.2, 4.5]} />
-        <meshStandardMaterial color="#ffffff" metalness={0.1} roughness={0.3} />
+        <primitive object={whiteMaterial} attach="material" />
       </mesh>
       
       {/* Ambulance cabin */}
       <mesh position={[0, 0.3, 1.8]}>
         <boxGeometry args={[2, 1, 1.5]} />
-        <meshStandardMaterial color="#f8f9fa" metalness={0.2} roughness={0.4} />
+        <primitive object={cabinMaterial} attach="material" />
       </mesh>
       
       {/* Medical cross */}
       <group position={[0, 0.7, 0]}>
         <mesh>
           <boxGeometry args={[0.4, 0.15, 1.2]} />
-          <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.3} />
+          <primitive object={crossMaterial} attach="material" />
         </mesh>
         <mesh rotation={[0, 0, Math.PI / 2]}>
           <boxGeometry args={[0.4, 0.15, 1.2]} />
-          <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.3} />
+          <primitive object={crossMaterial} attach="material" />
         </mesh>
       </group>
       
       {/* Emergency lights */}
       <mesh ref={lightRef1} position={[-0.9, 1, 1.8]}>
         <sphereGeometry args={[0.15]} />
-        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={1.2} />
+        <primitive object={redLightMaterial} attach="material" />
       </mesh>
       <mesh ref={lightRef2} position={[0.9, 1, 1.8]}>
         <sphereGeometry args={[0.15]} />
-        <meshStandardMaterial color="#3b82f6" emissive="#3b82f6" emissiveIntensity={1.2} />
+        <primitive object={blueLightMaterial} attach="material" />
       </mesh>
       
       {/* Wheels */}
@@ -125,11 +166,11 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
         <group key={i} position={pos as [number, number, number]}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.35, 0.35, 0.25]} />
-            <meshStandardMaterial color="#1f2937" metalness={0.8} roughness={0.2} />
+            <primitive object={wheelMaterial} attach="material" />
           </mesh>
           <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.13]}>
             <cylinderGeometry args={[0.25, 0.25, 0.05]} />
-            <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+            <primitive object={rimMaterial} attach="material" />
           </mesh>
         </group>
       ))}
@@ -137,7 +178,7 @@ const MedicalAmbulance = ({ position, rotation }: { position: [number, number, n
       {/* Medical equipment on back */}
       <mesh position={[0, 0, -2.4]}>
         <boxGeometry args={[1.8, 0.8, 0.3]} />
-        <meshStandardMaterial color="#f3f4f6" metalness={0.3} roughness={0.6} />
+        <primitive object={equipmentMaterial} attach="material" />
       </mesh>
     </group>
   );
@@ -157,47 +198,65 @@ const HospitalBuilding = ({ position }: { position: [number, number, number] }) 
     }
   });
 
+  const buildingMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#f8fafc", 
+    metalness: 0.1, 
+    roughness: 0.4, 
+    emissive: "#f1f5f9", 
+    emissiveIntensity: 0.1 
+  }), []);
+
+  const roofMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#e2e8f0", 
+    metalness: 0.2, 
+    roughness: 0.3 
+  }), []);
+
+  const greenCrossMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#10b981", 
+    emissive: "#10b981", 
+    emissiveIntensity: 0.5, 
+    metalness: 0.3, 
+    roughness: 0.2 
+  }), []);
+
+  const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#0ea5e9", 
+    transparent: true, 
+    opacity: 0.7, 
+    emissive: "#0ea5e9", 
+    emissiveIntensity: 0.2 
+  }), []);
+
+  const entranceMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#dc2626", 
+    emissive: "#dc2626", 
+    emissiveIntensity: 0.3 
+  }), []);
+
   return (
     <group position={position}>
       {/* Main hospital building */}
       <mesh ref={meshRef} position={[0, 1, 0]}>
         <boxGeometry args={[2, 3, 2]} />
-        <meshStandardMaterial 
-          color="#f8fafc" 
-          metalness={0.1} 
-          roughness={0.4} 
-          emissive="#f1f5f9" 
-          emissiveIntensity={0.1} 
-        />
+        <primitive object={buildingMaterial} attach="material" />
       </mesh>
       
       {/* Hospital roof */}
       <mesh position={[0, 2.7, 0]}>
         <boxGeometry args={[2.2, 0.4, 2.2]} />
-        <meshStandardMaterial color="#e2e8f0" metalness={0.2} roughness={0.3} />
+        <primitive object={roofMaterial} attach="material" />
       </mesh>
       
       {/* Medical cross on building */}
       <group ref={crossRef} position={[0, 2, 1.1]}>
         <mesh>
           <boxGeometry args={[0.6, 0.15, 0.1]} />
-          <meshStandardMaterial 
-            color="#10b981" 
-            emissive="#10b981" 
-            emissiveIntensity={0.5} 
-            metalness={0.3} 
-            roughness={0.2} 
-          />
+          <primitive object={greenCrossMaterial} attach="material" />
         </mesh>
         <mesh>
           <boxGeometry args={[0.15, 0.6, 0.1]} />
-          <meshStandardMaterial 
-            color="#10b981" 
-            emissive="#10b981" 
-            emissiveIntensity={0.5} 
-            metalness={0.3} 
-            roughness={0.2} 
-          />
+          <primitive object={greenCrossMaterial} attach="material" />
         </mesh>
       </group>
       
@@ -208,20 +267,14 @@ const HospitalBuilding = ({ position }: { position: [number, number, number] }) 
       ].map((pos, i) => (
         <mesh key={i} position={pos as [number, number, number]}>
           <boxGeometry args={[0.4, 0.4, 0.02]} />
-          <meshStandardMaterial 
-            color="#0ea5e9" 
-            transparent 
-            opacity={0.7} 
-            emissive="#0ea5e9" 
-            emissiveIntensity={0.2} 
-          />
+          <primitive object={windowMaterial} attach="material" />
         </mesh>
       ))}
       
       {/* Emergency entrance */}
       <mesh position={[0, 0.5, 1.01]}>
         <boxGeometry args={[0.8, 1, 0.02]} />
-        <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.3} />
+        <primitive object={entranceMaterial} attach="material" />
       </mesh>
     </group>
   );
@@ -242,35 +295,61 @@ const MedicalHelicopter = ({ position }: { position: [number, number, number] })
     }
   });
 
+  const bodyMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#ffffff", 
+    metalness: 0.4, 
+    roughness: 0.3 
+  }), []);
+
+  const cockpitMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#0ea5e9", 
+    transparent: true, 
+    opacity: 0.8, 
+    metalness: 0.6, 
+    roughness: 0.1 
+  }), []);
+
+  const rotorMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#374151", 
+    metalness: 0.8, 
+    roughness: 0.2 
+  }), []);
+
+  const heliCrossMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#dc2626", 
+    emissive: "#dc2626", 
+    emissiveIntensity: 0.4 
+  }), []);
+
+  const skidMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#374151", 
+    metalness: 0.7, 
+    roughness: 0.3 
+  }), []);
+
   return (
     <group ref={meshRef} position={position}>
       {/* Helicopter body */}
       <mesh>
         <sphereGeometry args={[0.8, 16, 8]} />
-        <meshStandardMaterial color="#ffffff" metalness={0.4} roughness={0.3} />
+        <primitive object={bodyMaterial} attach="material" />
       </mesh>
       
       {/* Cockpit */}
       <mesh position={[0, 0.2, 0.6]}>
         <sphereGeometry args={[0.5, 8, 6]} />
-        <meshStandardMaterial 
-          color="#0ea5e9" 
-          transparent 
-          opacity={0.8} 
-          metalness={0.6} 
-          roughness={0.1} 
-        />
+        <primitive object={cockpitMaterial} attach="material" />
       </mesh>
       
       {/* Main rotor */}
       <group position={[0, 1.2, 0]}>
         <mesh ref={rotorRef}>
           <boxGeometry args={[3, 0.05, 0.1]} />
-          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+          <primitive object={rotorMaterial} attach="material" />
         </mesh>
         <mesh ref={rotorRef} rotation={[0, Math.PI/2, 0]}>
           <boxGeometry args={[3, 0.05, 0.1]} />
-          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+          <primitive object={rotorMaterial} attach="material" />
         </mesh>
       </group>
       
@@ -278,22 +357,22 @@ const MedicalHelicopter = ({ position }: { position: [number, number, number] })
       <group position={[0, 0, -0.81]}>
         <mesh>
           <boxGeometry args={[0.4, 0.1, 0.02]} />
-          <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.4} />
+          <primitive object={heliCrossMaterial} attach="material" />
         </mesh>
         <mesh>
           <boxGeometry args={[0.1, 0.4, 0.02]} />
-          <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.4} />
+          <primitive object={heliCrossMaterial} attach="material" />
         </mesh>
       </group>
       
       {/* Landing skids */}
       <mesh position={[-0.6, -0.6, 0]}>
         <boxGeometry args={[0.1, 0.1, 1.2]} />
-        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+        <primitive object={skidMaterial} attach="material" />
       </mesh>
       <mesh position={[0.6, -0.6, 0]}>
         <boxGeometry args={[0.1, 0.1, 1.2]} />
-        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+        <primitive object={skidMaterial} attach="material" />
       </mesh>
     </group>
   );
@@ -301,6 +380,14 @@ const MedicalHelicopter = ({ position }: { position: [number, number, number] })
 
 // Main enhanced medical 3D scene
 const Scene3D = () => {
+  const groundMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#f1f5f9", 
+    transparent: true, 
+    opacity: 0.2, 
+    metalness: 0.1, 
+    roughness: 0.9 
+  }), []);
+
   return (
     <div className="w-full h-full">
       <Canvas
@@ -339,13 +426,7 @@ const Scene3D = () => {
         {/* Professional ground plane */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]}>
           <planeGeometry args={[50, 50]} />
-          <meshStandardMaterial 
-            color="#f1f5f9" 
-            transparent 
-            opacity={0.2} 
-            metalness={0.1} 
-            roughness={0.9} 
-          />
+          <primitive object={groundMaterial} attach="material" />
         </mesh>
         
         <OrbitControls />
