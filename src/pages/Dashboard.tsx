@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +24,8 @@ import {
   MessageSquare,
   Stethoscope,
   Timer,
-  Zap
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 import NearbyHospitals from '@/components/NearbyHospitals';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -35,6 +35,7 @@ const Dashboard = () => {
   const { profile } = useAuth();
   const [location, setLocation] = useState<{lat: number, lng: number, address?: string} | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [onlineStatus, setOnlineStatus] = useState(true);
   const [emergencyMode, setEmergencyMode] = useState(false);
@@ -45,40 +46,123 @@ const Dashboard = () => {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Get user's location
-    if (navigator.geolocation) {
+    // Get user's location with better error handling
+    getCurrentLocation();
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const getCurrentLocation = async () => {
+    setIsLoading(true);
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by this browser');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // First check if permission is already granted
+      const permission = await navigator.permissions.query({name: 'geolocation'});
+      console.log('Geolocation permission status:', permission.state);
+
+      if (permission.state === 'denied') {
+        setLocationError('Location access has been denied. Please enable location access in your browser settings.');
+        setIsLoading(false);
+        return;
+      }
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      };
+
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
+          console.log('Location obtained:', position.coords);
           const userLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
           
           setLocation(userLocation);
+          setLocationError(null);
           
           // Try to get address from coordinates
-          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
-            .then(response => response.json())
-            .then(data => {
-              if (data && data.display_name) {
-                setLocation(prev => prev ? {...prev, address: data.display_name} : null);
-              }
-            })
-            .catch(error => console.error('Error fetching address:', error))
-            .finally(() => setIsLoading(false));
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&addressdetails=1`
+            );
+            const data = await response.json();
+            
+            if (data && data.display_name) {
+              setLocation(prev => prev ? {...prev, address: data.display_name} : null);
+            }
+          } catch (addressError) {
+            console.error('Error fetching address:', addressError);
+            // Don't show address error to user, location coords are more important
+          }
+          
+          setIsLoading(false);
         },
         (error) => {
-          console.error('Error getting location:', error);
+          console.error('Geolocation error:', error);
+          let errorMessage = 'Unable to retrieve your location';
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location access denied. Please allow location access and refresh the page.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information is unavailable. Please check your GPS/location services.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out. Please try again.';
+              break;
+            default:
+              errorMessage = `Location error: ${error.message}`;
+              break;
+          }
+          
+          setLocationError(errorMessage);
           setIsLoading(false);
-        }
+        },
+        options
       );
-    } else {
-      console.error('Geolocation not supported');
-      setIsLoading(false);
-    }
+    } catch (error) {
+      console.error('Error checking geolocation permission:', error);
+      // Fallback for browsers that don't support permissions API
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      };
 
-    return () => clearInterval(timer);
-  }, []);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          
+          setLocation(userLocation);
+          setLocationError(null);
+          setIsLoading(false);
+        },
+        (error) => {
+          setLocationError('Unable to access location. Please enable location services.');
+          setIsLoading(false);
+        },
+        options
+      );
+    }
+  };
+
+  const handleRetryLocation = () => {
+    getCurrentLocation();
+  };
 
   const emergencyStats = [
     { 
@@ -249,7 +333,7 @@ const Dashboard = () => {
         </CardContent>
       </Card>
       
-      {/* Enhanced Location Card */}
+      {/* Enhanced Location Card with better error handling */}
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2">
@@ -263,6 +347,23 @@ const Dashboard = () => {
             <div className="flex items-center gap-3 text-muted-foreground p-6 bg-muted/30 rounded-xl">
               <Loader2 className="h-5 w-5 animate-spin text-medical" />
               <span className="font-medium">Acquiring location...</span>
+            </div>
+          ) : locationError ? (
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 p-6 rounded-xl border border-red-200 dark:border-red-800">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertTriangle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-semibold text-red-800 dark:text-red-200">Location Access Issue</div>
+                  <div className="text-sm text-red-600 dark:text-red-300 mt-1">{locationError}</div>
+                </div>
+              </div>
+              <Button 
+                onClick={handleRetryLocation} 
+                className="bg-red-600 hover:bg-red-700 text-white gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Retry Location Access
+              </Button>
             </div>
           ) : location ? (
             <div className="space-y-4">
@@ -311,17 +412,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 p-6 rounded-xl border border-red-200 dark:border-red-800">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-6 w-6 text-red-600 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold text-red-800 dark:text-red-200">Location Access Required</div>
-                  <div className="text-sm text-red-600 dark:text-red-300 mt-1">Please enable location services for emergency response</div>
-                </div>
-              </div>
-            </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
